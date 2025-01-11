@@ -1,17 +1,89 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
-        {% block stylesheets %}
-        {% endblock %}
+<html lang="fr">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>{% block title %}{% endblock %}- KidCare Manager</title>
+		<meta
+		name="description" content="{% block meta_description %}Application de gestion des heures de garde d'enfants{% endblock %}">
 
-        {% block javascripts %}
-            {% block importmap %}{{ importmap('app') }}{% endblock %}
-        {% endblock %}
-    </head>
-    <body>
-        {% block body %}{% endblock %}
-    </body>
-</html>
+		{# Favicon #}
+		<link
+		rel="icon" href="{{ asset('favicon.ico') }}">
+
+		{# Assets #}
+		{% block javascripts %}
+			{% block importmap %}
+				{{ importmap('app') }}
+			{% endblock %}
+		{% endblock %}
+
+		{% block stylesheets %}
+			<link rel="stylesheet" href="{{ asset('styles/app.tailwind.css') }}">
+		{% endblock %}
+	</head>
+	<body
+		class="min-h-screen bg-gray-50">
+		{# Header #}
+		<header class="bg-white shadow">
+			<nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+				<div class="flex justify-between h-16">
+					<div class="flex">
+						<a href="{{ path('app_home') }}" class="flex items-center">
+							<span class="text-xl font-bold text-indigo-600">KidCare Manager</span>
+						</a>
+					</div>
+                    {% if app.user %}
+					{# Menu principal #}
+					<div class="hidden sm:ml-6 sm:flex sm:items-center">
+						{% block navigation %}
+							<a href="#" class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600">Tableau de bord</a>
+							<a href="#" class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600">Planification</a>
+							<a href="#" class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600">Historique</a>
+						{% endblock %}
+					</div>
+                    {% endif %}
+					{# Menu utilisateur #}
+					<div class="flex items-center space-x-4">
+						{% if app.user %}
+							<div class="flex items-center">
+								<span class="text-sm font-medium text-gray-700">{{ app.user.username }}</span>
+								<a href="{{ path('app_logout') }}" class="ml-4 text-sm text-gray-700 hover:text-indigo-600 transition-colors">
+									Déconnexion
+								</a>
+							</div>
+						{% else %}
+							<div class="flex items-center space-x-4">
+								<a href="{{ path('app_login') }}" class="text-sm text-gray-700 hover:text-indigo-600 transition-colors">
+									Connexion
+								</a>
+								<span class="text-gray-300">|</span>
+								<a href="{{ path('app_register') }}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
+									S'inscrire
+								</a>
+							</div>
+						{% endif %}
+					</div>
+				</div>
+			</nav>
+		</header>
+
+		{# Messages Flash #}
+		<div id="flash-messages" data-flashes='{{ app.flashes|json_encode }}' {{ stimulus_controller('notyf') }}></div>
+
+		{# Contenu principal #}
+		<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"> {% block body %}{% endblock %}
+			</main>
+
+			{# Footer #}
+			<footer class="bg-white border-t border-gray-200 mt-auto">
+				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+					<div class="text-center text-sm text-gray-500">
+						<p>&copy;
+							{{ "now"|date("Y") }}
+							KidCare Manager. Tous droits réservés.</p>
+					</div>
+				</div>
+			</footer>
+		</body>
+	</html>
