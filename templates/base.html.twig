@@ -68,11 +68,11 @@
 		<div id="flash-messages" data-flashes='{{ app.flashes|json_encode }}' {{ stimulus_controller('notyf') }}></div>
 
 		{# Contenu principal #}
-		<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"> {% block body %}{% endblock %}</main>
+		<main class="mx-auto px-2 py-4"> {% block body %}{% endblock %}</main>
 
 		{# Footer #}
 		<footer class="bg-white border-t border-gray-200 mt-auto">
-			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+			<div class="mx-auto px-4 py-3">
 				<div class="text-center text-sm text-gray-500">
 					<p>&copy;
 						{{ "now"|date("Y") }}
