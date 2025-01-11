@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Planning des gardes
+{% endblock %}
+
+{% block body %}
+	<div class="container mx-auto px-4 sm:px-6 lg:px-8">
+		<div
+			class="flex flex-col space-y-6">
+			{# En-tête avec sélection de nounou #}
+			<div class="sm:flex sm:items-center sm:justify-between">
+				<div>
+					<h1 class="text-2xl font-semibold text-gray-900">Planning des gardes</h1>
+					{% if selected_nanny %}
+						<p class="mt-2 text-sm text-gray-700">Planning de
+							{{ selected_nanny.firstname }}
+							{{ selected_nanny.lastname }}</p>
+					{% else %}
+						<p class="mt-2 text-sm text-gray-700">Sélectionnez une nounou pour voir son planning</p>
+					{% endif %}
+				</div>
+
+				{# Dropdown de sélection de nounou #}
+				<div class="mt-4 sm:mt-0">
+					<select onchange="if(this.value) window.location.href=this.value" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+						<option value="{{ path('app_care_index') }}" {% if not selected_nanny %} selected {% endif %}>
+							Choisir une nounou
+						</option>
+						{% for nanny in nannies %}
+							<option value="{{ path('app_care_index', {'id': nanny.id}) }}" {% if selected_nanny and selected_nanny.id == nanny.id %} selected {% endif %}>
+								{{ nanny.firstname }}
+								{{ nanny.lastname }}
+							</option>
+						{% endfor %}
+					</select>
+				</div>
+			</div>
+
+			{% if selected_nanny %}
+				<div class="bg-white p-6 rounded-lg shadow">
+					<div data-controller="calendar" data-calendar-events-value="{{ events|json_encode|e('html_attr') }}" data-calendar-nanny-id-value="{{ selected_nanny.id }}">
+						<div data-calendar-target="calendar"></div>
+					</div>
+				</div>
+			{% endif %}
+		</div>
+	</div>
+{% endblock %}
