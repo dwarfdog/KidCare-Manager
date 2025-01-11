@@ -16,6 +16,25 @@ class CareRepository extends ServiceEntityRepository
         parent::__construct($registry, Care::class);
     }
 
+    public function findConflictingCare(int $nannyId, string $date, string $startTime, string $endTime): ?Care
+    {
+        $qb = $this->createQueryBuilder('c');
+        $qb->where('c.nanny = :nannyId')
+        ->andWhere('c.date = :date')
+        ->andWhere('(
+                (c.startTime <= :startTime AND c.endTime > :startTime) OR
+                (c.startTime < :endTime AND c.endTime >= :endTime) OR
+                (c.startTime >= :startTime AND c.endTime <= :endTime)
+            )')
+        ->setParameter('nannyId', $nannyId)
+        ->setParameter('date', $date)
+        ->setParameter('startTime', new \DateTime($startTime), \Doctrine\DBAL\Types\Types::TIME_MUTABLE)
+        ->setParameter('endTime', new \DateTime($endTime), \Doctrine\DBAL\Types\Types::TIME_MUTABLE);
+
+        return $qb->getQuery()->getOneOrNullResult();
+    }
+
+
     //    /**
     //     * @return Care[] Returns an array of Care objects
     //     */

@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import { Notyf } from "notyf";
+import 'notyf/notyf.min.css';
 export default class extends Controller {
     connect() {
         this.flashesValue = JSON.parse(this.element.dataset.flashes || "{}");

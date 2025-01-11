@@ -35,7 +35,7 @@ class Nanny
      * @var Collection<int, User>
      */
     #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'nannies')]
-    private Collection $users;
+    private Collection $user;
 
     /**
      * @var Collection<int, Care>
@@ -52,7 +52,7 @@ class Nanny
     public function __construct()
     {
         $this->createdAt = new \DateTime();
-        $this->users = new ArrayCollection();
+        $this->user = new ArrayCollection();
         $this->cares = new ArrayCollection();
         $this->monthlyPayments = new ArrayCollection();
     }
@@ -127,13 +127,13 @@ class Nanny
      */
     public function getUsers(): Collection
     {
-        return $this->users;
+        return $this->user;
     }
 
     public function addUser(User $user): static
     {
-        if (!$this->users->contains($user)) {
-            $this->users->add($user);
+        if (!$this->user->contains($user)) {
+            $this->user->add($user);
         }
 
         return $this;
@@ -141,7 +141,7 @@ class Nanny
 
     public function removeUser(User $user): static
     {
-        $this->users->removeElement($user);
+        $this->user->removeElement($user);
 
         return $this;
     }
