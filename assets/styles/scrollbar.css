@@ -1,0 +1,26 @@
+/* Style pour le scrollbar global de la page */
+body::-webkit-scrollbar {
+    width: 4px;
+}
+body::-webkit-scrollbar-track {
+    background-color: #eef2ff; /* indigo-50 */
+}
+body::-webkit-scrollbar-thumb {
+    background-color: #6366f1; /* indigo-600 */
+    border-radius: 2px;
+}
+.custom-scroll::-webkit-scrollbar {
+    width: 4px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+    background-color: #eef2ff; /* indigo-50 */
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+    background-color: #6366f1; /* indigo-600 */
+    border-radius: 2px;
+}
+body::-webkit-scrollbar-thumb:horizontal {
+    height: 4px;
+    background-color: #6366f1; /* indigo-600 */
+    border-radius: 2px;
+}
