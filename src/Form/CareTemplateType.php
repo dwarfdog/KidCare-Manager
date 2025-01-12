@@ -4,8 +4,6 @@ namespace App\Form;
 
 use App\Entity\CareTemplate;
 use App\Entity\Nanny;
-use App\Entity\Care;
-use Doctrine\ORM\EntityRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -20,20 +18,13 @@ class CareTemplateType extends AbstractType
             ->add('name', TextType::class, [
                 'label' => 'Nom du template',
                 'attr' => [
-                    'placeholder' => 'Ex: Semaine type école'
+                    'placeholder' => 'Ex: Semaine type école',
                 ]
             ])
             ->add('nanny', EntityType::class, [
                 'class' => Nanny::class,
                 'label' => 'Nounou',
-                'query_builder' => function (EntityRepository $repository) use ($options) {
-                    return $repository->createQueryBuilder('n')
-                        ->distinct()
-                        ->innerJoin(Care::class, 'c', 'WITH', 'c.nanny = n')
-                        ->where('c.user = :user')
-                        ->setParameter('user', $options['user'])
-                        ->orderBy('n.lastname', 'ASC');
-                },
+                'choices' => $options['user']->getNannies(), // Utilisation directe des nounous de l'utilisateur
                 'placeholder' => 'Choisir une nounou',
             ])
         ;
