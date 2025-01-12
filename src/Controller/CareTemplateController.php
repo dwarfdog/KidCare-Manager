@@ -134,4 +134,46 @@ class CareTemplateController extends AbstractController
 
         return true;
     }
+
+    #[Route('delete/{slug}', name: 'delete', methods: ['GET'])]
+    public function delete(
+        CareTemplate $template,
+        EntityManagerInterface $entityManager
+    ): Response {
+        // Vérification de la propriété du template
+        if ($template->getUser() !== $this->getUser()) {
+            throw $this->createAccessDeniedException('Vous ne pouvez pas supprimer ce template');
+        }
+
+        // Suppression du template
+        $entityManager->remove($template);
+        $entityManager->flush();
+
+        // Message de confirmation
+        $this->addFlash('success', 'Le template a été supprimé avec succès');
+
+        // Redirection
+        return $this->redirectToRoute('app_care_template_index');
+    }
+
+    #[Route('show/{slug}', name: 'show', methods: ['GET'])]
+    public function show(
+        CareTemplate $template
+    ): Response {
+        // Vérification de la propriété du template
+        if ($template->getUser() !== $this->getUser()) {
+            throw $this->createAccessDeniedException('Vous ne pouvez pas accéder à ce template');
+        }
+
+        return $this->render('care_template/show.html.twig', [
+            'template' => $template,
+            'days' => [
+                'monday' => 'Lundi',
+                'tuesday' => 'Mardi',
+                'wednesday' => 'Mercredi',
+                'thursday' => 'Jeudi',
+                'friday' => 'Vendredi'
+            ]
+        ]);
+    }
 }
