@@ -1,0 +1,85 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détails du template de garde
+{% endblock %}
+
+{% block body %}
+	<div class="container mx-auto px-4 py-4">
+		<div class="bg-white rounded-lg shadow p-6">
+			<div class="flex justify-between items-center mb-2">
+				<h1 class="text-2xl font-bold text-gray-900">{{ template.name }}</h1>
+				<div class="flex gap-4">
+					<a href="{{ path('app_care_template_index') }}" class="bouton bouton-blue">
+						<i class="fa-solid fa-chevron-left mr-2"></i>
+						Retour
+					</a>
+					<a href="#" onclick="confirmation(
+                            event,
+                            'Suppression du template',
+                            'Êtes-vous sûr de vouloir supprimer ce template ?',
+                            '{{ path('app_care_template_delete', {'slug': template.slug}) }}'
+                        )" class="bouton bouton-red">
+						<i class="fa-solid fa-trash mr-2"></i>
+						Supprimer
+					</a>
+				</div>
+			</div>
+
+			{# Informations nounou #}
+			<div class="bg-gray-50 rounded-lg p-6 mb-2">
+				<h2 class="text-lg font-semibold mb-4">Nounou</h2>
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<p class="text-gray-600">Nom :</p>
+						<p class="font-semibold">{{ template.nanny.fullName }}</p>
+					</div>
+					<div>
+						<p class="text-gray-600">Tarif horaire :</p>
+						<p class="font-semibold">{{ template.nanny.hourlyRate|number_format(2, ',', ' ') }}
+							€</p>
+					</div>
+				</div>
+			</div>
+
+			{# Planning de la semaine #}
+			<div class="space-y-2">
+				<h2 class="text-lg font-semibold">Planning de la semaine</h2>
+
+				{% for dayKey, dayLabel in days %}
+					{% set dayConfig = template.weekSchedule[dayKey] %}
+					<div class="border rounded-lg p-4 {% if not dayConfig.isActive %}bg-gray-50{% endif %}">
+						<div class="flex items-center mb-2">
+							<h3 class="text-lg font-medium">{{ dayLabel }}</h3>
+							<span class="ml-4 px-2.5 py-0.5 rounded-full text-xs font-medium {% if dayConfig.isActive %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+								{{ dayConfig.isActive ? 'Actif' : 'Inactif' }}
+							</span>
+						</div>
+
+						{% if dayConfig.isActive and dayConfig.slots|length > 0 %}
+							<div class="space-y-2">
+								{% for slot in dayConfig.slots %}
+									<div class="bg-white p-4 rounded-lg shadow-sm">
+										<div class="grid grid-cols-3 gap-4">
+											<div>
+												<p class="text-gray-600 text-sm">Horaires :</p>
+												<p class="font-semibold">{{ slot.startTime }}
+													-
+													{{ slot.endTime }}</p>
+											</div>
+											<div>
+												<p class="text-gray-600 text-sm">Repas :</p>
+												<p class="font-semibold">{{ slot.mealsCount }}</p>
+											</div>
+										</div>
+									</div>
+								{% endfor %}
+							</div>
+						{% else %}
+							<p class="text-gray-500 italic">Aucun créneau configuré pour ce jour</p>
+						{% endif %}
+					</div>
+				{% endfor %}
+			</div>
+		</div>
+	</div>
+{% endblock %}
