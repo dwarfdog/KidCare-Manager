@@ -6,6 +6,7 @@ use App\Entity\Care;
 use App\Entity\Nanny;
 use App\Entity\MonthlyPayment;
 use App\Repository\CareRepository;
+use App\Repository\CareTemplateRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Repository\MonthlyPaymentRepository;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,7 +24,7 @@ class CareController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function index(
         CareRepository $careRepository,
-        EntityManagerInterface $em,
+        CareTemplateRepository $careTemplateRepository,
         ?Nanny $nanny = null
     ): Response {
         $user = $this->getUser();
@@ -34,19 +35,6 @@ class CareController extends AbstractController
             $this->addFlash('warning', 'Vous n\'avez pas accès à cette nounou.');
             return $this->redirectToRoute('app_care_index');
         }
-
-        // // Delete all cares from bdd
-        // $cares = $em->getRepository(Care::class)->findAll();
-        // foreach ($cares as $care) {
-        //     $em->remove($care);
-        // }
-
-        // // Delete all monthly payments from bdd
-        // $monthlyPayments = $em->getRepository(MonthlyPayment::class)->findAll();
-        // foreach ($monthlyPayments as $monthlyPayment) {
-        //     $em->remove($monthlyPayment);
-        // }
-        // $em->flush();
 
         // Récupération des gardes si une nounou est sélectionnée
         $events = [];
@@ -87,10 +75,18 @@ class CareController extends AbstractController
             }
         }
 
+        if ($nanny === null) {
+            $templates = false;
+        }
+        else {
+            $templates = $careTemplateRepository->findByUserAndNanny($user, $nanny) ?? false;
+        }
+
         return $this->render('care/index.html.twig', [
             'nannies' => $nannies,
             'selected_nanny' => $nanny,
-            'events' => $events
+            'events' => $events,
+            'templates' => $templates
         ]);
     }
 
@@ -151,7 +147,7 @@ class CareController extends AbstractController
                 // Calcul de la différence entre les deux heures
                 $interval = $startDateTime->diff($endDateTime);
                 // Convertir la différence en heures décimales
-                $hoursCount = $interval->h + ($interval->i / 60); // Heures + minutes en fraction d'heure
+                $hoursCount = round($interval->h + ($interval->i / 60), 2); // Heures + minutes en fraction d'heure
 
                 // Affecter le nombre d'heures à la garde
                 $newCare->setHoursCount($hoursCount);
@@ -159,6 +155,7 @@ class CareController extends AbstractController
                 // Persister la nouvelle garde
                 $em->persist($newCare);
             } catch (\Throwable $th) {
+                $em->rollback();
                 return new JsonResponse(['error' => 'Une erreur est survenue lors de la création de la garde.'], 500);
             }
 
@@ -176,12 +173,13 @@ class CareController extends AbstractController
                         ->setCreatedAt(new \DateTime());
                 }
             } catch (\Throwable $th) {
+                $em->rollback();
                 return new JsonResponse(['error' => 'Une erreur est survenue lors de la récupération du paiement mensuel.'], 500);
             }
 
             try {
                 // Mise à jour des totaux
-                $monthlyPayment->setTotalsHours($monthlyPayment->getTotalsHours() + $hoursCount);
+                $monthlyPayment->setTotalsHours(round($monthlyPayment->getTotalsHours() + $hoursCount, 2));
                 $monthlyPayment->setTotalMeals($monthlyPayment->getTotalMeals() + $meals);
                 // Calcul des montants
                 $amountHours = $hoursCount * $nanny->getHourlyRate();
@@ -192,6 +190,7 @@ class CareController extends AbstractController
                 // Persister le paiement mensuel
                 $em->persist($monthlyPayment);
             } catch (\Throwable $th) {
+                $em->rollback();
                 return new JsonResponse(['error' => 'Une erreur est survenue lors de la mise à jour du paiement mensuel.'], 500);
             }
 
@@ -256,7 +255,7 @@ class CareController extends AbstractController
                 $hoursCount = $interval->h + ($interval->i / 60);
                 $amountHours = $hoursCount * $nanny->getHourlyRate();
                 $amountMeals = $care->getMealsCount() * $nanny->getMealRate();
-                $monthlyPayment->setTotalsHours($monthlyPayment->getTotalsHours() - $hoursCount);
+                $monthlyPayment->setTotalsHours(round($monthlyPayment->getTotalsHours() - $hoursCount, 2));
                 $monthlyPayment->setTotalMeals($monthlyPayment->getTotalMeals() - $care->getMealsCount());
                 $monthlyPayment->setAmountHours(round($monthlyPayment->getAmountHours() - $amountHours, 2));
                 $monthlyPayment->setAmountMeals(round($monthlyPayment->getAmountMeals() - $amountMeals, 2));
