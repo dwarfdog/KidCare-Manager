@@ -2,9 +2,10 @@
 
 namespace App\Repository;
 
+use App\Entity\User;
 use App\Entity\MonthlyPayment;
-use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 
 /**
  * @extends ServiceEntityRepository<MonthlyPayment>
@@ -16,6 +17,20 @@ class MonthlyPaymentRepository extends ServiceEntityRepository
         parent::__construct($registry, MonthlyPayment::class);
     }
 
+    public function findAllExceptCurrentMonth(User $user)
+    {
+        $currentDate = new \DateTime();
+        $currentMonth = $currentDate->format('Y-m');
+
+        return $this->createQueryBuilder('mp')
+            ->where('mp.user = :user')
+            ->andWhere('mp.month != :currentMonth')
+            ->setParameter('user', $user)
+            ->setParameter('currentMonth', $currentMonth)
+            ->orderBy('mp.month', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
     //    /**
     //     * @return MonthlyPayment[] Returns an array of MonthlyPayment objects
     //     */

@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\CareRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Mapping\Annotation as Gedmo;
 
 #[ORM\Entity(repositoryClass: CareRepository::class)]
 class Care
@@ -38,9 +39,27 @@ class Care
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 
+    #[ORM\Column(length: 255, unique: true)]
+    #[Gedmo\Slug(fields: ['slugBase'])]
+    private ?string $slug = null;
+
+    #[ORM\Column(length: 255)]
+    private ?string $slugBase = null;
+
+    public function getSlugBase(): string
+    {
+        return sprintf(
+            '%s-%s-%s',
+            $this->date?->format('Y-m-d'),
+            $this->startTime?->format('H-i'),
+            $this->endTime?->format('H-i')
+        );
+    }
+
     public function __construct()
     {
         $this->createdAt = new \DateTime();
+        $this->slugBase = $this->getSlugBase();
     }
 
     public function getId(): ?int
@@ -140,6 +159,18 @@ class Care
     public function setCreatedAt(\DateTimeInterface $createdAt): static
     {
         $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    public function getSlug(): ?string
+    {
+        return $this->slug;
+    }
+
+    public function setSlug(string $slug): static
+    {
+        $this->slug = $slug;
 
         return $this;
     }

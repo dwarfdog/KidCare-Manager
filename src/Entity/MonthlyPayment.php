@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\MonthlyPaymentRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Mapping\Annotation as Gedmo;
 
 #[ORM\Entity(repositoryClass: MonthlyPaymentRepository::class)]
 class MonthlyPayment
@@ -19,9 +20,6 @@ class MonthlyPayment
 
     #[ORM\ManyToOne(inversedBy: 'monthlyPayments')]
     private ?Nanny $nanny = null;
-
-    #[ORM\Column(type: Types::DATE_MUTABLE)]
-    private ?\DateTimeInterface $month = null;
 
     #[ORM\Column(options: ['default' => 0])]
     private ?float $totalsHours = null;
@@ -41,9 +39,20 @@ class MonthlyPayment
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdAt = null;
 
+    #[ORM\Column(length: 7)]
+    private ?string $month = null;
+
+    #[ORM\Column(options: ['default' => false])]
+    private ?bool $isPaid = null;
+
+    #[ORM\Column(length: 255, unique: true)]
+    #[Gedmo\Slug(fields: ['month'])]
+    private ?string $slug = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTime();
+        $this->isPaid = false;
     }
 
     public function getId(): ?int
@@ -71,18 +80,6 @@ class MonthlyPayment
     public function setNanny(?Nanny $nanny): static
     {
         $this->nanny = $nanny;
-
-        return $this;
-    }
-
-    public function getMonth(): ?\DateTimeInterface
-    {
-        return $this->month;
-    }
-
-    public function setMonth(\DateTimeInterface $month): static
-    {
-        $this->month = $month;
 
         return $this;
     }
@@ -155,6 +152,42 @@ class MonthlyPayment
     public function setCreatedAt(\DateTimeInterface $createdAt): static
     {
         $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    public function getMonth(): ?string
+    {
+        return $this->month;
+    }
+
+    public function setMonth(string $month): static
+    {
+        $this->month = $month;
+
+        return $this;
+    }
+
+    public function isPaid(): ?bool
+    {
+        return $this->isPaid;
+    }
+
+    public function setPaid(bool $isPaid): static
+    {
+        $this->isPaid = $isPaid;
+
+        return $this;
+    }
+
+    public function getSlug(): ?string
+    {
+        return $this->slug;
+    }
+
+    public function setSlug(string $slug): static
+    {
+        $this->slug = $slug;
 
         return $this;
     }
