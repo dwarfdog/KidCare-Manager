@@ -3,7 +3,8 @@
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>{% block title %}{% endblock %}- KidCare Manager</title>
+		<title>
+			{% block title %}{% endblock %}- KidCare Manager</title>
 		<meta
 		name="description" content="{% block meta_description %}Application de gestion des heures de garde d'enfants{% endblock %}">
 
@@ -18,30 +19,31 @@
 			{{ encore_entry_script_tags('app') }}
 		{% endblock %}
 	</head>
-	<body
-		class="min-h-screen bg-gray-50">
+	<body class="min-h-screen bg-gray-50">
 		{# Header #}
 		<header class="bg-white shadow">
 			<nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-				<div class="flex justify-between h-16">
-					<div class="flex">
-						<a href="{{ path('app_home') }}" class="flex items-center">
-							<span class="text-xl font-bold text-indigo-600">KidCare Manager</span>
+				<div
+					class="flex justify-between h-14 items-center">
+					<!-- Logo et Titre -->
+					<div class="flex items-center">
+						<a href="{{ path('app_home') }}" class="text-indigo-600 text-xl font-bold hidden md:block">
+							KidCare Manager
 						</a>
 					</div>
-                    {% if app.user %}
-					{# Menu principal #}
-					<div class="hidden sm:ml-6 sm:flex sm:items-center">
-						{% block navigation %}
-							<a href="{{ path('app_home') }}" class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600">Tableau de bord</a>
-							<a href="{{ path('app_care_index') }}" class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600">Planification</a>
-							<a href="{{ path('app_nanny_index') }}" class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600">Mes Nounous</a>
-							<a href="{{ path('app_care_template_index') }}" class="px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600">Mes templates</a>
-						{% endblock %}
-					</div>
-                    {% endif %}
-					{# Menu utilisateur #}
-					<div class="flex items-center space-x-4">
+
+					<!-- Menu principal -->
+					{% if app.user %}
+						<div class="hidden md:flex space-x-6">
+							<a href="{{ path('app_home') }}" class="text-gray-700 hover:text-indigo-600 px-3 py-2 text-sm font-medium">Tableau de bord</a>
+							<a href="{{ path('app_care_index') }}" class="text-gray-700 hover:text-indigo-600 px-3 py-2 text-sm font-medium">Planification</a>
+							<a href="{{ path('app_nanny_index') }}" class="text-gray-700 hover:text-indigo-600 px-3 py-2 text-sm font-medium">Mes Nounous</a>
+							<a href="{{ path('app_care_template_index') }}" class="text-gray-700 hover:text-indigo-600 px-3 py-2 text-sm font-medium">Mes templates</a>
+						</div>
+					{% endif %}
+
+					<!-- Boutons utilisateur -->
+					<div class="hidden md:flex items-center space-x-4">
 						{% if app.user %}
 							<div class="flex items-center">
 								<span class="text-sm font-medium text-gray-700">{{ app.user.username }}</span>
@@ -61,26 +63,76 @@
 							</div>
 						{% endif %}
 					</div>
+
+					<!-- Menu burger pour mobile -->
+					<div x-data="{ open: false }" class="md:hidden flex items-center">
+						<button @click="open = !open" class="text-gray-700 hover:text-indigo-600 focus:outline-none">
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewbox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/>
+							</svg>
+						</button>
+
+						<!-- Menu déroulant -->
+						<div x-show="open" x-cloak @click.away="open = false" class="absolute top-16 right-4 bg-white shadow-lg rounded-lg w-48 py-2 z-50">
+							{% if app.user %}
+								<a href="{{ path('app_home') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-indigo-600">Tableau de bord</a>
+								<a href="{{ path('app_care_index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-indigo-600">Planification</a>
+								<a href="{{ path('app_nanny_index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-indigo-600">Mes Nounous</a>
+								<a href="{{ path('app_care_template_index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-indigo-600">Mes templates</a>
+								<a href="{{ path('app_logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-indigo-600">Déconnexion</a>
+							{% else %}
+								<a href="{{ path('app_login') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-indigo-600">Connexion</a>
+								<a href="{{ path('app_register') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-indigo-600">S'inscrire</a>
+							{% endif %}
+						</div>
+					</div>
 				</div>
 			</nav>
 		</header>
+
 
 		{# Messages Flash #}
 		<div id="flash-messages" data-flashes='{{ app.flashes|json_encode }}' {{ stimulus_controller('notyf') }}></div>
 
 		{# Contenu principal #}
-		<main class="mx-auto px-2 py-4"> {% block body %}{% endblock %}</main>
+		<main class="flex flex-col lg:flex-row w-full h-full mx-auto px-4 sm:px-6 lg:px-8 py-2 space-y-6 lg:space-y-0 lg:space-x-6">
+			{% block sidebar %}
+				{% if show_sidebar is defined and show_sidebar %}{% endif %}
+			{% endblock %}
 
-		{# Footer #}
+			<!-- Contenu principal -->
+			<section class="{% if show_sidebar is defined and show_sidebar %}flex-1{% else %}w-full{% endif %} bg-white shadow rounded-lg p-4">
+				{% block body %}{% endblock %}
+			</section>
+		</main>
+
+
+
+
 		<footer class="bg-white border-t border-gray-200 mt-auto">
-			<div class="mx-auto px-4 py-3">
-				<div class="text-center text-sm text-gray-500">
-					<p>&copy;
-						{{ "now"|date("Y") }}
-						KidCare Manager. Tous droits réservés.</p>
+			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+				<div class="flex flex-col md:flex-row items-center justify-between text-center md:text-left">
+					<!-- Texte principal -->
+					<p class="text-sm text-gray-500">
+						&copy; {{ "now"|date("Y") }} KidCare Manager. Tous droits réservés.
+					</p>
+
+					<!-- Liens supplémentaires (optionnels) -->
+					<div class="mt-2 md:mt-0 flex space-x-4">
+						<a href="{# {{ path('app_privacy_policy') }} #}" class="text-sm text-gray-500 hover:text-indigo-600 transition-colors">
+							Politique de confidentialité
+						</a>
+						<a href="{# {{ path('app_terms_of_service') }} #}" class="text-sm text-gray-500 hover:text-indigo-600 transition-colors">
+							Conditions d'utilisation
+						</a>
+						<a href="{# {{ path('app_contact') }} #}" class="text-sm text-gray-500 hover:text-indigo-600 transition-colors">
+							Contact
+						</a>
+					</div>
 				</div>
 			</div>
 		</footer>
+
 		{% block javascripts %}{% endblock %}
 	</body>
 </html>
