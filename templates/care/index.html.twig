@@ -25,7 +25,7 @@
                         Choisir une nounou
                     </option>
                     {% for nanny in nannies %}
-                        <option value="{{ path('app_care_index', {'id': nanny.id}) }}" {% if selected_nanny and selected_nanny.id == nanny.id %} selected {% endif %}>
+                        <option value="{{ path('app_care_index', {'slug': nanny.slug}) }}" {% if selected_nanny and selected_nanny.id == nanny.id %} selected {% endif %}>
                             {{ nanny.firstname }}
                             {{ nanny.lastname }}
                         </option>

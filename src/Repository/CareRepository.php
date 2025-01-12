@@ -34,6 +34,23 @@ class CareRepository extends ServiceEntityRepository
         return $qb->getQuery()->getOneOrNullResult();
     }
 
+    public function findNextCare(): ?Care
+    {
+        $now = new \DateTime();
+        $today = new \DateTime('today');
+
+        return $this->createQueryBuilder('c')
+            ->where('c.date > :today')
+            ->orWhere('c.date = :today AND c.startTime >= :currentTime')
+            ->setParameter('today', $today)
+            ->setParameter('currentTime', $now->format('H:i:s'))
+            ->orderBy('c.date', 'ASC')
+            ->addOrderBy('c.startTime', 'ASC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
 
     //    /**
     //     * @return Care[] Returns an array of Care objects

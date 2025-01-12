@@ -53,7 +53,7 @@ class NannyController extends AbstractController
         ]);
     }
 
-    #[Route('edit/{id}', name: 'edit')]
+    #[Route('edit/{slug}', name: 'edit')]
     public function edit(Request $request, Nanny $nanny, EntityManagerInterface $entityManager): Response
     {
     // Vérifier si l'utilisateur actuel a accès à cette nounou

@@ -19,7 +19,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 #[IsGranted('IS_AUTHENTICATED_FULLY')]
 class CareController extends AbstractController
 {
-    #[Route('/planning/{id?}', name: 'index')]
+    #[Route('/planning/{slug?}', name: 'index')]
     #[IsGranted('ROLE_USER')]
     public function index(
         CareRepository $careRepository,
@@ -122,7 +122,7 @@ class CareController extends AbstractController
         }
 
         $conflictingCare = $careRepository->findConflictingCare(
-            $nannyId,
+            $nanny->getId(),
             $startDateTime->format('Y-m-d'), // Date au format "YYYY-MM-DD"
             $startDateTime->format('H:i:s'), // Heure au format "HH:MM:SS"
             $endDateTime->format('H:i:s')    // Heure au format "HH:MM:SS"
@@ -159,9 +159,7 @@ class CareController extends AbstractController
             }
 
             try {
-                $month = clone $startDateTime;
-                $month->modify('first day of this month');
-                $month->setTime(0, 0, 0);
+                $month = $startDateTime->format('Y-m');
                 $monthlyPayment = $monthlyPaymentRepository->findOneBy([
                     'user' => $user,
                     'nanny' => $nanny,
@@ -197,6 +195,7 @@ class CareController extends AbstractController
                 $em->flush();
                 $em->commit();
             } catch (\Throwable $th) {
+                dd($th);
                 return new JsonResponse(['error' => 'Une erreur est survenue lors de la sauvegarde du paiement mensuel.'], 500);
             }
         } catch (\Throwable $th) {
@@ -228,9 +227,7 @@ class CareController extends AbstractController
             return new JsonResponse(['error' => 'Vous n\'avez pas accès à cette garde.'], 403);
         }
         $nanny = $care->getNanny();
-        $month = clone $care->getDate();
-        $month->modify('first day of this month');
-        $month->setTime(0, 0, 0);
+        $month = $care->getDate()->format('Y-m');
         $monthlyPayment = $monthlyPaymentRepository->findOneBy([
             'user' => $user,
             'nanny' => $nanny,
@@ -291,9 +288,7 @@ class CareController extends AbstractController
         }
 
         $nanny = $care->getNanny();
-        $month = clone $care->getDate();
-        $month->modify('first day of this month');
-        $month->setTime(0, 0, 0);
+        $month = $care->getDate()->format('Y-m');
         $monthlyPayment = $monthlyPaymentRepository->findOneBy([
             'user' => $user,
             'nanny' => $nanny,

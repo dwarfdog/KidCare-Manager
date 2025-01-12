@@ -9,6 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Gedmo\Mapping\Annotation as Gedmo;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_USERNAME', fields: ['username'])]
@@ -52,6 +53,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[ORM\OneToMany(targetEntity: MonthlyPayment::class, mappedBy: 'user')]
     private Collection $monthlyPayments;
+
+    #[ORM\Column(length: 255, unique: true)]
+    #[Gedmo\Slug(fields: ['username'])]
+    private ?string $slug = null;
 
     public function __construct()
     {
@@ -218,6 +223,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
                 $monthlyPayment->setUser(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getSlug(): ?string
+    {
+        return $this->slug;
+    }
+
+    public function setSlug(string $slug): static
+    {
+        $this->slug = $slug;
 
         return $this;
     }

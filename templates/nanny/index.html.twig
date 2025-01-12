@@ -68,8 +68,8 @@
 												€
 											</td>
 											<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-												<a href="{{ path('app_nanny_edit', {'id': nanny.id}) }}" class="text-indigo-600 hover:text-indigo-900">Modifier</a>
-												<a href="{{ path('app_care_index', {'id': nanny.id}) }}" class="ml-4 text-indigo-600 hover:text-indigo-900">Planning</a>
+												<a href="{{ path('app_nanny_edit', {'slug': nanny.slug}) }}" class="text-indigo-600 hover:text-indigo-900">Modifier</a>
+												<a href="{{ path('app_care_index', {'slug': nanny.slug}) }}" class="ml-4 text-indigo-600 hover:text-indigo-900">Planning</a>
 											</td>
 										</tr>
 									{% endfor %}
