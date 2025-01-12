@@ -58,11 +58,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Gedmo\Slug(fields: ['username'])]
     private ?string $slug = null;
 
+    /**
+     * @var Collection<int, CareTemplate>
+     */
+    #[ORM\OneToMany(targetEntity: CareTemplate::class, mappedBy: 'user')]
+    private Collection $careTemplates;
+
     public function __construct()
     {
         $this->nannies = new ArrayCollection();
         $this->cares = new ArrayCollection();
         $this->monthlyPayments = new ArrayCollection();
+        $this->careTemplates = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -235,6 +242,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setSlug(string $slug): static
     {
         $this->slug = $slug;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, CareTemplate>
+     */
+    public function getCareTemplates(): Collection
+    {
+        return $this->careTemplates;
+    }
+
+    public function addCareTemplate(CareTemplate $careTemplate): static
+    {
+        if (!$this->careTemplates->contains($careTemplate)) {
+            $this->careTemplates->add($careTemplate);
+            $careTemplate->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCareTemplate(CareTemplate $careTemplate): static
+    {
+        if ($this->careTemplates->removeElement($careTemplate)) {
+            // set the owning side to null (unless already changed)
+            if ($careTemplate->getUser() === $this) {
+                $careTemplate->setUser(null);
+            }
+        }
 
         return $this;
     }

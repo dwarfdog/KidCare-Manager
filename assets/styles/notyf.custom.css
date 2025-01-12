@@ -1,0 +1,28 @@
+
+/* Exemple pour info */
+.notyf-custom-info {
+    color: black;
+}
+
+/* Exemple pour warning */
+.notyf-custom-warning {
+    color: black;
+}
+
+/* Exemple pour success */
+.notyf-custom-success {
+    color: black;
+}
+
+/* Exemple pour error */
+.notyf-custom-error {
+    color: black;
+}
+
+/* Facultatif : Ajuster les icônes si elles héritent d'autres styles */
+.notyf-custom-info i,
+.notyf-custom-warning i,
+.notyf-custom-success i,
+.notyf-custom-error i {
+    color: inherit; /* Assure que l'icône hérite de la couleur définie pour la notification */
+}

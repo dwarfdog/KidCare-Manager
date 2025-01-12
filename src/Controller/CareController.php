@@ -138,11 +138,15 @@ class CareController extends AbstractController
                 $newCare = new Care();
                 $newCare->setUser($user);
                 $newCare->setNanny($nanny);
+                $newCare->setMonth($startDateTime->format('Y-m'));
                 $newCare->setDate($startDateTime);
                 $newCare->setStartTime($startDateTime);
                 $newCare->setEndTime($endDateTime);
                 $newCare->setMealsCount($meals);
                 $newCare->setCreatedAt(new \DateTime());
+
+                $slugbase = $startDateTime->format('Y-m-d') . '-' . $startDateTime->format('H:i') . '-' . $endDateTime->format('H:i');
+                $newCare->setSlugBase($slugbase);
 
                 // Calcul de la différence entre les deux heures
                 $interval = $startDateTime->diff($endDateTime);
@@ -328,6 +332,7 @@ class CareController extends AbstractController
                 $LastHoursCareCount = $care->getHoursCount();
                 // Mise à jour de la garde
                 $care->setDate($startDateTime);
+                $care->setMonth($startDateTime->format('Y-m'));
                 $care->setStartTime($startDateTime);
                 $care->setEndTime($endDateTime);
                 // Calcul du nouveau nombre d'heures

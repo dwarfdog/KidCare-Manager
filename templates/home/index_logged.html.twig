@@ -142,14 +142,9 @@
 											{% endif %}
 										</td>
 										<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-											<a href="{# {{ path('app_monthly_payment_show', {'id': payment.id}) }} #}" class="text-indigo-600 hover:text-indigo-900 mr-4">
+											<a href="{{ path('app_monthly_payment_show', {'slug': payment.slug}) }}" class="text-indigo-600 hover:text-indigo-900 mr-4">
 												Détails
 											</a>
-											{% if not payment.isPaid %}
-												<a href="{# {{ path('app_monthly_payment_mark_as_paid', {'id': payment.id}) }} #}" class="text-green-600 hover:text-green-900">
-													Marquer comme payé
-												</a>
-											{% endif %}
 										</td>
 									</tr>
 								{% else %}

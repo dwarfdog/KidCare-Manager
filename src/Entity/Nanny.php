@@ -54,12 +54,19 @@ class Nanny
     #[Gedmo\Slug(fields: ['firstname', 'lastname'])]
     private ?string $slug = null;
 
+    /**
+     * @var Collection<int, CareTemplate>
+     */
+    #[ORM\OneToMany(targetEntity: CareTemplate::class, mappedBy: 'nanny')]
+    private Collection $careTemplates;
+
     public function __construct()
     {
         $this->createdAt = new \DateTime();
         $this->user = new ArrayCollection();
         $this->cares = new ArrayCollection();
         $this->monthlyPayments = new ArrayCollection();
+        $this->careTemplates = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -219,6 +226,41 @@ class Nanny
     public function setSlug(string $slug): static
     {
         $this->slug = $slug;
+
+        return $this;
+    }
+
+    public function getFullname(): string
+    {
+        return $this->firstname . ' ' . $this->lastname;
+    }
+
+    /**
+     * @return Collection<int, CareTemplate>
+     */
+    public function getCareTemplates(): Collection
+    {
+        return $this->careTemplates;
+    }
+
+    public function addCareTemplate(CareTemplate $careTemplate): static
+    {
+        if (!$this->careTemplates->contains($careTemplate)) {
+            $this->careTemplates->add($careTemplate);
+            $careTemplate->setNanny($this);
+        }
+
+        return $this;
+    }
+
+    public function removeCareTemplate(CareTemplate $careTemplate): static
+    {
+        if ($this->careTemplates->removeElement($careTemplate)) {
+            // set the owning side to null (unless already changed)
+            if ($careTemplate->getNanny() === $this) {
+                $careTemplate->setNanny(null);
+            }
+        }
 
         return $this;
     }

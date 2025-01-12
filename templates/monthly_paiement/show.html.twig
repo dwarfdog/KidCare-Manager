@@ -1,0 +1,167 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détails du paiement -
+	{{ payment.month }}
+{% endblock %}
+
+{% block body %}
+	<div class="container mx-auto px-4 py-2">
+		<div class="bg-white rounded-lg shadow-lg p-6">
+			{# En-tête #}
+			<div class="flex justify-between items-center mb-4">
+				<h1 class="text-2xl font-bold">Détails du paiement -
+					{{ payment.month }}</h1>
+				<a href="{{ path('app_home') }}" class="text-blue-600 hover:text-blue-800">Retour</a>
+			</div>
+
+			{# Informations Nounou #}
+			<div class="bg-gray-50 rounded-lg p-6 mb-4">
+				<h2 class="text-xl font-bold mb-4">Informations Nounou</h2>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div>
+						<p class="text-gray-600">Nom :</p>
+						<p class="font-semibold">{{ payment.nanny.fullName }}</p>
+					</div>
+					<div>
+						<p class="text-gray-600">Tarif horaire :</p>
+						<p class="font-semibold">{{ payment.nanny.hourlyRate|number_format(2, ',', ' ') }}
+							€</p>
+					</div>
+					<div>
+						<p class="text-gray-600">Tarif repas :</p>
+						<p class="font-semibold">{{ payment.nanny.mealRate|number_format(2, ',', ' ') }}
+							€</p>
+					</div>
+				</div>
+			</div>
+
+			{# Résumé du mois #}
+			<div class="bg-blue-50 rounded-lg p-6 mb-4">
+				<h2 class="text-xl font-bold mb-4">Résumé du mois</h2>
+				<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+					<div>
+						<p class="text-gray-600">Heures de garde :</p>
+						<p class="font-semibold">{{ payment.totalsHours|number_format(2, ',', ' ') }}
+							heures</p>
+						<p class="text-sm text-gray-500">{{ payment.amountHours|number_format(2, ',', ' ') }}
+							€</p>
+					</div>
+					<div>
+						<p class="text-gray-600">Repas :</p>
+						<p class="font-semibold">{{ payment.totalMeals }}
+							repas</p>
+						<p class="text-sm text-gray-500">{{ payment.amountMeals|number_format(2, ',', ' ') }}
+							€</p>
+					</div>
+					<div>
+						<p class="text-gray-600">Total :</p>
+						<p class="font-bold text-lg text-blue-600">{{ payment.totalAmount|number_format(2, ',', ' ') }}
+							€</p>
+					</div>
+				</div>
+			</div>
+
+			{# Détail des gardes #}
+			<div class="mb-4">
+				<h2 class="text-xl font-bold mb-4">Détail des gardes</h2>
+				<div class="overflow-x-auto">
+					<table class="w-full">
+						<thead class="bg-gray-50">
+							<tr>
+								<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Horaires</th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Durée</th>
+								<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Repas</th>
+							</tr>
+						</thead>
+						<tbody class="bg-white divide-y divide-gray-200">
+							{% for care in cares %}
+								<tr class="hover:bg-gray-50">
+									<td class="px-4 py-3">{{ care.date|date('d/m/Y') }}</td>
+									<td class="px-4 py-3">
+										{{ care.startTime|date('H:i') }}
+										-
+										{{ care.endTime|date('H:i') }}
+									</td>
+									<td class="px-4 py-3">{{ care.hoursCount|number_format(2, ',', ' ') }}
+										h</td>
+									<td class="px-4 py-3">
+										{% if care.mealsCount > 0 %}
+											<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+												{{ care.mealsCount }}
+											</span>
+										{% else %}
+											<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+												0
+											</span>
+										{% endif %}
+									</td>
+								</tr>
+							{% else %}
+								<tr>
+									<td colspan="4" class="px-4 py-3 text-center text-gray-500">
+										Aucune garde enregistrée pour ce mois
+									</td>
+								</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			{# Section paiement #}
+			<div class="flex justify-between items-center mt-4 pt-6 border-t">
+				<div>
+					<p class="text-gray-600 mb-2">Statut du paiement :</p>
+					{% if payment.isPaid %}
+						<div class="flex items-center">
+							<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+								Payé le
+								{{ payment.paidAt|date('d/m/Y') }}
+							</span>
+						</div>
+					{% else %}
+						<div class="flex items-center">
+							<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+								En attente de paiement
+							</span>
+						</div>
+					{% endif %}
+				</div>
+
+                {# href="{{ path('cible_supp_avatar', {'slug': cible.slug}) }}" title="Supprimer l'Avatar de la cible" onclick="deleteConfirmation(
+                    event,
+                    'Supprimer l\'Avatar de la cible?',
+                    `<strong><u>L\'Avatar</u></strong> de la cible sera supprimé.`,
+                    '{{ path('cible_supp_avatar', {'slug': cible.slug}) }}');" #}
+
+				{% if not payment.isPaid %}
+					<a
+                        href="{{ path('app_monthly_payment_mark_as_paid', {'slug': payment.slug}) }}"
+                        {# onclick="return confirm('Êtes-vous sûr de vouloir marquer ce paiement comme payé ?')" #}
+                        class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                        onclick="confirmation(
+                            event,
+                            'Marquer ce mois comme payé ?',
+                            ``,
+                            '{{ path('app_monthly_payment_mark_as_paid', {'slug': payment.slug}) }}');"
+                    >
+						Marquer comme payé
+					</a>
+                {% else %}
+                    <a
+                        href="{{ path('app_monthly_payment_mark_as_unpaid', {'slug': payment.slug}) }}"
+                        class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                        onclick="confirmation(
+                            event,
+                            'Marquer ce mois comme non payé ?',
+                            ``,
+                            '{{ path('app_monthly_payment_mark_as_unpaid', {'slug': payment.slug}) }}');"
+                    >
+                        Marquer comme non payé
+                    </a>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+{% endblock %}
