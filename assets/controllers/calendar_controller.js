@@ -19,18 +19,22 @@ export default class extends Controller {
     };
 
     connect() {
+        const isMobile = window.matchMedia("(max-width: 768px)").matches;
+        const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
+
         this.calendar = new Calendar(this.calendarTarget, {
             plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
-            initialView: 'timeGridWeek',
+            initialView: isMobile ? 'timeGridDay' : 'timeGridWeek', // Vue journalière sur mobile, hebdomadaire ailleurs
             firstDay: 1,
             locale: frLocale,
             headerToolbar: {
-                left: 'prev,next today',
-                right: 'title',
+                left: isMobile ? 'prev,next' : 'prev,next today',
+                center: isMobile ? 'title' : '',
+                right: isMobile ? '' : 'title',
             },
             slotMinTime: '06:00:00',
             slotMaxTime: '20:00:00',
-            contentHeight: 'auto',
+            contentHeight: isDesktop ? '77vh' : isMobile ? 'auto' : '85vh', // Réduction sur bureau et auto sur mobile
             selectable: false,
             editable: true,
             nowIndicator: true,
@@ -39,9 +43,25 @@ export default class extends Controller {
             events: this.eventsValue,
             dateClick: (info) => this.handleDoubleClick(info),
             eventContent: (arg) => this.renderEventWithDeleteButton(arg),
-            eventDrop: (info) => this.handleEventUpdate(info), // Gestion du déplacement
-            eventResize: (info) => this.handleEventUpdate(info), // Gestion du redimensionnement
+            eventDrop: (info) => this.handleEventUpdate(info),
+            eventResize: (info) => this.handleEventUpdate(info),
         });
+
+        // Ajustements spécifiques pour mobile
+        if (isMobile) {
+            // Réduction de la taille des flèches (appliquer une classe CSS plus petite)
+            const calendarEl = this.calendarTarget;
+            calendarEl.classList.add('text-sm'); // Réduction globale des flèches et boutons
+
+            // Suppression de l'année dans le titre
+            this.calendar.setOption('titleFormat', { month: 'long', day: 'numeric' });
+
+            // Réduction de la taille du titre
+            const titleEl = calendarEl.querySelector('.fc-toolbar-title');
+            if (titleEl) {
+                titleEl.style.fontSize = '1rem'; // Taille réduite
+            }
+        }
 
         window.calendarController = this;
 

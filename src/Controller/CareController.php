@@ -86,7 +86,8 @@ class CareController extends AbstractController
             'nannies' => $nannies,
             'selected_nanny' => $nanny,
             'events' => $events,
-            'templates' => $templates
+            'templates' => $templates,
+            'show_sidebar' => true,
         ]);
     }
 

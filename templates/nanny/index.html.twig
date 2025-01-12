@@ -4,81 +4,80 @@
 {% endblock %}
 
 {% block body %}
-	<div
-		class="container mx-auto px-4 sm:px-6 lg:px-8">
-		{# En-tête #}
-		<div class="sm:flex sm:items-center sm:justify-between">
-			<div>
-				<h1 class="text-2xl font-semibold text-gray-900">Mes nounous</h1>
-				<p class="mt-2 text-sm text-gray-700">Liste des nounous qui gardent vos enfants</p>
-			</div>
-			<div class="mt-4 sm:mt-0">
-				<a href="{{ path('app_nanny_new') }}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-					<svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewbox="0 0 24 24" stroke="currentColor">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-					</svg>
-					Ajouter une nounou
-				</a>
-			</div>
-		</div>
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- En-tête -->
+    <div class="sm:flex sm:items-center sm:justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-semibold text-gray-900">Mes nounous</h1>
+            <p class="mt-2 text-sm text-gray-700">Liste des nounous qui gardent vos enfants</p>
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <a href="{{ path('app_nanny_new') }}"
+               class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md shadow hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                <span class="hidden sm:inline">Ajouter une nounou</span>
+            </a>
+        </div>
+    </div>
 
-		{# Liste des nounous #}
-		<div class="mt-8 flex flex-col">
-			<div class="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-				<div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-					{% if nannies is empty %}
-						<div class="text-center py-12 bg-white shadow rounded-lg">
-							<svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewbox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-							</svg>
-							<h3 class="mt-2 text-sm font-medium text-gray-900">Aucune nounou</h3>
-							<p class="mt-1 text-sm text-gray-500">Commencez par ajouter une nounou pour gérer son planning.</p>
-							<div class="mt-6">
-								<a href="{{ path('app_nanny_new') }}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-									Ajouter une nounou
-								</a>
-							</div>
-						</div>
-					{% else %}
-						<div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
-							<table class="min-w-full divide-y divide-gray-300">
-								<thead class="bg-gray-50">
-									<tr>
-										<th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Nom</th>
-										<th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Taux horaire</th>
-										<th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Prix du repas</th>
-										<th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
-											<span class="sr-only">Actions</span>
-										</th>
-									</tr>
-								</thead>
-								<tbody class="divide-y divide-gray-200 bg-white">
-									{% for nanny in nannies %}
-										<tr>
-											<td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-												{{ nanny.firstname }}
-												{{ nanny.lastname }}
-											</td>
-											<td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-												{{ nanny.hourlyRate|number_format(2, ',', ' ') }}
-												€/h
-											</td>
-											<td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-												{{ nanny.mealRate|number_format(2, ',', ' ') }}
-												€
-											</td>
-											<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-												<a href="{{ path('app_nanny_edit', {'slug': nanny.slug}) }}" class="text-indigo-600 hover:text-indigo-900">Modifier</a>
-												<a href="{{ path('app_care_index', {'slug': nanny.slug}) }}" class="ml-4 text-indigo-600 hover:text-indigo-900">Planning</a>
-											</td>
-										</tr>
-									{% endfor %}
-								</tbody>
-							</table>
-						</div>
-					{% endif %}
-				</div>
-			</div>
-		</div>
-	</div>
+    <!-- Liste des nounous -->
+    <div class="mt-8 flex flex-col">
+        <div class="-mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div class="inline-block min-w-full py-2 align-middle">
+                {% if nannies is empty %}
+                <div class="text-center py-12 bg-white shadow rounded-lg">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">Aucune nounou</h3>
+                    <p class="mt-1 text-sm text-gray-500">Commencez par ajouter une nounou pour gérer son planning.</p>
+                    <div class="mt-6">
+                        <a href="{{ path('app_nanny_new') }}"
+                           class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md shadow hover:bg-indigo-700">
+                            Ajouter une nounou
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-300">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Nom</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Taux horaire</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Prix du repas</th>
+                                <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                                    <span class="sr-only">Actions</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white">
+                            {% for nanny in nannies %}
+                            <tr>
+                                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                                    {{ nanny.firstname }} {{ nanny.lastname }}
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    {{ nanny.hourlyRate|number_format(2, ',', ' ') }} €/h
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    {{ nanny.mealRate|number_format(2, ',', ' ') }} €
+                                </td>
+                                <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                    <a href="{{ path('app_nanny_edit', {'slug': nanny.slug}) }}" class="text-indigo-600 hover:text-indigo-900">Modifier</a>
+                                    <a href="{{ path('app_care_index', {'slug': nanny.slug}) }}" class="ml-4 text-indigo-600 hover:text-indigo-900">Planning</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
+

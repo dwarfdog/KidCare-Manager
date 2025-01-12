@@ -4,93 +4,68 @@
 {% endblock %}
 
 {% block body %}
-	<div class="min-h-full flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-		<div
-			class="max-w-md w-full mx-auto">
-			{# En-tête #}
-			<div class="text-center">
-				<h2 class="text-3xl font-extrabold text-gray-900">
-					Ajouter une nounou
-				</h2>
-				<p class="mt-2 text-sm text-gray-600">
-					Renseignez les informations de votre nounou
-				</p>
-			</div>
+<div class="min-h-full flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full mx-auto">
+        <!-- En-tête -->
+        <div class="text-center">
+            <h2 class="text-3xl font-extrabold text-gray-900">Ajouter une nounou</h2>
+            <p class="mt-2 text-sm text-gray-600">Renseignez les informations de votre nounou</p>
+        </div>
 
-			{# Formulaire #}
-			{{ form_start(form, {'attr': {'class': 'mt-8 space-y-6'}}) }}
-			{% if form_errors(form) %}
-				<div class="rounded-md bg-red-50 p-4">
-					<div class="flex">
-						<div class="ml-3">
-							<h3 class="text-sm font-medium text-red-800">
-								{{ form_errors(form) }}
-							</h3>
-						</div>
-					</div>
-				</div>
-			{% endif %}
+        <!-- Formulaire -->
+        {{ form_start(form, {'attr': {'class': 'mt-8 space-y-6'}}) }}
+        {% if form_errors(form) %}
+        <div class="rounded-md bg-red-50 p-4">
+            <div class="flex">
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-red-800">{{ form_errors(form) }}</h3>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
-			<div
-				class="space-y-4">
-				{# Prénom #}
-				<div>
-					{{ form_label(form.firstname, 'Prénom', {'label_attr': {
-                            'class': 'block text-sm font-medium text-gray-700'
-                        }}) }}
-					{{ form_widget(form.firstname, {'attr': {
-                            'class': 'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm',
-                            'placeholder': 'Prénom de la nounou'
-                        }}) }}
-					{{ form_errors(form.firstname, {'attr': {'class': 'mt-1 text-sm text-red-600'}}) }}
-				</div>
+        <div class="space-y-4">
+            <!-- Prénom -->
+            <div>
+                {{ form_label(form.firstname, 'Prénom', {'label_attr': {'class': 'block text-sm font-medium text-gray-700'}}) }}
+                {{ form_widget(form.firstname, {'attr': {'class': 'appearance-none rounded-md block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm', 'placeholder': 'Prénom de la nounou'}}) }}
+                {{ form_errors(form.firstname, {'attr': {'class': 'mt-1 text-sm text-red-600'}}) }}
+            </div>
 
-				{# Nom #}
-				<div>
-					{{ form_label(form.lastname, 'Nom', {'label_attr': {
-                            'class': 'block text-sm font-medium text-gray-700'
-                        }}) }}
-					{{ form_widget(form.lastname, {'attr': {
-                            'class': 'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm',
-                            'placeholder': 'Nom de la nounou'
-                        }}) }}
-					{{ form_errors(form.lastname, {'attr': {'class': 'mt-1 text-sm text-red-600'}}) }}
-				</div>
+            <!-- Nom -->
+            <div>
+                {{ form_label(form.lastname, 'Nom', {'label_attr': {'class': 'block text-sm font-medium text-gray-700'}}) }}
+                {{ form_widget(form.lastname, {'attr': {'class': 'appearance-none rounded-md block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm', 'placeholder': 'Nom de la nounou'}}) }}
+                {{ form_errors(form.lastname, {'attr': {'class': 'mt-1 text-sm text-red-600'}}) }}
+            </div>
 
-				{# Taux horaire #}
-				<div>
-					{{ form_label(form.hourly_rate, 'Taux horaire (€)', {'label_attr': {
-                            'class': 'block text-sm font-medium text-gray-700'
-                        }}) }}
-					{{ form_widget(form.hourly_rate, {'attr': {
-                            'class': 'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm',
-                            'placeholder': 'Ex: 11.50'
-                        }}) }}
-					{{ form_errors(form.hourly_rate, {'attr': {'class': 'mt-1 text-sm text-red-600'}}) }}
-				</div>
+            <!-- Taux horaire -->
+            <div>
+                {{ form_label(form.hourly_rate, 'Taux horaire (€)', {'label_attr': {'class': 'block text-sm font-medium text-gray-700'}}) }}
+                {{ form_widget(form.hourly_rate, {'attr': {'class': 'appearance-none rounded-md block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm', 'placeholder': 'Ex: 11.50'}}) }}
+                {{ form_errors(form.hourly_rate, {'attr': {'class': 'mt-1 text-sm text-red-600'}}) }}
+            </div>
 
-				{# Prix du repas #}
-				<div>
-					{{ form_label(form.meal_rate, 'Prix du repas (€)', {'label_attr': {
-                            'class': 'block text-sm font-medium text-gray-700'
-                        }}) }}
-					{{ form_widget(form.meal_rate, {'attr': {
-                            'class': 'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm',
-                            'placeholder': 'Ex: 5.00'
-                        }}) }}
-					{{ form_errors(form.meal_rate, {'attr': {'class': 'mt-1 text-sm text-red-600'}}) }}
-				</div>
-			</div>
+            <!-- Prix du repas -->
+            <div>
+                {{ form_label(form.meal_rate, 'Prix du repas (€)', {'label_attr': {'class': 'block text-sm font-medium text-gray-700'}}) }}
+                {{ form_widget(form.meal_rate, {'attr': {'class': 'appearance-none rounded-md block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm', 'placeholder': 'Ex: 5.00'}}) }}
+                {{ form_errors(form.meal_rate, {'attr': {'class': 'mt-1 text-sm text-red-600'}}) }}
+            </div>
+        </div>
 
-			<div class="flex items-center justify-between mt-6">
-				<a href="{{ path('app_nanny_index') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
-					Retour à la liste
-				</a>
-				<button type="submit" class="group relative flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-					Ajouter la nounou
-				</button>
-			</div>
-			{{ form_end(form) }}
-		</div>
-	</div>
+        <!-- Boutons -->
+        <div class="flex items-center justify-between mt-6">
+            <a href="{{ path('app_nanny_index') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                Retour à la liste
+            </a>
+            <button type="submit"
+                class="group relative flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Ajouter la nounou
+            </button>
+        </div>
+        {{ form_end(form) }}
+    </div>
+</div>
 {% endblock %}
+
