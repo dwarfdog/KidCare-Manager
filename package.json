@@ -25,11 +25,13 @@
         "build": "encore production --progress"
     },
     "dependencies": {
+        "@alpinejs/collapse": "^3.14.8",
         "@fortawesome/fontawesome-free": "^6.7.2",
         "@fullcalendar/core": "^6.1.15",
         "@fullcalendar/daygrid": "^6.1.15",
         "@fullcalendar/interaction": "^6.1.15",
         "@fullcalendar/timegrid": "^6.1.15",
+        "alpinejs": "^3.14.8",
         "autoprefixer": "^10.4.20",
         "css-loader": "^7.1.2",
         "jquery": "^3.7.1",

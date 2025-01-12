@@ -46,20 +46,12 @@ class Care
     #[ORM\Column(length: 255)]
     private ?string $slugBase = null;
 
-    public function getSlugBase(): string
-    {
-        return sprintf(
-            '%s-%s-%s',
-            $this->date?->format('Y-m-d'),
-            $this->startTime?->format('H-i'),
-            $this->endTime?->format('H-i')
-        );
-    }
+    #[ORM\Column(length: 7)]
+    private ?string $month = null;
 
     public function __construct()
     {
         $this->createdAt = new \DateTime();
-        $this->slugBase = $this->getSlugBase();
     }
 
     public function getId(): ?int
@@ -171,6 +163,30 @@ class Care
     public function setSlug(string $slug): static
     {
         $this->slug = $slug;
+
+        return $this;
+    }
+
+    public function getMonth(): ?string
+    {
+        return $this->month;
+    }
+
+    public function setMonth(string $month): static
+    {
+        $this->month = $month;
+
+        return $this;
+    }
+
+    public function getSlugBase(): ?string
+    {
+        return $this->slugBase;
+    }
+
+    public function setSlugBase(string $slugBase): static
+    {
+        $this->slugBase = $slugBase;
 
         return $this;
     }

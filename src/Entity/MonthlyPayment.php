@@ -49,6 +49,9 @@ class MonthlyPayment
     #[Gedmo\Slug(fields: ['month'])]
     private ?string $slug = null;
 
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $paidAt = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTime();
@@ -188,6 +191,18 @@ class MonthlyPayment
     public function setSlug(string $slug): static
     {
         $this->slug = $slug;
+
+        return $this;
+    }
+
+    public function getPaidAt(): ?\DateTimeInterface
+    {
+        return $this->paidAt;
+    }
+
+    public function setPaidAt(\DateTimeInterface|null $paidAt): static
+    {
+        $this->paidAt = $paidAt;
 
         return $this;
     }

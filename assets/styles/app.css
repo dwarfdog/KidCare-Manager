@@ -4,4 +4,6 @@
 @tailwind utilities;
 
 @import url('./notif.min.css');
+@import url('./notyf.custom.css');
 @import url('./scrollbar.css');
+@import url('./buttons.css');
