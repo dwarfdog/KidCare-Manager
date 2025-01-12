@@ -69,6 +69,11 @@ class Nanny
         $this->careTemplates = new ArrayCollection();
     }
 
+    public function __toString(): string
+    {
+        return $this->getFullname();
+    }
+
     public function getId(): ?int
     {
         return $this->id;
