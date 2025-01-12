@@ -43,7 +43,33 @@ export default class extends Controller {
             eventResize: (info) => this.handleEventUpdate(info), // Gestion du redimensionnement
         });
 
+        window.calendarController = this;
+
         this.calendar.render();
+    }
+
+    getWeekForTemplate(templateSlug) {
+        // Obtenir la date de début actuelle de la vue
+        const currentDate = this.calendar.view.currentStart;
+
+        // Créer une copie de la date actuelle
+        const localDate = new Date(currentDate);
+
+        // Ajuster manuellement la timezone pour obtenir une date locale correcte
+        const offsetMinutes = localDate.getTimezoneOffset();
+        localDate.setMinutes(localDate.getMinutes() - offsetMinutes);
+
+        // Formater la date pour obtenir une chaîne sans décalage UTC
+        const formattedWeekStart = localDate.toISOString().split('T')[0];
+
+        console.log('Application du template', templateSlug, formattedWeekStart);
+
+        confirmation(
+            event,
+            'Application du template',
+            'Voulez-vous appliquer le template à la semaine en cours ?',
+            `/care-template/apply/${templateSlug}?start=${formattedWeekStart}`
+        );
     }
 
     handleEventUpdate(info) {
