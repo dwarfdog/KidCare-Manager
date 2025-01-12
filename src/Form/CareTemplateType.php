@@ -24,7 +24,7 @@ class CareTemplateType extends AbstractType
                 ]
             ])
             ->add('nanny', EntityType::class, [
-                'class' => Nanny::class,
+                'class' => Nanny::class, // Utilisation de l'entité Nanny
                 'label' => 'Nounou',
                 'query_builder' => function (EntityRepository $repository) use ($options) {
                     return $repository->createQueryBuilder('n')
