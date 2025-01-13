@@ -1,0 +1,83 @@
+{# Politique de Confidentialité Template Twig #}
+
+{% extends 'base.html.twig' %}
+
+{% block title %}Politique de Confidentialité{% endblock %}
+
+{% block body %}
+<div class="bg-gray-50 py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div class="px-4 py-5 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Politique de Confidentialité</h3>
+                <p class="mt-1 max-w-2xl text-sm text-gray-500">Dernière mise à jour : {{ 'now'|date('d/m/Y') }}</p>
+            </div>
+            <div class="border-t border-gray-200">
+                <dl>
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Responsable du Traitement</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            KidCare-Manager<br>
+                            [Nom de l’entreprise ou du développeur]<br>
+                            [Adresse physique ou électronique de contact]<br>
+                            Pour toute question, contactez-nous via notre <a href="#" class="text-indigo-600 hover:text-indigo-900">formulaire de contact</a>.
+                        </dd>
+                    </div>
+
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Données Collectées</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            <strong>Utilisateurs :</strong> Nom d’utilisateur, adresse email, mot de passe (haché), planning de gardes, informations sur les aides disponibles, montants à payer et paiements effectués.<br>
+                            <strong>Tiers (Nounous) :</strong> Nom, prénom, taux horaires, prix des repas, planning de gardes, disponibilités.<br>
+                            Aucune information bancaire ou relative aux enfants n’est collectée.
+                        </dd>
+                    </div>
+
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Utilisation des Données</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            Les données sont utilisées pour gérer les plannings, calculer les montants à payer, suivre l’historique des gardes, et personnaliser les interfaces.
+                            Les données ne sont pas partagées avec des tiers.
+                        </dd>
+                    </div>
+
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Conservation des Données</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            Vos données sont conservées tant que votre compte est actif. Lors de la suppression de votre compte, toutes les données associées seront supprimées.
+                        </dd>
+                    </div>
+
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Sécurité des Données</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            Les mots de passe sont stockés de manière sécurisée (hachés). Les données sont hébergées sur des serveurs sécurisés situés en France avec un accès restreint aux membres de l’équipe.
+                        </dd>
+                    </div>
+
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Droits des Utilisateurs</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            Vous pouvez accéder, modifier ou supprimer vos données à tout moment. Pour exercer vos droits, contactez-nous via notre <a href="#" class="text-indigo-600 hover:text-indigo-900">formulaire de contact</a>.
+                        </dd>
+                    </div>
+
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Hébergement et Localisation</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            Vos données sont stockées sur des serveurs sécurisés en France. Nous n’utilisons aucun service tiers pour l’hébergement ou le traitement des données.
+                        </dd>
+                    </div>
+
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Modifications de cette Politique</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                            Nous pouvons modifier cette Politique de Confidentialité à tout moment pour refléter les changements de nos pratiques ou pour nous conformer à la réglementation. En cas de modification majeure, nous informerons les utilisateurs par email ou via une notification dans l’application.
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

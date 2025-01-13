@@ -24,7 +24,7 @@ class CareTemplateType extends AbstractType
             ->add('nanny', EntityType::class, [
                 'class' => Nanny::class,
                 'label' => 'Nounou',
-                'choices' => $options['user']->getNannies(), // Utilisation directe des nounous de l'utilisateur
+                'choices' => $options['user']->getNannies(),
                 'placeholder' => 'Choisir une nounou',
             ])
         ;
