@@ -45,6 +45,7 @@ export default class extends Controller {
             eventContent: (arg) => this.renderEventWithDeleteButton(arg),
             eventDrop: (info) => this.handleEventUpdate(info),
             eventResize: (info) => this.handleEventUpdate(info),
+            eventClick: (info) => this.handleEventEdit(info),
         });
 
         // Ajustements spécifiques pour mobile
@@ -66,6 +67,121 @@ export default class extends Controller {
         window.calendarController = this;
 
         this.calendar.render();
+    }
+
+    handleEventEdit(info) {
+        if (this.lastClick && Date.now() - this.lastClick < 300) {
+            const event = info.event;
+
+            const startTime = new Date(event.start);
+            const endTime = new Date(event.end || new Date(startTime.getTime() + 30 * 60 * 1000));
+
+            const formatTime = (date) =>
+                date.toLocaleTimeString('fr-FR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                });
+
+            const formattedStartTime = formatTime(startTime);
+            const formattedEndTime = formatTime(endTime);
+
+            Swal.fire({
+                title: 'Modifier la garde',
+                html: `
+                    <form id="edit-care-form">
+                        <div class="mb-4">
+                            <label for="startTime" class="block text-base font-medium text-gray-700">Heure de début</label>
+                            <input type="time" id="startTime" value="${formattedStartTime}" class="p-2 mt-1 block w-full shadow-sm text-base border-gray-300 rounded-md">
+                        </div>
+                        <div class="mb-4">
+                            <label for="endTime" class="block text-base font-medium text-gray-700">Heure de fin</label>
+                            <input type="time" id="endTime" value="${formattedEndTime}" class="p-2 mt-1 block w-full shadow-sm text-base border-gray-300 rounded-md">
+                        </div>
+                        <div class="mb-4">
+                            <label for="mealsCount" class="block text-base font-medium text-gray-700">Nombre de repas</label>
+                            <input type="number" id="mealsCount" value="${event.extendedProps.meals || 0}" min="0" class="p-2 mt-1 block w-full shadow-sm text-base border-gray-300 rounded-md">
+                        </div>
+                    </form>
+                `,
+                confirmButtonText: 'Modifier',
+                showCancelButton: true,
+                cancelButtonText: 'Annuler',
+                focusConfirm: false,
+                preConfirm: () => {
+                    const start = document.getElementById('startTime').value;
+                    const end = document.getElementById('endTime').value;
+                    const meals = parseInt(document.getElementById('mealsCount').value, 10) || 0;
+
+                    if (!start || !end) {
+                        Swal.showValidationMessage('Les heures de début et de fin sont obligatoires.');
+                        return false;
+                    }
+
+                    if (new Date(`1970-01-01T${end}:00`) <= new Date(`1970-01-01T${start}:00`)) {
+                        Swal.showValidationMessage('L\'heure de fin doit être après l\'heure de début.');
+                        return false;
+                    }
+
+                    return { start, end, meals };
+                },
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.updateEvent(event, result.value);
+                }
+            });
+        }
+        this.lastClick = Date.now();
+    }
+
+    updateEvent(event, formData) {
+        const startDate = event.start.toISOString().split('T')[0];
+        const start = `${startDate}T${formData.start}:00`;
+        const end = `${startDate}T${formData.end}:00`;
+
+        const params = new URLSearchParams({
+            nanny: this.nannyIdValue,
+            start,
+            end,
+            meals: formData.meals,
+        });
+
+        fetch(`/care/update/${event.id}?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error('Erreur lors de la mise à jour de l\'événement.');
+                }
+                return response.json();
+            })
+            .then((data) => {
+                const hoursCount = ((new Date(data.end) - new Date(data.start)) / (1000 * 60 * 60)).toFixed(2);
+
+                const startFormatted = new Date(data.start).toLocaleTimeString('fr-FR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                });
+
+                const endFormatted = new Date(data.end).toLocaleTimeString('fr-FR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                });
+
+                const mealsText = formData.meals > 0 ? `<br>${formData.meals} repas` : '';
+
+                event.setStart(data.start);
+                event.setEnd(data.end);
+                event.setProp('title', `${hoursCount} heures`);
+                event.setExtendedProp('description', `De ${startFormatted} à ${endFormatted}${mealsText}`);
+
+                notyf.success('L\'événement a été mis à jour avec succès.');
+            })
+            .catch((error) => {
+                notyf.error(error.message || 'Une erreur est survenue lors de la mise à jour de l\'événement.');
+            });
     }
 
     getWeekForTemplate(templateSlug) {
