@@ -1,5 +1,10 @@
 ###> symfony/framework-bundle ###
+/.env.dev
+/.env.test
 /.env.local
+/composer.lock
+/package-lock.json
+/symfony.lock
 /.env.local.php
 /.env.*.local
 /config/secrets/prod/prod.decrypt.private.php
@@ -18,7 +23,7 @@
 /phpunit.xml
 ###< symfony/phpunit-bridge ###
 /migrations
-/bdd
+/bdd/*
 
 ###> symfony/webpack-encore-bundle ###
 /node_modules/

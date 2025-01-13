@@ -52,6 +52,7 @@ class CareController extends AbstractController
                         'title' => $care->getHoursCount() . ' heures', // Titre avec le nombre d'heures
                         'start' => $care->getDate()->format('Y-m-d') . 'T' . $care->getStartTime()->format('H:i:s'),
                         'end' => $care->getDate()->format('Y-m-d') . 'T' . $care->getEndTime()->format('H:i:s'),
+                        'meals' => $care->getMealsCount(),
                         'description' => sprintf(
                             'De %s à %s',
                             $care->getStartTime()->format('H:i'),
@@ -64,6 +65,7 @@ class CareController extends AbstractController
                         'title' => $care->getHoursCount() . ' heures', // Titre avec le nombre d'heures
                         'start' => $care->getDate()->format('Y-m-d') . 'T' . $care->getStartTime()->format('H:i:s'),
                         'end' => $care->getDate()->format('Y-m-d') . 'T' . $care->getEndTime()->format('H:i:s'),
+                        'meals' => $care->getMealsCount(),
                         'description' => sprintf(
                             'De %s à %s<br>%d repas',
                             $care->getStartTime()->format('H:i'),
@@ -305,6 +307,7 @@ class CareController extends AbstractController
 
         $startRaw = $request->query->get('start');
         $endRaw = $request->query->get('end');
+        $meals = (int)$request->query->getInt('meals') ?? null;
 
         try {
             // Conversion en objets DateTime
@@ -330,11 +333,17 @@ class CareController extends AbstractController
             try {
                 // Sauvegarde des anciennes heures pour calculer les différences
                 $LastHoursCareCount = $care->getHoursCount();
+                if ($meals !== null) {
+                    $LastMealsCount = $care->getMealsCount();
+                }
                 // Mise à jour de la garde
                 $care->setDate($startDateTime);
                 $care->setMonth($startDateTime->format('Y-m'));
                 $care->setStartTime($startDateTime);
                 $care->setEndTime($endDateTime);
+                if ($meals !== null) {
+                    $care->setMealsCount($meals);
+                }
                 // Calcul du nouveau nombre d'heures
                 $interval = $startDateTime->diff($endDateTime);
                 $NewHoursCareCount = $interval->h + ($interval->i / 60);
@@ -357,9 +366,27 @@ class CareController extends AbstractController
                 );
                 // Le montant global total doit refléter le montant des heures
                 $totalAmountBefore = $monthlyPayment->getTotalAmount();
-                $monthlyPayment->setTotalAmount(
-                    round($totalAmountBefore - $lastAmountHours + $newAmountHours, 2)
-                );
+
+                // Gestion si le nombre de repas est modifié
+                if ($meals !== null) {
+                    $mealRate = $nanny->getMealRate();
+                    $lastAmountMeals = $LastMealsCount * $mealRate;
+                    $newAmountMeals = $meals * $mealRate;
+                    $monthlyPayment->setTotalMeals(
+                        $monthlyPayment->getTotalMeals() - $LastMealsCount + $meals
+                    );
+                    $monthlyPayment->setAmountMeals(
+                        $monthlyPayment->getAmountMeals() - $lastAmountMeals + $newAmountMeals
+                    );
+                    $monthlyPayment->setTotalAmount(
+                        round($totalAmountBefore - $lastAmountHours + $newAmountHours - $lastAmountMeals + $newAmountMeals, 2)
+                    );
+                }
+                else {
+                    $monthlyPayment->setTotalAmount(
+                        round($totalAmountBefore - $lastAmountHours + $newAmountHours, 2)
+                    );
+                }
                 // Persistance des modifications
                 $em->persist($monthlyPayment);
             } catch (\Throwable $th) {
