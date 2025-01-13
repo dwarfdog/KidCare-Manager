@@ -1,0 +1,80 @@
+{# Conditions d’Utilisation Template Twig #}
+
+{% extends 'base.html.twig' %}
+
+{% block title %}Conditions d’Utilisation
+{% endblock %}
+
+{% block body %}
+	<div class="bg-gray-50 py-12">
+		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+			<div class="bg-white shadow overflow-hidden sm:rounded-lg">
+				<div class="px-4 py-5 sm:px-6">
+					<h3 class="text-lg leading-6 font-medium text-gray-900">Conditions d’Utilisation</h3>
+					<p class="mt-1 max-w-2xl text-sm text-gray-500">Dernière mise à jour : {{ 'now'|date('d/m/Y') }}</p>
+				</div>
+				<div class="border-t border-gray-200">
+					<dl>
+						<div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+							<dt class="text-sm font-medium text-gray-500">Présentation du Service</dt>
+							<dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+								KidCare-Manager propose aux parents un service complet de gestion de la garde d’enfants, incluant la planification, le suivi et le calcul des sommes à payer.
+							</dd>
+						</div>
+
+						<div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+							<dt class="text-sm font-medium text-gray-500">Compte Utilisateur</dt>
+							<dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+								- Les utilisateurs doivent être majeurs pour créer un compte.<br>
+								- Tout manquement aux règles d’utilisation peut entraîner un bannissement du service.
+							</dd>
+						</div>
+
+						<div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+							<dt class="text-sm font-medium text-gray-500">Responsabilités des Utilisateurs</dt>
+							<dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+								- Respecter les règles de l’application.<br>
+								- Ne pas partager de données personnelles d’autrui sans autorisation.<br>
+								- Ne pas utiliser l’application à des fins illégales ou frauduleuses.
+							</dd>
+						</div>
+
+						<div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+							<dt class="text-sm font-medium text-gray-500">Propriété Intellectuelle</dt>
+							<dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+								- Le contenu de l’application (logo, marque, etc.) est protégé par des droits d’auteur.<br>
+								- Les utilisateurs ne peuvent pas réutiliser ou partager du contenu généré par l’application.<br>
+								- Certaines librairies utilisées sont open source.
+							</dd>
+						</div>
+
+						<div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+							<dt class="text-sm font-medium text-gray-500">Limites de Responsabilité</dt>
+							<dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+								- KidCare-Manager ne peut être tenu responsable en cas de calcul erroné ou de perte de données.<br>
+								- Aucune garantie n’est fournie quant aux résultats obtenus via l’application.
+							</dd>
+						</div>
+
+						<div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+							<dt class="text-sm font-medium text-gray-500">Modification et Résiliation</dt>
+							<dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+								- Nous nous réservons le droit de modifier ces conditions à tout moment.<br>
+								- Les utilisateurs peuvent résilier leur compte à tout moment via les paramètres de l’application.
+							</dd>
+						</div>
+
+						<div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+							<dt class="text-sm font-medium text-gray-500">Loi Applicable et Juridiction</dt>
+							<dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+								- Ces conditions sont régies par la loi française.<br>
+								- En cas de litige, les tribunaux français seront seuls compétents.
+							</dd>
+						</div>
+
+					</dl>
+				</div>
+			</div>
+		</div>
+	</div>
+{% endblock %}
