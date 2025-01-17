@@ -16,6 +16,7 @@ export default class extends Controller {
     static values = {
         events: Array,
         nannyId: Number,
+        currentDate: String,
     };
 
     connect() {
@@ -26,6 +27,7 @@ export default class extends Controller {
             plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
             initialView: isMobile ? 'timeGridDay' : 'timeGridWeek', // Vue journalière sur mobile, hebdomadaire ailleurs
             firstDay: 1,
+            initialDate: this.currentDateValue,
             locale: frLocale,
             headerToolbar: {
                 left: isMobile ? 'prev,next' : 'prev,next today',

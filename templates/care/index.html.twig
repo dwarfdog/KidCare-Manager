@@ -68,6 +68,7 @@
             data-controller="calendar"
             data-calendar-events-value="{{ events|json_encode|e('html_attr') }}"
             data-calendar-nanny-id-value="{{ selected_nanny.id }}"
+			data-calendar-current-date-value="{{ currentDate }}"
         >
             <div data-calendar-target="calendar" class="w-full"></div>
         </div>

@@ -34,23 +34,52 @@ class CareRepository extends ServiceEntityRepository
         return $qb->getQuery()->getOneOrNullResult();
     }
 
+    /**
+     * Trouve la prochaine garde qui n'a pas encore commencé.
+     *
+     * Cette fonction retourne la prochaine garde basée sur la date actuelle et l'heure courante.
+     * Elle traite deux cas principaux :
+     * 1. Si une garde est prévue aujourd'hui et commence après l'heure actuelle, elle est retournée.
+     * 2. Sinon, la première garde des jours suivants est retournée.
+     *
+     * @return Care|null La prochaine garde, ou null s'il n'y a pas de garde prévue.
+     */
     public function findNextCare(): ?Care
     {
-        $now = new \DateTime();
-        $today = new \DateTime('today');
+        // Obtenir la date et l'heure actuelles
+        $currentDateTime = new \DateTime();
+        $currentTime = $currentDateTime->format('H:i:s');
+        $currentDate = $currentDateTime->format('Y-m-d');
 
+        // Recherche des gardes du jour même après l'heure actuelle
+        $nextTodayCare = $this->createQueryBuilder('c')
+            ->where('c.date = :currentDate')
+            ->andWhere('c.startTime > :currentTime')
+            ->setParameter('currentDate', $currentDate)
+            ->setParameter('currentTime', $currentTime)
+            ->orderBy('c.date', 'ASC') // Tri par date croissante
+            ->addOrderBy('c.startTime', 'ASC') // Puis par heure de début
+            ->setMaxResults(1) // Limite à une seule garde
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        // Si une garde du jour est trouvée, la retourner
+        if ($nextTodayCare) {
+            return $nextTodayCare;
+        }
+
+        // Recherche des gardes des jours suivants
         return $this->createQueryBuilder('c')
-            ->where('c.date > :today')
-            ->orWhere('c.date = :today AND c.startTime >= :currentTime')
-            ->setParameter('today', $today)
-            ->setParameter('currentTime', $now->format('H:i:s'))
-            ->orderBy('c.date', 'ASC')
-            ->addOrderBy('c.startTime', 'ASC')
-            ->setMaxResults(1)
+            ->where('(c.date = :currentDate AND c.startTime > :currentTime)') // Gardes restantes du jour actuel
+            ->orWhere('c.date > :currentDate') // Gardes des jours suivants
+            ->setParameter('currentDate', $currentDate)
+            ->setParameter('currentTime', $currentTime)
+            ->orderBy('c.date', 'ASC') // Tri par date croissante
+            ->addOrderBy('c.startTime', 'ASC') // Puis par heure de début
+            ->setMaxResults(1) // Limite à une seule garde
             ->getQuery()
             ->getOneOrNullResult();
     }
-
 
     //    /**
     //     * @return Care[] Returns an array of Care objects

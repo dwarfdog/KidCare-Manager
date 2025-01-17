@@ -204,6 +204,7 @@ class CareTemplateController extends AbstractController
 
         // Récupérer la date de début de semaine
         $weekStart = new \DateTime($request->query->get('start'));
+        $currentDate = $weekStart->format('Y-m-d');
         $weekSchedule = $template->getWeekSchedule();
         // Mapping des jours de la semaine
         $dayMapping = [
@@ -239,7 +240,8 @@ class CareTemplateController extends AbstractController
                             $entityManager->rollback();
                             $this->addFlash('error', 'Un garde existe déjà pour cette nounou à cette date et dans cet intervalle de temps.');
                             return $this->redirectToRoute('app_care_index', [
-                                'slug' => $nanny->getSlug()
+                                'slug' => $nanny->getSlug(),
+                                'currentDate' => $currentDate
                             ]);
                         }
 
@@ -264,7 +266,8 @@ class CareTemplateController extends AbstractController
                             $this->addFlash('error', 'Une erreur est survenue lors de la création de la garde');
                             $entityManager->rollback();
                             return $this->redirectToRoute('app_care_index', [
-                                'slug' => $nanny->getSlug()
+                                'slug' => $nanny->getSlug(),
+                                'currentDate' => $currentDate
                             ]);
                         }
 
@@ -285,7 +288,8 @@ class CareTemplateController extends AbstractController
                             $this->addFlash('error', 'Une erreur est survenue lors de la récupération du paiement mensuel');
                             $entityManager->rollback();
                             return $this->redirectToRoute('app_care_index', [
-                                'slug' => $nanny->getSlug()
+                                'slug' => $nanny->getSlug(),
+                                'currentDate' => $currentDate
                             ]);
                         }
 
@@ -302,7 +306,8 @@ class CareTemplateController extends AbstractController
                             $this->addFlash('error', 'Une erreur est survenue lors de la mise à jour du paiement mensuel');
                             $entityManager->rollback();
                             return $this->redirectToRoute('app_care_index', [
-                                'slug' => $nanny->getSlug()
+                                'slug' => $nanny->getSlug(),
+                                'currentDate' => $currentDate
                             ]);
                         }
 
@@ -312,7 +317,8 @@ class CareTemplateController extends AbstractController
                             $this->addFlash('error', 'Une erreur est survenue lors de la sauvegarde de la garde');
                             $entityManager->rollback();
                             return $this->redirectToRoute('app_care_index', [
-                                'slug' => $nanny->getSlug()
+                                'slug' => $nanny->getSlug(),
+                                'currentDate' => $currentDate
                             ]);
                         }
                     }
@@ -324,13 +330,15 @@ class CareTemplateController extends AbstractController
             $entityManager->rollback();
             $this->addFlash('error', 'Une erreur est survenue lors de l\'application du template');
             return $this->redirectToRoute('app_care_index', [
-                'slug' => $nanny->getSlug()
+                'slug' => $nanny->getSlug(),
+                'currentDate' => $currentDate
             ]);
         }
 
         $this->addFlash('success', 'Le template a été appliqué avec succès');
         return $this->redirectToRoute('app_care_index', [
-            'slug' => $nanny->getSlug()
+            'slug' => $nanny->getSlug(),
+            'currentDate' => $currentDate
         ]);
     }
 }

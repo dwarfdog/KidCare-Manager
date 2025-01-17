@@ -20,12 +20,13 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 #[IsGranted('IS_AUTHENTICATED_FULLY')]
 class CareController extends AbstractController
 {
-    #[Route('/planning/{slug?}', name: 'index')]
+    #[Route('/planning/{slug?}/{currentDate?}', name: 'index')]
     #[IsGranted('ROLE_USER')]
     public function index(
         CareRepository $careRepository,
         CareTemplateRepository $careTemplateRepository,
-        ?Nanny $nanny = null
+        ?Nanny $nanny = null,
+        ?string $currentDate = null
     ): Response {
         $user = $this->getUser();
         $nannies = $user->getNannies();
@@ -84,13 +85,41 @@ class CareController extends AbstractController
             $templates = $careTemplateRepository->findByUserAndNanny($user, $nanny) ?? false;
         }
 
+        if ($this->isValidDate($currentDate)) {
+            $date = new \DateTime($currentDate);
+        } else {
+            $date = new \DateTime();
+        }
+
         return $this->render('care/index.html.twig', [
             'nannies' => $nannies,
             'selected_nanny' => $nanny,
+            'currentDate' => $date->format('Y-m-d'),
             'events' => $events,
             'templates' => $templates,
             'show_sidebar' => true,
         ]);
+    }
+
+    /**
+     * Vérifie si une chaîne donnée est une date valide.
+     *
+     * @param ?string $currentDate La chaîne représentant la date ou null.
+     * @return bool True si la date est valide, false sinon.
+     */
+    function isValidDate(?string $currentDate): bool
+    {
+        if ($currentDate === null || trim($currentDate) === '') {
+            return false; // La date est nulle ou vide.
+        }
+
+        try {
+            $date = new \DateTime($currentDate);
+            // Optionnel : Vérifiez le format exact si nécessaire.
+            return $date->format('Y-m-d') === $currentDate;
+        } catch (Exception $e) {
+            return false; // Une exception signifie que la date est invalide.
+        }
     }
 
     #[Route('/create', name: 'create', methods: ['GET'])]
