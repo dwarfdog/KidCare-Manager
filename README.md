@@ -77,3 +77,21 @@ L’objectif est de réduire la complexité des tâches administratives et d’o
      npm run build
 
 ---
+
+## Disclaimer
+
+Ce projet a été conçu et développé pour répondre à un **besoin personnel** en matière de gestion des heures de garde. Bien qu'il soit entièrement fonctionnel et partageable, il n'a pas été pensé comme un produit commercial.
+
+### Points importants à noter :
+- **Améliorations possibles** : Je suis ouvert aux suggestions et contributions, mais elles seront intégrées en fonction de mes disponibilités et de leur pertinence avec l'objectif initial du projet.
+- **Activité secondaire** : Ce projet n'est pas ma priorité principale. Les mises à jour et correctifs seront effectués de manière sporadique.
+- **Pas de garantie** : Bien que j’aie conçu le projet avec soin, il est partagé "tel quel". Il peut comporter des limitations ou des fonctionnalités perfectibles.
+
+### Contribution :
+Si vous souhaitez contribuer :
+1. Soumettez une **issue** sur le dépôt pour signaler un problème ou proposer une fonctionnalité.
+2. Envoyez une **pull request** pour des contributions directes. Toutes les propositions seront examinées avec attention.
+
+Merci de votre compréhension et de votre intérêt pour ce projet !
+
+---
