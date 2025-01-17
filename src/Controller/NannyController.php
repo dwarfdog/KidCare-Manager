@@ -11,7 +11,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/nanny/', name: 'app_nanny_')]
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 class NannyController extends AbstractController
 {
     #[Route('index', name: 'index')]
@@ -44,8 +44,7 @@ class NannyController extends AbstractController
 
             $this->addFlash('success', 'La nounou a été ajoutée avec succès.');
 
-            // TODO a corriger plus tard
-            return $this->redirectToRoute('app_home');
+            return $this->redirectToRoute('app_nanny_index');
         }
 
         return $this->render('nanny/new.html.twig', [

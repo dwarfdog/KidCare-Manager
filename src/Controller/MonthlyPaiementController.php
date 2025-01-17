@@ -12,7 +12,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 #[Route('/monthly-payment/', name: 'app_monthly_payment_')]
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 class MonthlyPaiementController extends AbstractController
 {
     #[Route('mark-as-paid/{slug}', name: 'mark_as_paid', methods: ['GET'])]
