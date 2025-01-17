@@ -18,7 +18,7 @@ class HomeController extends AbstractController
         CareRepository $careRepository
     ): Response
     {
-        if ($this->isGranted('IS_AUTHENTICATED_FULLY')) {
+        if ($this->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
             $allMontlyPaiements = $monthlyPaymentRepository->findAllExceptCurrentMonth($this->getUser());
             $month = date('Y-m');
             $actualMonth = $monthlyPaymentRepository->findOneBy(['user' => $this->getUser(), 'month' => $month]);
