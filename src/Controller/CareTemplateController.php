@@ -7,9 +7,10 @@ use App\Entity\Nanny;
 use App\Entity\CareTemplate;
 use App\Entity\MonthlyPayment;
 use App\Form\CareTemplateType;
+use App\Service\RoundingService;
 use App\Repository\CareRepository;
-use App\Repository\MonthlyPaymentRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Repository\MonthlyPaymentRepository;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -19,6 +20,14 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 #[IsGranted('IS_AUTHENTICATED_FULLY')]
 class CareTemplateController extends AbstractController
 {
+    private RoundingService $roundingService;
+
+    public function __construct(
+        RoundingService $roundingService
+    )
+    {
+        $this->roundingService = $roundingService;
+    }
 
     #[Route('index', name: 'index', methods: ['GET'])]
     public function index(
@@ -246,7 +255,7 @@ class CareTemplateController extends AbstractController
                         }
 
                         // Calculer les heures
-                        $hours = round(($endTime->getTimestamp() - $startTime->getTimestamp()) / 3600, 2);
+                        $hours = $this->roundingService->roundToTwoDecimals(($endTime->getTimestamp() - $startTime->getTimestamp()) / 3600);
 
                         try {
                             $care = new Care();
@@ -295,11 +304,11 @@ class CareTemplateController extends AbstractController
 
                         try {
                             // Mise à jour des totaux
-                            $monthlyPayment->setTotalsHours(round($monthlyPayment->getTotalsHours() + $hours, 2));
+                            $monthlyPayment->setTotalsHours($this->roundingService->roundToTwoDecimals($monthlyPayment->getTotalsHours() + $hours));
                             $monthlyPayment->setTotalMeals($monthlyPayment->getTotalMeals() + $care->getMealsCount());
-                            $monthlyPayment->setAmountHours(round($monthlyPayment->getTotalsHours() * $nanny->getHourlyRate(), 2));
-                            $monthlyPayment->setAmountMeals(round($monthlyPayment->getTotalMeals() * $nanny->getMealRate(), 2));
-                            $monthlyPayment->setTotalAmount(round($monthlyPayment->getAmountHours() + $monthlyPayment->getAmountMeals(), 2));
+                            $monthlyPayment->setAmountHours($this->roundingService->roundToTwoDecimals($monthlyPayment->getTotalsHours() * $nanny->getHourlyRate()));
+                            $monthlyPayment->setAmountMeals($this->roundingService->roundToTwoDecimals($monthlyPayment->getTotalMeals() * $nanny->getMealRate()));
+                            $monthlyPayment->setTotalAmount($this->roundingService->roundToTwoDecimals($monthlyPayment->getAmountHours() + $monthlyPayment->getAmountMeals()));
 
                             $entityManager->persist($monthlyPayment);
                         } catch (\Throwable $th) {

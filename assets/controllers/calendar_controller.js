@@ -215,8 +215,8 @@ export default class extends Controller {
 
         const params = new URLSearchParams({
             nanny: this.nannyIdValue,
-            start: event.start.toISOString(),
-            end: event.end ? event.end.toISOString() : null,
+            start: this.formatLocalDate(event.start),
+            end: event.end ? this.formatLocalDate(event.end) : null,
         });
 
         fetch(`/care/update/${event.id}?${params.toString()}`, {
@@ -254,6 +254,18 @@ export default class extends Controller {
             });
     }
 
+    // Fonction pour formater la date en chaîne sans UTC
+    formatLocalDate(date) {
+        if (!date) return null;
+
+        // Convertir l'objet Date en une chaîne au format "YYYY-MM-DD HH:mm:ss"
+        return date.toISOString().split('T')[0] + ' ' + date.toLocaleTimeString('fr-FR', {
+            hour12: false, // Heure en format 24h
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+        });
+    }
 
 
     renderEventWithDeleteButton(arg) {

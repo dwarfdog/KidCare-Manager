@@ -5,9 +5,10 @@ namespace App\Controller;
 use App\Entity\Care;
 use App\Entity\Nanny;
 use App\Entity\MonthlyPayment;
+use App\Service\RoundingService;
 use App\Repository\CareRepository;
-use App\Repository\CareTemplateRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Repository\CareTemplateRepository;
 use App\Repository\MonthlyPaymentRepository;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,6 +21,16 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 #[IsGranted('IS_AUTHENTICATED_FULLY')]
 class CareController extends AbstractController
 {
+
+    private RoundingService $roundingService;
+
+    public function __construct(
+        RoundingService $roundingService
+    )
+    {
+        $this->roundingService = $roundingService;
+    }
+
     #[Route('/planning/{slug?}/{currentDate?}', name: 'index')]
     #[IsGranted('ROLE_USER')]
     public function index(
@@ -179,10 +190,10 @@ class CareController extends AbstractController
                 // Calcul de la différence entre les deux heures
                 $interval = $startDateTime->diff($endDateTime);
                 // Convertir la différence en heures décimales
-                $hoursCount = round($interval->h + ($interval->i / 60), 2); // Heures + minutes en fraction d'heure
+                $hoursCount = $interval->h + ($interval->i / 60); // Heures + minutes en fraction d'heure
 
                 // Affecter le nombre d'heures à la garde
-                $newCare->setHoursCount($hoursCount);
+                $newCare->setHoursCount($this->roundingService->roundToTwoDecimals($hoursCount));
 
                 // Persister la nouvelle garde
                 $em->persist($newCare);
@@ -211,14 +222,14 @@ class CareController extends AbstractController
 
             try {
                 // Mise à jour des totaux
-                $monthlyPayment->setTotalsHours(round($monthlyPayment->getTotalsHours() + $hoursCount, 2));
+                $monthlyPayment->setTotalsHours($this->roundingService->roundToTwoDecimals($monthlyPayment->getTotalsHours() + $hoursCount));
                 $monthlyPayment->setTotalMeals($monthlyPayment->getTotalMeals() + $meals);
                 // Calcul des montants
                 $amountHours = $hoursCount * $nanny->getHourlyRate();
                 $amountMeals = $meals * $nanny->getMealRate();
-                $monthlyPayment->setAmountHours(round($monthlyPayment->getAmountHours() + $amountHours, 2));
-                $monthlyPayment->setAmountMeals(round($monthlyPayment->getAmountMeals() + $amountMeals, 2));
-                $monthlyPayment->setTotalAmount(round($monthlyPayment->getTotalAmount() + $amountHours + $amountMeals, 2));
+                $monthlyPayment->setAmountHours($this->roundingService->roundToTwoDecimals($monthlyPayment->getAmountHours() + $amountHours));
+                $monthlyPayment->setAmountMeals($this->roundingService->roundToTwoDecimals($monthlyPayment->getAmountMeals() + $amountMeals));
+                $monthlyPayment->setTotalAmount($this->roundingService->roundToTwoDecimals($monthlyPayment->getTotalAmount() + $amountHours + $amountMeals));
                 // Persister le paiement mensuel
                 $em->persist($monthlyPayment);
             } catch (\Throwable $th) {
@@ -287,11 +298,11 @@ class CareController extends AbstractController
                 $hoursCount = $interval->h + ($interval->i / 60);
                 $amountHours = $hoursCount * $nanny->getHourlyRate();
                 $amountMeals = $care->getMealsCount() * $nanny->getMealRate();
-                $monthlyPayment->setTotalsHours(round($monthlyPayment->getTotalsHours() - $hoursCount, 2));
+                $monthlyPayment->setTotalsHours($this->roundingService->roundToTwoDecimals($monthlyPayment->getTotalsHours() - $hoursCount));
                 $monthlyPayment->setTotalMeals($monthlyPayment->getTotalMeals() - $care->getMealsCount());
-                $monthlyPayment->setAmountHours(round($monthlyPayment->getAmountHours() - $amountHours, 2));
-                $monthlyPayment->setAmountMeals(round($monthlyPayment->getAmountMeals() - $amountMeals, 2));
-                $monthlyPayment->setTotalAmount(round($monthlyPayment->getTotalAmount() - $amountHours - $amountMeals, 2));
+                $monthlyPayment->setAmountHours($this->roundingService->roundToTwoDecimals($monthlyPayment->getAmountHours() - $amountHours));
+                $monthlyPayment->setAmountMeals($this->roundingService->roundToTwoDecimals($monthlyPayment->getAmountMeals() - $amountMeals));
+                $monthlyPayment->setTotalAmount($this->roundingService->roundToTwoDecimals($monthlyPayment->getTotalAmount() - $amountHours - $amountMeals));
             } catch (\Throwable $th) {
                 return new JsonResponse(['error' => 'Une erreur est survenue lors de la mise à jour du paiement mensuel.'], 500);
             }
@@ -376,7 +387,7 @@ class CareController extends AbstractController
                 // Calcul du nouveau nombre d'heures
                 $interval = $startDateTime->diff($endDateTime);
                 $NewHoursCareCount = $interval->h + ($interval->i / 60);
-                $care->setHoursCount($NewHoursCareCount);
+                $care->setHoursCount($this->roundingService->roundToTwoDecimals($NewHoursCareCount));
             } catch (\Throwable $th) {
                 return new JsonResponse(['error' => 'Une erreur est survenue lors de la mise à jour de la garde.'], 500);
             }
@@ -388,10 +399,10 @@ class CareController extends AbstractController
                 $newAmountHours = $NewHoursCareCount * $hoursRate;
                 // Mise à jour des totaux dans le paiement mensuel
                 $monthlyPayment->setTotalsHours(
-                    round($monthlyPayment->getTotalsHours() - $LastHoursCareCount + $NewHoursCareCount, 2)
+                    $this->roundingService->roundToTwoDecimals($monthlyPayment->getTotalsHours() - $LastHoursCareCount + $NewHoursCareCount)
                 );
                 $monthlyPayment->setAmountHours(
-                    round($monthlyPayment->getAmountHours() - $lastAmountHours + $newAmountHours, 2)
+                    $this->roundingService->roundToTwoDecimals($monthlyPayment->getAmountHours() - $lastAmountHours + $newAmountHours)
                 );
                 // Le montant global total doit refléter le montant des heures
                 $totalAmountBefore = $monthlyPayment->getTotalAmount();
@@ -408,12 +419,12 @@ class CareController extends AbstractController
                         $monthlyPayment->getAmountMeals() - $lastAmountMeals + $newAmountMeals
                     );
                     $monthlyPayment->setTotalAmount(
-                        round($totalAmountBefore - $lastAmountHours + $newAmountHours - $lastAmountMeals + $newAmountMeals, 2)
+                        $this->roundingService->roundToTwoDecimals($totalAmountBefore - $lastAmountHours + $newAmountHours - $lastAmountMeals + $newAmountMeals)
                     );
                 }
                 else {
                     $monthlyPayment->setTotalAmount(
-                        round($totalAmountBefore - $lastAmountHours + $newAmountHours, 2)
+                        $this->roundingService->roundToTwoDecimals($totalAmountBefore - $lastAmountHours + $newAmountHours)
                     );
                 }
                 // Persistance des modifications
