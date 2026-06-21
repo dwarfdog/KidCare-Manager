@@ -3,13 +3,14 @@
 namespace App\Entity;
 
 use App\Repository\NannyRepository;
+use App\Service\UlidGenerator;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Gedmo\Mapping\Annotation as Gedmo;
 
 #[ORM\Entity(repositoryClass: NannyRepository::class)]
+#[ORM\UniqueConstraint(name: 'UNIQ_NANNY_IDENTITY_LOCATION', fields: ['firstname', 'lastname', 'postalCode', 'city'])]
 class Nanny
 {
     #[ORM\Id]
@@ -17,66 +18,91 @@ class Nanny
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 255, options: ['default' => 'prénom'])]
+    #[ORM\Column(length: 26, unique: true)]
+    private string $publicId;
+
+    #[ORM\Column(length: 120)]
     private ?string $firstname = null;
 
-    #[ORM\Column(length: 255, options: ['default' => 'nom'])]
+    #[ORM\Column(length: 120)]
     private ?string $lastname = null;
 
-    #[ORM\Column(options: ['default' => 0])]
-    private ?float $hourlyRate = null;
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $addressLine1 = null;
 
-    #[ORM\Column(options: ['default' => 0])]
-    private ?float $mealRate = null;
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $addressLine2 = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $postalCode = null;
+
+    #[ORM\Column(length: 120, nullable: true)]
+    private ?string $city = null;
+
+    #[ORM\Column(length: 80, nullable: true)]
+    private ?string $country = null;
+
+    #[ORM\Column(length: 40, unique: true)]
+    private string $inviteCode;
+
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    private ?User $createdBy = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    private ?\DateTimeInterface $createdAt = null;
+    private \DateTimeInterface $createdAt;
 
-    /**
-     * @var Collection<int, User>
-     */
-    #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'nannies')]
-    private Collection $user;
+    /** @var Collection<int, NannyAssignment> */
+    #[ORM\OneToMany(targetEntity: NannyAssignment::class, mappedBy: 'nanny', orphanRemoval: true)]
+    private Collection $assignments;
 
-    /**
-     * @var Collection<int, Care>
-     */
+    /** @var Collection<int, Care> */
     #[ORM\OneToMany(targetEntity: Care::class, mappedBy: 'nanny')]
     private Collection $cares;
 
-    /**
-     * @var Collection<int, MonthlyPayment>
-     */
+    /** @var Collection<int, MonthlyPayment> */
     #[ORM\OneToMany(targetEntity: MonthlyPayment::class, mappedBy: 'nanny')]
     private Collection $monthlyPayments;
 
-    #[ORM\Column(length: 255, unique: true)]
-    #[Gedmo\Slug(fields: ['firstname', 'lastname'])]
-    private ?string $slug = null;
-
-    /**
-     * @var Collection<int, CareTemplate>
-     */
+    /** @var Collection<int, CareTemplate> */
     #[ORM\OneToMany(targetEntity: CareTemplate::class, mappedBy: 'nanny')]
     private Collection $careTemplates;
 
+    /** @var Collection<int, NannyRate> */
+    #[ORM\OneToMany(targetEntity: NannyRate::class, mappedBy: 'nanny')]
+    private Collection $rates;
+
     public function __construct()
     {
+        $this->publicId = UlidGenerator::generate();
+        $this->inviteCode = UlidGenerator::generate();
         $this->createdAt = new \DateTime();
-        $this->user = new ArrayCollection();
+        $this->assignments = new ArrayCollection();
         $this->cares = new ArrayCollection();
         $this->monthlyPayments = new ArrayCollection();
         $this->careTemplates = new ArrayCollection();
+        $this->rates = new ArrayCollection();
     }
 
     public function __toString(): string
     {
-        return $this->getFullname();
+        return $this->getFullName();
     }
 
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getPublicId(): string
+    {
+        return $this->publicId;
+    }
+
+    public function setPublicId(string $publicId): static
+    {
+        $this->publicId = $publicId;
+
+        return $this;
     }
 
     public function getFirstname(): ?string
@@ -86,7 +112,7 @@ class Nanny
 
     public function setFirstname(string $firstname): static
     {
-        $this->firstname = $firstname;
+        $this->firstname = trim($firstname);
 
         return $this;
     }
@@ -98,36 +124,108 @@ class Nanny
 
     public function setLastname(string $lastname): static
     {
-        $this->lastname = $lastname;
+        $this->lastname = trim($lastname);
 
         return $this;
     }
 
-    public function getHourlyRate(): ?float
+    public function getAddressLine1(): ?string
     {
-        return $this->hourlyRate;
+        return $this->addressLine1;
     }
 
-    public function setHourlyRate(float $hourlyRate): static
+    public function setAddressLine1(?string $addressLine1): static
     {
-        $this->hourlyRate = $hourlyRate;
+        $addressLine1 = $addressLine1 !== null ? trim($addressLine1) : null;
+        $this->addressLine1 = $addressLine1 !== '' ? $addressLine1 : null;
 
         return $this;
     }
 
-    public function getMealRate(): ?float
+    public function getAddressLine2(): ?string
     {
-        return $this->mealRate;
+        return $this->addressLine2;
     }
 
-    public function setMealRate(float $mealRate): static
+    public function setAddressLine2(?string $addressLine2): static
     {
-        $this->mealRate = $mealRate;
+        $addressLine2 = $addressLine2 !== null ? trim($addressLine2) : null;
+        $this->addressLine2 = $addressLine2 !== '' ? $addressLine2 : null;
 
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTimeInterface
+    public function getPostalCode(): ?string
+    {
+        return $this->postalCode;
+    }
+
+    public function setPostalCode(?string $postalCode): static
+    {
+        $postalCode = $postalCode !== null ? trim($postalCode) : null;
+        $this->postalCode = $postalCode !== '' ? $postalCode : null;
+
+        return $this;
+    }
+
+    public function getCity(): ?string
+    {
+        return $this->city;
+    }
+
+    public function setCity(?string $city): static
+    {
+        $city = $city !== null ? trim($city) : null;
+        $this->city = $city !== '' ? $city : null;
+
+        return $this;
+    }
+
+    public function getCountry(): ?string
+    {
+        return $this->country;
+    }
+
+    public function setCountry(?string $country): static
+    {
+        $country = $country !== null ? trim($country) : null;
+        $this->country = $country !== '' ? $country : null;
+
+        return $this;
+    }
+
+    public function getInviteCode(): string
+    {
+        return $this->inviteCode;
+    }
+
+    public function regenerateInviteCode(): static
+    {
+        $this->inviteCode = UlidGenerator::generate();
+
+        return $this;
+    }
+
+    public function setInviteCode(string $inviteCode): static
+    {
+        $this->inviteCode = $inviteCode;
+
+        return $this;
+    }
+
+    public function getCreatedBy(): ?User
+    {
+        return $this->createdBy;
+    }
+
+    public function setCreatedBy(?User $createdBy): static
+    {
+        $this->createdBy = $createdBy;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): \DateTimeInterface
     {
         return $this->createdAt;
     }
@@ -139,134 +237,83 @@ class Nanny
         return $this;
     }
 
-    /**
-     * @return Collection<int, User>
-     */
-    public function getUsers(): Collection
+    public function getFullName(): string
     {
-        return $this->user;
+        return trim(($this->firstname ?? '') . ' ' . ($this->lastname ?? ''));
     }
 
-    public function addUser(User $user): static
+    public function getPublicLabel(): string
     {
-        if (!$this->user->contains($user)) {
-            $this->user->add($user);
+        $location = trim(implode(' ', array_filter([$this->postalCode, $this->city])));
+
+        return $location !== '' ? sprintf('%s - %s', $this->getFullName(), $location) : $this->getFullName();
+    }
+
+    public function getAddressFingerprint(): string
+    {
+        return mb_strtolower(trim(implode('|', [
+            $this->firstname,
+            $this->lastname,
+            $this->postalCode,
+            $this->city,
+        ])));
+    }
+
+    /** @return Collection<int, NannyAssignment> */
+    public function getAssignments(): Collection
+    {
+        return $this->assignments;
+    }
+
+    public function isAssignedTo(User $user): bool
+    {
+        foreach ($this->assignments as $assignment) {
+            if ($assignment->getUser() === $user && $assignment->getDetachedAt() === null) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function addAssignment(NannyAssignment $assignment): static
+    {
+        if (!$this->assignments->contains($assignment)) {
+            $this->assignments->add($assignment);
+            $assignment->setNanny($this);
         }
 
         return $this;
     }
 
-    public function removeUser(User $user): static
+    public function removeAssignment(NannyAssignment $assignment): static
     {
-        $this->user->removeElement($user);
+        $this->assignments->removeElement($assignment);
 
         return $this;
     }
 
-    /**
-     * @return Collection<int, Care>
-     */
+    /** @return Collection<int, Care> */
     public function getCares(): Collection
     {
         return $this->cares;
     }
 
-    public function addCare(Care $care): static
-    {
-        if (!$this->cares->contains($care)) {
-            $this->cares->add($care);
-            $care->setNanny($this);
-        }
-
-        return $this;
-    }
-
-    public function removeCare(Care $care): static
-    {
-        if ($this->cares->removeElement($care)) {
-            // set the owning side to null (unless already changed)
-            if ($care->getNanny() === $this) {
-                $care->setNanny(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, MonthlyPayment>
-     */
+    /** @return Collection<int, MonthlyPayment> */
     public function getMonthlyPayments(): Collection
     {
         return $this->monthlyPayments;
     }
 
-    public function addMonthlyPayment(MonthlyPayment $monthlyPayment): static
-    {
-        if (!$this->monthlyPayments->contains($monthlyPayment)) {
-            $this->monthlyPayments->add($monthlyPayment);
-            $monthlyPayment->setNanny($this);
-        }
-
-        return $this;
-    }
-
-    public function removeMonthlyPayment(MonthlyPayment $monthlyPayment): static
-    {
-        if ($this->monthlyPayments->removeElement($monthlyPayment)) {
-            // set the owning side to null (unless already changed)
-            if ($monthlyPayment->getNanny() === $this) {
-                $monthlyPayment->setNanny(null);
-            }
-        }
-
-        return $this;
-    }
-
-    public function getSlug(): ?string
-    {
-        return $this->slug;
-    }
-
-    public function setSlug(string $slug): static
-    {
-        $this->slug = $slug;
-
-        return $this;
-    }
-
-    public function getFullname(): string
-    {
-        return $this->firstname . ' ' . $this->lastname;
-    }
-
-    /**
-     * @return Collection<int, CareTemplate>
-     */
+    /** @return Collection<int, CareTemplate> */
     public function getCareTemplates(): Collection
     {
         return $this->careTemplates;
     }
 
-    public function addCareTemplate(CareTemplate $careTemplate): static
+    /** @return Collection<int, NannyRate> */
+    public function getRates(): Collection
     {
-        if (!$this->careTemplates->contains($careTemplate)) {
-            $this->careTemplates->add($careTemplate);
-            $careTemplate->setNanny($this);
-        }
-
-        return $this;
-    }
-
-    public function removeCareTemplate(CareTemplate $careTemplate): static
-    {
-        if ($this->careTemplates->removeElement($careTemplate)) {
-            // set the owning side to null (unless already changed)
-            if ($careTemplate->getNanny() === $this) {
-                $careTemplate->setNanny(null);
-            }
-        }
-
-        return $this;
+        return $this->rates;
     }
 }

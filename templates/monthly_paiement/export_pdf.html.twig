@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { color: #0f172a; font-family: "DejaVu Sans", sans-serif; font-size: 12px; }
+        h1 { font-size: 22px; margin: 0 0 6px; }
+        h2 { font-size: 15px; margin: 24px 0 10px; }
+        .muted { color: #64748b; }
+        .summary { border-collapse: collapse; margin-top: 20px; width: 100%; }
+        .summary td { border: 1px solid #cbd5e1; padding: 9px; }
+        .summary .label { background: #f8fafc; color: #475569; width: 25%; }
+        table.details { border-collapse: collapse; margin-top: 10px; width: 100%; }
+        table.details th { background: #f1f5f9; color: #475569; font-size: 10px; padding: 8px; text-align: left; text-transform: uppercase; }
+        table.details td { border-bottom: 1px solid #e2e8f0; padding: 8px; }
+        .right { text-align: right; }
+    </style>
+</head>
+<body>
+    <h1>Paiement {{ payment.month }}</h1>
+    <div class="muted">{{ payment.nannyDisplayName }}</div>
+    <div class="muted">Genere le {{ "now"|date('d/m/Y H:i') }}</div>
+
+    <table class="summary">
+        <tr>
+            <td class="label">Heures</td>
+            <td>{{ payment.totalsHours|number_format(2, ',', ' ') }} h</td>
+            <td class="label">Repas</td>
+            <td>{{ payment.totalMeals }}</td>
+        </tr>
+        <tr>
+            <td class="label">Montant heures</td>
+            <td>{{ payment.amountHours|number_format(2, ',', ' ') }} {{ currency }}</td>
+            <td class="label">Montant repas</td>
+            <td>{{ payment.amountMeals|number_format(2, ',', ' ') }} {{ currency }}</td>
+        </tr>
+        <tr>
+            <td class="label">Total</td>
+            <td colspan="3"><strong>{{ payment.totalAmount|number_format(2, ',', ' ') }} {{ currency }}</strong></td>
+        </tr>
+    </table>
+
+    <h2>Gardes</h2>
+    <table class="details">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Debut</th>
+                <th>Fin</th>
+                <th class="right">Heures</th>
+                <th class="right">Repas</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for care in cares %}
+                <tr>
+                    <td>{{ care.date|date('d/m/Y') }}</td>
+                    <td>{{ care.startTime|date('H:i') }}</td>
+                    <td>{{ care.endTime|date('H:i') }}</td>
+                    <td class="right">{{ care.hoursCount|number_format(2, ',', ' ') }}</td>
+                    <td class="right">{{ care.mealsCount }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="5">Aucune garde.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

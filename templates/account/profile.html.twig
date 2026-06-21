@@ -1,0 +1,84 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Compte{% endblock %}
+
+{% block body %}
+<div class="space-y-6">
+    <div>
+        <h1 class="text-2xl font-semibold">Compte</h1>
+        <p class="text-sm text-slate-500">{{ app.user.userIdentifier }}</p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <section class="rounded-lg border border-slate-200 bg-white p-5">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 class="text-base font-semibold">Profil</h2>
+                    <p class="mt-1 text-sm text-slate-500">
+                        {% if emailRequired %}
+                            Email {{ app.user.emailVerified ? 'valide' : 'a valider' }}
+                        {% else %}
+                            Validation email inactive
+                        {% endif %}
+                    </p>
+                </div>
+                {% if app.user.emailVerified %}
+                    <span class="rounded-full bg-teal-100 px-2.5 py-1 text-xs font-medium text-teal-800">Valide</span>
+                {% elseif emailRequired %}
+                    <span class="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">A valider</span>
+                {% endif %}
+            </div>
+
+            {{ form_start(profileForm, {'attr': {'class': 'mt-5 space-y-4'}}) }}
+                {{ form_errors(profileForm) }}
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        {{ form_label(profileForm.username, null, {'label_attr': {'class': 'text-sm font-medium text-slate-700'}}) }}
+                        {{ form_widget(profileForm.username, {'attr': {'class': 'mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm', 'autocomplete': 'username'}}) }}
+                        {{ form_errors(profileForm.username) }}
+                    </div>
+                    <div>
+                        {{ form_label(profileForm.email, null, {'label_attr': {'class': 'text-sm font-medium text-slate-700'}}) }}
+                        {{ form_widget(profileForm.email, {'attr': {'class': 'mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm', 'autocomplete': 'email'}}) }}
+                        {{ form_errors(profileForm.email) }}
+                    </div>
+                </div>
+                <div class="flex justify-end">
+                    <button class="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700">Enregistrer</button>
+                </div>
+            {{ form_end(profileForm) }}
+        </section>
+
+        <aside class="space-y-5">
+            <section class="rounded-lg border border-slate-200 bg-white p-5">
+                <h2 class="text-base font-semibold">Mot de passe</h2>
+                {{ form_start(passwordForm, {'attr': {'class': 'mt-5 space-y-4'}}) }}
+                    {{ form_errors(passwordForm) }}
+                    {{ form_row(passwordForm.currentPassword, {'attr': {'class': 'w-full rounded-md border border-slate-300 px-3 py-2 text-sm', 'autocomplete': 'current-password'}}) }}
+                    {{ form_row(passwordForm.newPassword.first, {'attr': {'class': 'w-full rounded-md border border-slate-300 px-3 py-2 text-sm', 'autocomplete': 'new-password'}}) }}
+                    {{ form_row(passwordForm.newPassword.second, {'attr': {'class': 'w-full rounded-md border border-slate-300 px-3 py-2 text-sm', 'autocomplete': 'new-password'}}) }}
+                    <button class="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Mettre a jour</button>
+                {{ form_end(passwordForm) }}
+            </section>
+
+            <section class="rounded-lg border border-red-200 bg-white p-5">
+                <h2 class="text-base font-semibold text-red-800">Suppression</h2>
+                {{ form_start(deleteForm, {
+                    'attr': {
+                        'class': 'mt-5 space-y-4',
+                        'data-controller': 'confirm',
+                        'data-action': 'submit->confirm#submit',
+                        'data-confirm-title-value': 'Supprimer le compte ?',
+                        'data-confirm-text-value': 'Les donnees privees de ce compte seront supprimees.',
+                        'data-confirm-confirm-text-value': 'Supprimer'
+                    }
+                }) }}
+                    {{ form_errors(deleteForm) }}
+                    {{ form_row(deleteForm.currentPassword, {'attr': {'class': 'w-full rounded-md border border-slate-300 px-3 py-2 text-sm', 'autocomplete': 'current-password'}}) }}
+                    <button class="w-full rounded-md border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">Supprimer le compte</button>
+                {{ form_end(deleteForm) }}
+            </section>
+        </aside>
+    </div>
+</div>
+{% endblock %}

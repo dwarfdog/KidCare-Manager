@@ -3,17 +3,20 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use App\Service\UlidGenerator;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Gedmo\Mapping\Annotation as Gedmo;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_USERNAME', fields: ['username'])]
-#[UniqueEntity(fields: ['username'], message: 'There is already an account with this username')]
+#[ORM\UniqueConstraint(name: 'UNIQ_USER_EMAIL', fields: ['email'])]
+#[UniqueEntity(fields: ['username'], message: 'Ce nom d\'utilisateur est deja utilise.')]
+#[UniqueEntity(fields: ['email'], message: 'Cet email est deja utilise.', ignoreNull: true)]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
@@ -21,60 +24,79 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?int $id = null;
 
+    #[ORM\Column(length: 26, unique: true)]
+    private string $publicId;
+
     #[ORM\Column(length: 180)]
     private ?string $username = null;
 
-    /**
-     * @var list<string> The user roles
-     */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $email = null;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $emailVerified = false;
+
+    #[ORM\Column(length: 128, nullable: true)]
+    private ?string $emailVerificationTokenHash = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $emailVerificationRequestedAt = null;
+
     #[ORM\Column]
     private array $roles = [];
 
-    /**
-     * @var string The hashed password
-     */
     #[ORM\Column]
     private ?string $password = null;
 
-    /**
-     * @var Collection<int, Nanny>
-     */
-    #[ORM\ManyToMany(targetEntity: Nanny::class, mappedBy: 'user')]
-    private Collection $nannies;
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    private \DateTimeInterface $createdAt;
 
-    /**
-     * @var Collection<int, Care>
-     */
+    /** @var Collection<int, NannyAssignment> */
+    #[ORM\OneToMany(targetEntity: NannyAssignment::class, mappedBy: 'user', orphanRemoval: true)]
+    private Collection $nannyAssignments;
+
+    /** @var Collection<int, Care> */
     #[ORM\OneToMany(targetEntity: Care::class, mappedBy: 'user')]
     private Collection $cares;
 
-    /**
-     * @var Collection<int, MonthlyPayment>
-     */
+    /** @var Collection<int, MonthlyPayment> */
     #[ORM\OneToMany(targetEntity: MonthlyPayment::class, mappedBy: 'user')]
     private Collection $monthlyPayments;
 
-    #[ORM\Column(length: 255, unique: true)]
-    #[Gedmo\Slug(fields: ['username'])]
-    private ?string $slug = null;
-
-    /**
-     * @var Collection<int, CareTemplate>
-     */
+    /** @var Collection<int, CareTemplate> */
     #[ORM\OneToMany(targetEntity: CareTemplate::class, mappedBy: 'user')]
     private Collection $careTemplates;
 
+    /** @var Collection<int, NannyRate> */
+    #[ORM\OneToMany(targetEntity: NannyRate::class, mappedBy: 'user', orphanRemoval: true)]
+    private Collection $nannyRates;
+
     public function __construct()
     {
-        $this->nannies = new ArrayCollection();
+        $this->publicId = UlidGenerator::generate();
+        $this->createdAt = new \DateTime();
+        $this->nannyAssignments = new ArrayCollection();
         $this->cares = new ArrayCollection();
         $this->monthlyPayments = new ArrayCollection();
         $this->careTemplates = new ArrayCollection();
+        $this->nannyRates = new ArrayCollection();
     }
 
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getPublicId(): string
+    {
+        return $this->publicId;
+    }
+
+    public function setPublicId(string $publicId): static
+    {
+        $this->publicId = $publicId;
+
+        return $this;
     }
 
     public function getUsername(): ?string
@@ -84,38 +106,79 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function setUsername(string $username): static
     {
-        $this->username = $username;
+        $this->username = trim($username);
 
         return $this;
     }
 
-    /**
-     * A visual identifier that represents this user.
-     *
-     * @see UserInterface
-     */
+    public function getEmail(): ?string
+    {
+        return $this->email;
+    }
+
+    public function setEmail(?string $email): static
+    {
+        $email = $email !== null ? trim($email) : null;
+        $this->email = $email !== '' ? $email : null;
+
+        return $this;
+    }
+
+    public function isEmailVerified(): bool
+    {
+        return $this->emailVerified;
+    }
+
+    public function setEmailVerified(bool $emailVerified): static
+    {
+        $this->emailVerified = $emailVerified;
+
+        if ($emailVerified) {
+            $this->emailVerificationTokenHash = null;
+        }
+
+        return $this;
+    }
+
+    public function getEmailVerificationTokenHash(): ?string
+    {
+        return $this->emailVerificationTokenHash;
+    }
+
+    public function setEmailVerificationTokenHash(?string $emailVerificationTokenHash): static
+    {
+        $this->emailVerificationTokenHash = $emailVerificationTokenHash;
+
+        return $this;
+    }
+
+    public function getEmailVerificationRequestedAt(): ?\DateTimeInterface
+    {
+        return $this->emailVerificationRequestedAt;
+    }
+
+    public function setEmailVerificationRequestedAt(?\DateTimeInterface $emailVerificationRequestedAt): static
+    {
+        $this->emailVerificationRequestedAt = $emailVerificationRequestedAt;
+
+        return $this;
+    }
+
     public function getUserIdentifier(): string
     {
         return (string) $this->username;
     }
 
-    /**
-     * @see UserInterface
-     *
-     * @return list<string>
-     */
+    /** @return list<string> */
     public function getRoles(): array
     {
         $roles = $this->roles;
-        // guarantee every user at least has ROLE_USER
         $roles[] = 'ROLE_USER';
 
-        return array_unique($roles);
+        return array_values(array_unique($roles));
     }
 
-    /**
-     * @param list<string> $roles
-     */
+    /** @param list<string> $roles */
     public function setRoles(array $roles): static
     {
         $this->roles = $roles;
@@ -123,9 +186,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * @see PasswordAuthenticatedUserInterface
-     */
     public function getPassword(): ?string
     {
         return $this->password;
@@ -138,141 +198,88 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * @see UserInterface
-     */
     public function eraseCredentials(): void
     {
-        // If you store any temporary, sensitive data on the user, clear it here
-        // $this->plainPassword = null;
     }
 
-    /**
-     * @return Collection<int, Nanny>
-     */
+    public function getCreatedAt(): \DateTimeInterface
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(\DateTimeInterface $createdAt): static
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    /** @return Collection<int, NannyAssignment> */
+    public function getNannyAssignments(): Collection
+    {
+        return $this->nannyAssignments;
+    }
+
+    public function getNannyAssignmentFor(Nanny $nanny): ?NannyAssignment
+    {
+        foreach ($this->nannyAssignments as $assignment) {
+            if ($assignment->getNanny() === $nanny) {
+                return $assignment;
+            }
+        }
+
+        return null;
+    }
+
+    /** @return Collection<int, Nanny> */
     public function getNannies(): Collection
     {
-        return $this->nannies;
+        return new ArrayCollection(
+            $this->nannyAssignments
+                ->filter(static fn (NannyAssignment $assignment): bool => $assignment->getDetachedAt() === null)
+                ->map(static fn (NannyAssignment $assignment): Nanny => $assignment->getNanny())
+                ->toArray()
+        );
     }
 
-    public function addNanny(Nanny $nanny): static
+    public function addNannyAssignment(NannyAssignment $assignment): static
     {
-        if (!$this->nannies->contains($nanny)) {
-            $this->nannies->add($nanny);
-            $nanny->addUser($this);
+        if (!$this->nannyAssignments->contains($assignment)) {
+            $this->nannyAssignments->add($assignment);
+            $assignment->setUser($this);
         }
 
         return $this;
     }
 
-    public function removeNanny(Nanny $nanny): static
+    public function removeNannyAssignment(NannyAssignment $assignment): static
     {
-        if ($this->nannies->removeElement($nanny)) {
-            $nanny->removeUser($this);
-        }
+        $this->nannyAssignments->removeElement($assignment);
 
         return $this;
     }
 
-    /**
-     * @return Collection<int, Care>
-     */
+    /** @return Collection<int, Care> */
     public function getCares(): Collection
     {
         return $this->cares;
     }
 
-    public function addCare(Care $care): static
-    {
-        if (!$this->cares->contains($care)) {
-            $this->cares->add($care);
-            $care->setUser($this);
-        }
-
-        return $this;
-    }
-
-    public function removeCare(Care $care): static
-    {
-        if ($this->cares->removeElement($care)) {
-            // set the owning side to null (unless already changed)
-            if ($care->getUser() === $this) {
-                $care->setUser(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, MonthlyPayment>
-     */
+    /** @return Collection<int, MonthlyPayment> */
     public function getMonthlyPayments(): Collection
     {
         return $this->monthlyPayments;
     }
 
-    public function addMonthlyPayment(MonthlyPayment $monthlyPayment): static
-    {
-        if (!$this->monthlyPayments->contains($monthlyPayment)) {
-            $this->monthlyPayments->add($monthlyPayment);
-            $monthlyPayment->setUser($this);
-        }
-
-        return $this;
-    }
-
-    public function removeMonthlyPayment(MonthlyPayment $monthlyPayment): static
-    {
-        if ($this->monthlyPayments->removeElement($monthlyPayment)) {
-            // set the owning side to null (unless already changed)
-            if ($monthlyPayment->getUser() === $this) {
-                $monthlyPayment->setUser(null);
-            }
-        }
-
-        return $this;
-    }
-
-    public function getSlug(): ?string
-    {
-        return $this->slug;
-    }
-
-    public function setSlug(string $slug): static
-    {
-        $this->slug = $slug;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, CareTemplate>
-     */
+    /** @return Collection<int, CareTemplate> */
     public function getCareTemplates(): Collection
     {
         return $this->careTemplates;
     }
 
-    public function addCareTemplate(CareTemplate $careTemplate): static
+    /** @return Collection<int, NannyRate> */
+    public function getNannyRates(): Collection
     {
-        if (!$this->careTemplates->contains($careTemplate)) {
-            $this->careTemplates->add($careTemplate);
-            $careTemplate->setUser($this);
-        }
-
-        return $this;
-    }
-
-    public function removeCareTemplate(CareTemplate $careTemplate): static
-    {
-        if ($this->careTemplates->removeElement($careTemplate)) {
-            // set the owning side to null (unless already changed)
-            if ($careTemplate->getUser() === $this) {
-                $careTemplate->setUser(null);
-            }
-        }
-
-        return $this;
+        return $this->nannyRates;
     }
 }

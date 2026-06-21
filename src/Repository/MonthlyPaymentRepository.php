@@ -2,14 +2,13 @@
 
 namespace App\Repository;
 
-use App\Entity\User;
 use App\Entity\MonthlyPayment;
-use Doctrine\Persistence\ManagerRegistry;
+use App\Entity\Nanny;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Persistence\ManagerRegistry;
 
-/**
- * @extends ServiceEntityRepository<MonthlyPayment>
- */
+/** @extends ServiceEntityRepository<MonthlyPayment> */
 class MonthlyPaymentRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -17,42 +16,72 @@ class MonthlyPaymentRepository extends ServiceEntityRepository
         parent::__construct($registry, MonthlyPayment::class);
     }
 
-    public function findAllExceptCurrentMonth(User $user)
+    public function findOneForUserByPublicId(User $user, string $publicId): ?MonthlyPayment
     {
-        $currentDate = new \DateTime();
-        $currentMonth = $currentDate->format('Y-m');
+        return $this->createQueryBuilder('mp')
+            ->andWhere('mp.user = :user')
+            ->andWhere('mp.publicId = :publicId')
+            ->setParameter('user', $user)
+            ->setParameter('publicId', $publicId)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    public function findOneFor(User $user, ?Nanny $nanny, string $month, ?string $nannySnapshotKey = null): ?MonthlyPayment
+    {
+        $nannySnapshotKey ??= $nanny?->getPublicId();
+
+        $qb = $this->createQueryBuilder('mp')
+            ->andWhere('mp.user = :user')
+            ->andWhere('mp.month = :month')
+            ->setParameter('user', $user)
+            ->setParameter('month', $month)
+            ->setMaxResults(1);
+
+        if ($nanny !== null && $nannySnapshotKey !== null) {
+            $qb
+                ->andWhere('(mp.nanny = :nanny OR mp.nannySnapshotKey = :nannySnapshotKey)')
+                ->setParameter('nanny', $nanny)
+                ->setParameter('nannySnapshotKey', $nannySnapshotKey);
+        } elseif ($nannySnapshotKey !== null) {
+            $qb
+                ->andWhere('mp.nannySnapshotKey = :nannySnapshotKey')
+                ->setParameter('nannySnapshotKey', $nannySnapshotKey);
+        } else {
+            $qb->andWhere('mp.nanny IS NULL');
+        }
+
+        return $qb->getQuery()->getOneOrNullResult();
+    }
+
+    /** @return MonthlyPayment[] */
+    public function findAllExceptCurrentMonth(User $user): array
+    {
+        $currentMonth = (new \DateTime())->format('Y-m');
 
         return $this->createQueryBuilder('mp')
-            ->where('mp.user = :user')
+            ->andWhere('mp.user = :user')
             ->andWhere('mp.month != :currentMonth')
             ->setParameter('user', $user)
             ->setParameter('currentMonth', $currentMonth)
             ->orderBy('mp.month', 'DESC')
+            ->addOrderBy('mp.nannyDisplayName', 'ASC')
             ->getQuery()
             ->getResult();
     }
-    //    /**
-    //     * @return MonthlyPayment[] Returns an array of MonthlyPayment objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('m')
-    //            ->andWhere('m.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('m.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
 
-    //    public function findOneBySomeField($value): ?MonthlyPayment
-    //    {
-    //        return $this->createQueryBuilder('m')
-    //            ->andWhere('m.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    /** @return MonthlyPayment[] */
+    public function findCurrentMonth(User $user): array
+    {
+        $currentMonth = (new \DateTime())->format('Y-m');
+
+        return $this->createQueryBuilder('mp')
+            ->andWhere('mp.user = :user')
+            ->andWhere('mp.month = :currentMonth')
+            ->setParameter('user', $user)
+            ->setParameter('currentMonth', $currentMonth)
+            ->orderBy('mp.nannyDisplayName', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

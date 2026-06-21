@@ -1,14 +1,14 @@
 <?php
+
 namespace App\Form;
 
 use App\Entity\Nanny;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\MoneyType;
+use Symfony\Component\Form\Extension\Core\Type\CountryType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\NotBlank;
-use Symfony\Component\Validator\Constraints\Positive;
 
 class NannyType extends AbstractType
 {
@@ -16,42 +16,35 @@ class NannyType extends AbstractType
     {
         $builder
             ->add('firstname', TextType::class, [
-                'constraints' => [
-                    new NotBlank([
-                        'message' => 'Veuillez entrer un prénom',
-                    ]),
-                ],
+                'label' => 'Prenom',
+                'constraints' => [new NotBlank(['message' => 'Veuillez entrer un prenom'])],
             ])
             ->add('lastname', TextType::class, [
-                'constraints' => [
-                    new NotBlank([
-                        'message' => 'Veuillez entrer un nom',
-                    ]),
-                ],
+                'label' => 'Nom',
+                'constraints' => [new NotBlank(['message' => 'Veuillez entrer un nom'])],
             ])
-            ->add('hourly_rate', MoneyType::class, [
-                'currency' => 'EUR',
-                'constraints' => [
-                    new NotBlank([
-                        'message' => 'Veuillez entrer un taux horaire',
-                    ]),
-                    new Positive([
-                        'message' => 'Le taux horaire doit être positif',
-                    ]),
-                ],
+            ->add('addressLine1', TextType::class, [
+                'label' => 'Adresse',
+                'required' => false,
             ])
-            ->add('meal_rate', MoneyType::class, [
-                'currency' => 'EUR',
-                'constraints' => [
-                    new NotBlank([
-                        'message' => 'Veuillez entrer un prix de repas',
-                    ]),
-                    new Positive([
-                        'message' => 'Le prix du repas doit être positif',
-                    ]),
-                ],
+            ->add('addressLine2', TextType::class, [
+                'label' => 'Complement',
+                'required' => false,
             ])
-        ;
+            ->add('postalCode', TextType::class, [
+                'label' => 'Code postal',
+                'required' => false,
+            ])
+            ->add('city', TextType::class, [
+                'label' => 'Ville',
+                'required' => false,
+            ])
+            ->add('country', CountryType::class, [
+                'label' => 'Pays',
+                'required' => false,
+                'placeholder' => 'Choisir un pays',
+                'preferred_choices' => ['FR'],
+            ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

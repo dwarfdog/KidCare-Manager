@@ -1,0 +1,44 @@
+{{ form_start(form, {'attr': {'class': 'mt-6 space-y-6'}}) }}
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {{ form_row(form.name, {'attr': {'class': 'w-full rounded-md border border-slate-300 px-3 py-2'}}) }}
+        {{ form_row(form.nanny, {'attr': {'class': 'w-full rounded-md border border-slate-300 px-3 py-2'}}) }}
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2" x-data>
+        {% for day, label in days %}
+            {% set dayConfig = template.weekSchedule[day] ?? {'isActive': false, 'slots': []} %}
+            {% set initialSlots = dayConfig.slots|length > 0 ? dayConfig.slots : [{'startTime': default_start, 'endTime': default_end, 'mealsCount': default_meals}] %}
+            <section
+                class="rounded-lg border border-slate-200 p-4"
+                x-data="{ active: {{ dayConfig.isActive ? 'true' : 'false' }}, slots: {{ initialSlots|json_encode|e('html_attr') }} }"
+            >
+                <div class="flex items-center justify-between gap-4">
+                    <label class="inline-flex items-center gap-2 text-sm font-semibold">
+                        <input type="checkbox" x-model="active" class="rounded border-slate-300 text-teal-600">
+                        {{ label }}
+                    </label>
+                    <button type="button" x-show="active" @click="slots.push({ startTime: '{{ default_start }}', endTime: '{{ default_end }}', mealsCount: {{ default_meals }} })" class="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium">
+                        <i class="fa-solid fa-plus mr-1"></i>Creneau
+                    </button>
+                </div>
+
+                <input type="hidden" :name="'weekSchedule[{{ day }}][isActive]'" :value="active ? '1' : '0'">
+                <div class="mt-4 space-y-3" x-show="active">
+                    <template x-for="(slot, index) in slots" :key="index">
+                        <div class="grid grid-cols-1 gap-3 rounded-md bg-slate-50 p-3 sm:grid-cols-4">
+                            <input type="time" :name="'weekSchedule[{{ day }}][slots][' + index + '][startTime]'" x-model="slot.startTime" class="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                            <input type="time" :name="'weekSchedule[{{ day }}][slots][' + index + '][endTime]'" x-model="slot.endTime" class="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                            <input type="number" min="0" step="1" :name="'weekSchedule[{{ day }}][slots][' + index + '][mealsCount]'" x-model="slot.mealsCount" class="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                            <button type="button" @click="slots = slots.filter((_, i) => i !== index)" class="rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-700">Retirer</button>
+                        </div>
+                    </template>
+                </div>
+            </section>
+        {% endfor %}
+    </div>
+
+    <div class="flex justify-end gap-3">
+        <a href="{{ path('app_care_template_index') }}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium">Annuler</a>
+        <button class="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white">{{ submit_label }}</button>
+    </div>
+{{ form_end(form) }}

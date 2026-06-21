@@ -2,144 +2,379 @@
 
 namespace App\Controller;
 
-use App\Entity\Care;
-use App\Entity\Nanny;
 use App\Entity\CareTemplate;
-use App\Entity\MonthlyPayment;
+use App\Entity\Nanny;
 use App\Form\CareTemplateType;
-use App\Service\RoundingService;
-use App\Repository\CareRepository;
+use App\Repository\CareTemplateRepository;
+use App\Repository\NannyRepository;
+use App\Service\ActivityLogger;
+use App\Service\ApplicationSettings;
+use App\Service\TemplateApplicationService;
 use Doctrine\ORM\EntityManagerInterface;
-use App\Repository\MonthlyPaymentRepository;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[Route('/care-template/', name: 'app_care_template_')]
+#[Route('/care-template', name: 'app_care_template_')]
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 class CareTemplateController extends AbstractController
 {
-    private RoundingService $roundingService;
-
-    public function __construct(
-        RoundingService $roundingService
-    )
+    #[Route('', name: 'index', methods: ['GET'])]
+    public function index(CareTemplateRepository $templateRepository): Response
     {
-        $this->roundingService = $roundingService;
-    }
-
-    #[Route('index', name: 'index', methods: ['GET'])]
-    public function index(
-        EntityManagerInterface $entityManager
-    ): Response {
-        $templates = $entityManager->getRepository(CareTemplate::class)->findBy(
-            ['user' => $this->getUser()],
-            ['createdAt' => 'DESC']
-        );
-
         return $this->render('care_template/index.html.twig', [
-            'templates' => $templates
+            'templates' => $templateRepository->findForUser($this->getUser()),
+            'days' => CareTemplate::DAYS,
         ]);
     }
 
-    #[Route('new', name: 'new', methods: ['GET', 'POST'])]
+    #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
     public function new(
         Request $request,
-        EntityManagerInterface $entityManager
+        CareTemplateRepository $templateRepository,
+        NannyRepository $nannyRepository,
+        EntityManagerInterface $entityManager,
+        ActivityLogger $activityLogger,
+        ApplicationSettings $settings,
     ): Response {
         $template = new CareTemplate();
         $template->setUser($this->getUser());
 
         $form = $this->createForm(CareTemplateType::class, $template, [
-            'user' => $this->getUser()
+            'nannies' => $nannyRepository->findAssignedToUser($this->getUser()),
         ]);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            // Récupérer les données du weekSchedule depuis la requête
-            $weekSchedule = $request->request->all()['weekSchedule'] ?? [];
-            $formattedSchedule = [];
+        if ($form->isSubmitted()) {
+            $template->setWeekSchedule($this->formatSchedule($request));
+        }
 
-            foreach ($weekSchedule as $day => $config) {
-                $formattedSchedule[$day] = [
-                    'isActive' => filter_var($config['isActive'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                    'slots' => array_map(function ($slot) {
-                        return [
-                            'startTime' => $slot['startTime'],
-                            'endTime' => $slot['endTime'],
-                            'mealsCount' => (int)$slot['mealsCount']
-                        ];
-                    }, $config['slots'] ?? [])
-                ];
+        if ($form->isSubmitted() && $form->isValid()) {
+            if (!$template->getNanny()?->isAssignedTo($this->getUser())) {
+                throw $this->createAccessDeniedException();
             }
 
-            $template->setWeekSchedule($formattedSchedule);
+            if ($this->hasDuplicateName($templateRepository, $template)) {
+                return $this->render('care_template/new.html.twig', [
+                    'template' => $template,
+                    'form' => $form,
+                    'days' => CareTemplate::DAYS,
+                    'default_start' => $settings->defaultCareStart(),
+                    'default_end' => $settings->defaultCareEnd(),
+                    'default_meals' => $settings->defaultCareMeals(),
+                ]);
+            }
 
             if (!$this->validateTemplate($template)) {
                 return $this->render('care_template/new.html.twig', [
-                    'form' => $form
+                    'template' => $template,
+                    'form' => $form,
+                    'days' => CareTemplate::DAYS,
+                    'default_start' => $settings->defaultCareStart(),
+                    'default_end' => $settings->defaultCareEnd(),
+                    'default_meals' => $settings->defaultCareMeals(),
                 ]);
             }
 
             $entityManager->persist($template);
+            $activityLogger->record($this->getUser(), 'template.create', 'Template cree.', [
+                'template' => $template->getName(),
+                'nanny' => $template->getNanny()?->getFullName(),
+            ]);
             $entityManager->flush();
+            $this->addFlash('success', 'Le template a ete cree.');
 
-            $this->addFlash('success', 'Le template a été créé avec succès');
-            return $this->redirectToRoute('app_home');
+            return $this->redirectToRoute('app_care_template_index');
         }
 
         return $this->render('care_template/new.html.twig', [
-            'form' => $form
+            'template' => $template,
+            'form' => $form,
+            'days' => CareTemplate::DAYS,
+            'default_start' => $settings->defaultCareStart(),
+            'default_end' => $settings->defaultCareEnd(),
+            'default_meals' => $settings->defaultCareMeals(),
         ]);
+    }
+
+    #[Route('/{publicId}/edit', name: 'edit', methods: ['GET', 'POST'])]
+    public function edit(
+        string $publicId,
+        Request $request,
+        CareTemplateRepository $templateRepository,
+        NannyRepository $nannyRepository,
+        EntityManagerInterface $entityManager,
+        ActivityLogger $activityLogger,
+        ApplicationSettings $settings,
+    ): Response {
+        $template = $templateRepository->findOneForUserByPublicId($this->getUser(), $publicId);
+        if (!$template instanceof CareTemplate) {
+            throw $this->createNotFoundException();
+        }
+
+        $form = $this->createForm(CareTemplateType::class, $template, [
+            'nannies' => $nannyRepository->findAssignedToUser($this->getUser()),
+        ]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted()) {
+            $template->setWeekSchedule($this->formatSchedule($request));
+        }
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            if (!$template->getNanny()?->isAssignedTo($this->getUser())) {
+                throw $this->createAccessDeniedException();
+            }
+
+            if ($this->hasDuplicateName($templateRepository, $template)) {
+                return $this->render('care_template/edit.html.twig', [
+                    'template' => $template,
+                    'form' => $form,
+                    'days' => CareTemplate::DAYS,
+                    'default_start' => $settings->defaultCareStart(),
+                    'default_end' => $settings->defaultCareEnd(),
+                    'default_meals' => $settings->defaultCareMeals(),
+                ]);
+            }
+
+            if (!$this->validateTemplate($template)) {
+                return $this->render('care_template/edit.html.twig', [
+                    'template' => $template,
+                    'form' => $form,
+                    'days' => CareTemplate::DAYS,
+                    'default_start' => $settings->defaultCareStart(),
+                    'default_end' => $settings->defaultCareEnd(),
+                    'default_meals' => $settings->defaultCareMeals(),
+                ]);
+            }
+
+            $activityLogger->record($this->getUser(), 'template.update', 'Template modifie.', [
+                'template' => $template->getName(),
+                'nanny' => $template->getNanny()?->getFullName(),
+            ]);
+            $entityManager->flush();
+            $this->addFlash('success', 'Le template a ete modifie.');
+
+            return $this->redirectToRoute('app_care_template_show', ['publicId' => $template->getPublicId()]);
+        }
+
+        return $this->render('care_template/edit.html.twig', [
+            'template' => $template,
+            'form' => $form,
+            'days' => CareTemplate::DAYS,
+            'default_start' => $settings->defaultCareStart(),
+            'default_end' => $settings->defaultCareEnd(),
+            'default_meals' => $settings->defaultCareMeals(),
+        ]);
+    }
+
+    #[Route('/show/{publicId}', name: 'show', methods: ['GET'])]
+    public function show(string $publicId, CareTemplateRepository $templateRepository): Response
+    {
+        $template = $templateRepository->findOneForUserByPublicId($this->getUser(), $publicId);
+        if (!$template instanceof CareTemplate) {
+            throw $this->createNotFoundException();
+        }
+
+        return $this->render('care_template/show.html.twig', [
+            'template' => $template,
+            'days' => CareTemplate::DAYS,
+        ]);
+    }
+
+    #[Route('/delete/{publicId}', name: 'delete', methods: ['POST'])]
+    public function delete(
+        string $publicId,
+        Request $request,
+        CareTemplateRepository $templateRepository,
+        EntityManagerInterface $entityManager,
+        ActivityLogger $activityLogger,
+    ): Response {
+        if (!$this->isCsrfTokenValid('delete_template_' . $publicId, (string) $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('Token CSRF invalide.');
+        }
+
+        $template = $templateRepository->findOneForUserByPublicId($this->getUser(), $publicId);
+        if (!$template instanceof CareTemplate) {
+            throw $this->createNotFoundException();
+        }
+
+        $activityLogger->record($this->getUser(), 'template.delete', 'Template supprime.', [
+            'template' => $template->getName(),
+            'nanny' => $template->getNanny()?->getFullName(),
+        ]);
+        $entityManager->remove($template);
+        $entityManager->flush();
+        $this->addFlash('success', 'Le template a ete supprime.');
+
+        return $this->redirectToRoute('app_care_template_index');
+    }
+
+    #[Route('/duplicate/{publicId}', name: 'duplicate', methods: ['POST'])]
+    public function duplicate(
+        string $publicId,
+        Request $request,
+        CareTemplateRepository $templateRepository,
+        EntityManagerInterface $entityManager,
+        ActivityLogger $activityLogger,
+    ): Response {
+        if (!$this->isCsrfTokenValid('duplicate_template_' . $publicId, (string) $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('Token CSRF invalide.');
+        }
+
+        $template = $templateRepository->findOneForUserByPublicId($this->getUser(), $publicId);
+        if (!$template instanceof CareTemplate || !$template->getNanny() instanceof Nanny) {
+            throw $this->createNotFoundException();
+        }
+
+        $copy = new CareTemplate();
+        $copy
+            ->setUser($this->getUser())
+            ->setNanny($template->getNanny())
+            ->setName($this->uniqueCopyName($templateRepository, $template))
+            ->setWeekSchedule($template->getWeekSchedule());
+
+        $entityManager->persist($copy);
+        $activityLogger->record($this->getUser(), 'template.duplicate', 'Template duplique.', [
+            'source' => $template->getPublicId(),
+            'copy' => $copy->getName(),
+        ]);
+        $entityManager->flush();
+        $this->addFlash('success', 'Le template a ete duplique.');
+
+        return $this->redirectToRoute('app_care_template_edit', ['publicId' => $copy->getPublicId()]);
+    }
+
+    #[Route('/preview/{publicId}', name: 'preview', methods: ['POST'])]
+    public function preview(
+        string $publicId,
+        Request $request,
+        CareTemplateRepository $templateRepository,
+        TemplateApplicationService $applicationService,
+    ): JsonResponse {
+        if (!$this->isCsrfTokenValid('apply_template_' . $publicId, (string) $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('Token CSRF invalide.');
+        }
+
+        $template = $templateRepository->findOneForUserByPublicId($this->getUser(), $publicId);
+        if (!$template instanceof CareTemplate || !$template->getNanny() instanceof Nanny) {
+            throw $this->createNotFoundException();
+        }
+
+        try {
+            $result = $applicationService->preview($this->getUser(), $template, $this->weekStartFromRequest($request));
+        } catch (\Throwable $exception) {
+            return $this->json(['error' => $exception->getMessage()], 400);
+        }
+
+        return $this->json($this->applicationPayload($result));
+    }
+
+    #[Route('/apply/{publicId}', name: 'apply', methods: ['POST'])]
+    public function apply(
+        string $publicId,
+        Request $request,
+        CareTemplateRepository $templateRepository,
+        TemplateApplicationService $applicationService,
+    ): Response {
+        if (!$this->isCsrfTokenValid('apply_template_' . $publicId, (string) $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('Token CSRF invalide.');
+        }
+
+        $template = $templateRepository->findOneForUserByPublicId($this->getUser(), $publicId);
+        if (!$template instanceof CareTemplate || !$template->getNanny() instanceof Nanny) {
+            throw $this->createNotFoundException();
+        }
+
+        $weekStart = $this->weekStartFromRequest($request);
+
+        try {
+            $result = $applicationService->apply($this->getUser(), $template, $weekStart);
+        } catch (\Throwable $exception) {
+            $this->addFlash('error', $exception->getMessage());
+
+            return $this->redirectToRoute('app_care_index', [
+                'publicId' => $template->getNanny()->getPublicId(),
+                'currentDate' => $weekStart->format('Y-m-d'),
+            ]);
+        }
+
+        if (count($result['accepted']) > 0) {
+            $this->addFlash('success', sprintf('%d creneau(x) applique(s).', count($result['accepted'])));
+        }
+        if (count($result['rejected']) > 0) {
+            $this->addFlash('warning', sprintf('%d creneau(x) refuse(s).', count($result['rejected'])));
+        }
+        if (count($result['accepted']) === 0 && count($result['rejected']) === 0) {
+            $this->addFlash('warning', 'Aucun creneau actif dans ce template.');
+        }
+
+        return $this->redirectToRoute('app_care_index', [
+            'publicId' => $template->getNanny()->getPublicId(),
+            'currentDate' => $weekStart->format('Y-m-d'),
+        ]);
+    }
+
+    private function formatSchedule(Request $request): array
+    {
+        $weekSchedule = $request->request->all('weekSchedule');
+        $formatted = CareTemplate::emptyWeekSchedule();
+
+        foreach (CareTemplate::DAYS as $day => $label) {
+            $config = $weekSchedule[$day] ?? [];
+            $isActive = filter_var($config['isActive'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $formatted[$day] = [
+                'isActive' => $isActive,
+                'slots' => !$isActive ? [] : array_map(static fn (array $slot): array => [
+                    'startTime' => (string) ($slot['startTime'] ?? ''),
+                    'endTime' => (string) ($slot['endTime'] ?? ''),
+                    'mealsCount' => max(0, (int) ($slot['mealsCount'] ?? 0)),
+                ], $config['slots'] ?? []),
+            ];
+        }
+
+        return $formatted;
     }
 
     private function validateTemplate(CareTemplate $template): bool
     {
-        $weekSchedule = $template->getWeekSchedule();
-        $daysTranslation = [
-            'monday' => 'Lundi',
-            'tuesday' => 'Mardi',
-            'wednesday' => 'Mercredi',
-            'thursday' => 'Jeudi',
-            'friday' => 'Vendredi'
-        ];
-
-        foreach ($weekSchedule as $day => $config) {
-            if (!$config['isActive']) {
+        foreach ($template->getWeekSchedule() as $day => $config) {
+            if (!($config['isActive'] ?? false)) {
                 continue;
             }
 
+            $label = CareTemplate::DAYS[$day] ?? $day;
             if (empty($config['slots'])) {
-                $this->addFlash('error', sprintf('Le %s doit avoir au moins un créneau si activé', $daysTranslation[$day]));
+                $this->addFlash('error', sprintf('%s doit contenir au moins un creneau actif.', $label));
+
                 return false;
             }
 
+            $intervals = [];
             foreach ($config['slots'] as $slot) {
-                $start = new \DateTime($slot['startTime']);
-                $end = new \DateTime($slot['endTime']);
+                if (($slot['startTime'] ?? '') === '' || ($slot['endTime'] ?? '') === '') {
+                    $this->addFlash('error', sprintf('%s contient un horaire incomplet.', $label));
 
-                if ($start >= $end) {
-                    $this->addFlash('error', sprintf('Pour le %s, l\'heure de fin doit être après l\'heure de début', $daysTranslation[$day]));
                     return false;
                 }
 
-                if ($slot['mealsCount'] < 0 || $slot['mealsCount'] > 3) {
-                    $this->addFlash('error', sprintf('Pour le %s, le nombre de repas doit être entre 0 et 3', $daysTranslation[$day]));
-                    return false;
+                $start = new \DateTimeImmutable('1970-01-01 ' . $slot['startTime']);
+                $end = new \DateTimeImmutable('1970-01-01 ' . $slot['endTime']);
+                if ($end <= $start) {
+                    $end = $end->modify('+1 day');
                 }
+
+                $intervals[] = [$start, $end];
             }
 
-            // Vérifier le chevauchement des créneaux
-            $slots = $config['slots'];
-            usort($slots, fn($a, $b) => strtotime($a['startTime']) - strtotime($b['startTime']));
+            usort($intervals, static fn (array $a, array $b): int => $a[0] <=> $b[0]);
+            for ($i = 0; $i < count($intervals) - 1; $i++) {
+                if ($intervals[$i][1] > $intervals[$i + 1][0]) {
+                    $this->addFlash('error', sprintf('%s contient des creneaux qui se chevauchent.', $label));
 
-            for ($i = 0; $i < count($slots) - 1; $i++) {
-                $currentEnd = new \DateTime($slots[$i]['endTime']);
-                $nextStart = new \DateTime($slots[$i + 1]['startTime']);
-
-                if ($currentEnd > $nextStart) {
-                    $this->addFlash('error', sprintf('Pour le %s, les créneaux ne peuvent pas se chevaucher', $daysTranslation[$day]));
                     return false;
                 }
             }
@@ -148,206 +383,48 @@ class CareTemplateController extends AbstractController
         return true;
     }
 
-    #[Route('delete/{slug}', name: 'delete', methods: ['GET'])]
-    public function delete(
-        CareTemplate $template,
-        EntityManagerInterface $entityManager
-    ): Response {
-        // Vérification de la propriété du template
-        if ($template->getUser() !== $this->getUser()) {
-            throw $this->createAccessDeniedException('Vous ne pouvez pas supprimer ce template');
-        }
-
-        // Suppression du template
-        $entityManager->remove($template);
-        $entityManager->flush();
-
-        // Message de confirmation
-        $this->addFlash('success', 'Le template a été supprimé avec succès');
-
-        // Redirection
-        return $this->redirectToRoute('app_care_template_index');
-    }
-
-    #[Route('show/{slug}', name: 'show', methods: ['GET'])]
-    public function show(
-        CareTemplate $template
-    ): Response {
-        // Vérification de la propriété du template
-        if ($template->getUser() !== $this->getUser()) {
-            throw $this->createAccessDeniedException('Vous ne pouvez pas accéder à ce template');
-        }
-
-        return $this->render('care_template/show.html.twig', [
-            'template' => $template,
-            'days' => [
-                'monday' => 'Lundi',
-                'tuesday' => 'Mardi',
-                'wednesday' => 'Mercredi',
-                'thursday' => 'Jeudi',
-                'friday' => 'Vendredi'
-            ]
-        ]);
-    }
-
-    #[Route('apply/{slug}', name: 'apply', methods: ['GET'])]
-    public function apply(
-        CareTemplate $template,
-        Request $request,
-        EntityManagerInterface $entityManager,
-        CareRepository $careRepository,
-        MonthlyPaymentRepository $monthlyPaymentRepository
-    ): Response {
-        // Vérification de la propriété du template
-        if ($template->getUser() !== $this->getUser()) {
-            throw $this->createAccessDeniedException('Vous ne pouvez pas appliquer ce template');
-        }
-
-        $user = $this->getUser();
-
-        // Création des gardes
+    private function hasDuplicateName(CareTemplateRepository $templateRepository, CareTemplate $template): bool
+    {
         $nanny = $template->getNanny();
         if (!$nanny instanceof Nanny) {
-            throw $this->createNotFoundException('La nounou n\'a pas été trouvée');
+            return false;
         }
 
-        // Récupérer la date de début de semaine
-        $weekStart = new \DateTime($request->query->get('start'));
-        $currentDate = $weekStart->format('Y-m-d');
-        $weekSchedule = $template->getWeekSchedule();
-        // Mapping des jours de la semaine
-        $dayMapping = [
-            'monday' => 0,
-            'tuesday' => 1,
-            'wednesday' => 2,
-            'thursday' => 3,
-            'friday' => 4
+        if (!$templateRepository->existsForUserNannyAndName($this->getUser(), $nanny, (string) $template->getName(), $template)) {
+            return false;
+        }
+
+        $this->addFlash('error', 'Un template avec ce nom existe deja pour cette nounou.');
+
+        return true;
+    }
+
+    private function weekStartFromRequest(Request $request): \DateTimeImmutable
+    {
+        return (new \DateTimeImmutable((string) $request->request->get('start')))->modify('monday this week')->setTime(0, 0);
+    }
+
+    private function applicationPayload(array $result): array
+    {
+        return [
+            'week_start' => $result['weekStart'],
+            'accepted_count' => count($result['accepted']),
+            'rejected_count' => count($result['rejected']),
+            'conflicts' => $result['rejected'],
         ];
+    }
 
-        try {
-            $entityManager->beginTransaction();
-            // Créer les gardes pour chaque jour actif
-            foreach ($weekSchedule as $day => $config) {
-                if ($config['isActive'] && !empty($config['slots'])) {
-                    // Calculer la date pour ce jour
-                    $date = clone $weekStart;
-                    $date->modify('+' . $dayMapping[$day] . ' days');
+    private function uniqueCopyName(CareTemplateRepository $templateRepository, CareTemplate $template): string
+    {
+        $base = (string) $template->getName() . ' copie';
+        $name = $base;
+        $index = 2;
 
-                    // Créer une garde pour chaque créneau
-                    foreach ($config['slots'] as $slot) {
-                        // Créer les DateTime pour le début et la fin
-                        $startTime = new \DateTime($date->format('Y-m-d') . ' ' . $slot['startTime']);
-                        $endTime = new \DateTime($date->format('Y-m-d') . ' ' . $slot['endTime']);
-
-                        $conflictingCare = $careRepository->findConflictingCare(
-                            $nanny->getId(),
-                            $date->format('Y-m-d'), // Date au format "YYYY-MM-DD"
-                            $startTime->format('H:i:s'), // Heure au format "HH:MM:SS"
-                            $endTime->format('H:i:s')    // Heure au format "HH:MM:SS"
-                        );
-                        if ($conflictingCare) {
-                            $entityManager->rollback();
-                            $this->addFlash('error', 'Un garde existe déjà pour cette nounou à cette date et dans cet intervalle de temps.');
-                            return $this->redirectToRoute('app_care_index', [
-                                'slug' => $nanny->getSlug(),
-                                'currentDate' => $currentDate
-                            ]);
-                        }
-
-                        // Calculer les heures
-                        $hours = $this->roundingService->roundToTwoDecimals(($endTime->getTimestamp() - $startTime->getTimestamp()) / 3600);
-
-                        try {
-                            $care = new Care();
-                            $care->setUser($this->getUser());
-                            $care->setNanny($nanny);
-                            $care->setDate($date);
-                            $care->setStartTime($startTime);
-                            $care->setEndTime($endTime);
-                            $care->setMealsCount($slot['mealsCount']);
-                            $care->setHoursCount($hours);
-                            $care->setCreatedAt(new \DateTime());
-                            $care->setMonth($date->format('Y-m'));
-                            $slugbase = $date->format('Y-m-d') . '-' . $startTime->format('H:i') . '-' . $endTime->format('H:i');
-                            $care->setSlugBase($slugbase);
-                            $entityManager->persist($care);
-                        } catch (\Throwable $th) {
-                            $this->addFlash('error', 'Une erreur est survenue lors de la création de la garde');
-                            $entityManager->rollback();
-                            return $this->redirectToRoute('app_care_index', [
-                                'slug' => $nanny->getSlug(),
-                                'currentDate' => $currentDate
-                            ]);
-                        }
-
-                        try {
-                            $month = $care->getMonth();
-                            $monthlyPayment = $monthlyPaymentRepository->findOneBy([
-                                'user' => $user,
-                                'nanny' => $nanny,
-                                'month' => $month
-                            ]) ?? new MonthlyPayment();
-                            if ($monthlyPayment->getId() === null) {
-                                $monthlyPayment->setUser($user)
-                                    ->setNanny($nanny)
-                                    ->setMonth($month)
-                                    ->setCreatedAt(new \DateTime());
-                            }
-                        } catch (\Throwable $th) {
-                            $this->addFlash('error', 'Une erreur est survenue lors de la récupération du paiement mensuel');
-                            $entityManager->rollback();
-                            return $this->redirectToRoute('app_care_index', [
-                                'slug' => $nanny->getSlug(),
-                                'currentDate' => $currentDate
-                            ]);
-                        }
-
-                        try {
-                            // Mise à jour des totaux
-                            $monthlyPayment->setTotalsHours($this->roundingService->roundToTwoDecimals($monthlyPayment->getTotalsHours() + $hours));
-                            $monthlyPayment->setTotalMeals($monthlyPayment->getTotalMeals() + $care->getMealsCount());
-                            $monthlyPayment->setAmountHours($this->roundingService->roundToTwoDecimals($monthlyPayment->getTotalsHours() * $nanny->getHourlyRate()));
-                            $monthlyPayment->setAmountMeals($this->roundingService->roundToTwoDecimals($monthlyPayment->getTotalMeals() * $nanny->getMealRate()));
-                            $monthlyPayment->setTotalAmount($this->roundingService->roundToTwoDecimals($monthlyPayment->getAmountHours() + $monthlyPayment->getAmountMeals()));
-
-                            $entityManager->persist($monthlyPayment);
-                        } catch (\Throwable $th) {
-                            $this->addFlash('error', 'Une erreur est survenue lors de la mise à jour du paiement mensuel');
-                            $entityManager->rollback();
-                            return $this->redirectToRoute('app_care_index', [
-                                'slug' => $nanny->getSlug(),
-                                'currentDate' => $currentDate
-                            ]);
-                        }
-
-                        try {
-                            $entityManager->flush();
-                        } catch (\Throwable $th) {
-                            $this->addFlash('error', 'Une erreur est survenue lors de la sauvegarde de la garde');
-                            $entityManager->rollback();
-                            return $this->redirectToRoute('app_care_index', [
-                                'slug' => $nanny->getSlug(),
-                                'currentDate' => $currentDate
-                            ]);
-                        }
-                    }
-                }
-            }
-
-            $entityManager->commit();
-        } catch (\Throwable $th) {
-            $entityManager->rollback();
-            $this->addFlash('error', 'Une erreur est survenue lors de l\'application du template');
-            return $this->redirectToRoute('app_care_index', [
-                'slug' => $nanny->getSlug(),
-                'currentDate' => $currentDate
-            ]);
+        while ($templateRepository->existsForUserNannyAndName($this->getUser(), $template->getNanny(), $name)) {
+            $name = $base . ' ' . $index;
+            $index++;
         }
 
-        $this->addFlash('success', 'Le template a été appliqué avec succès');
-        return $this->redirectToRoute('app_care_index', [
-            'slug' => $nanny->getSlug(),
-            'currentDate' => $currentDate
-        ]);
+        return $name;
     }
 }

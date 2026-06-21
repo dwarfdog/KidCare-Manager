@@ -16,7 +16,6 @@ Encore
     // enables the Symfony UX Stimulus bridge (used in assets/bootstrap.js)
     .enableStimulusBridge('./assets/controllers.json')
     .enableSingleRuntimeChunk()
-    .enableBuildNotifications()
     .enableSourceMaps(!Encore.isProduction())
     .enableVersioning(Encore.isProduction())
     .configureBabelPresetEnv((config) => {
@@ -27,7 +26,6 @@ Encore
     .enableSassLoader()
     .enablePostCssLoader()
     .enableIntegrityHashes(Encore.isProduction())
-    .autoProvidejQuery()
 ;
 
 module.exports = Encore.getWebpackConfig();
