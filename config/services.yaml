@@ -4,12 +4,29 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    app.registration_email_verification_required: '%env(bool:REGISTRATION_EMAIL_VERIFICATION_REQUIRED)%'
+    app.email_verification_grace_days: '%env(int:EMAIL_VERIFICATION_GRACE_DAYS)%'
+    app.mailer_from: '%env(MAILER_FROM)%'
+    app.mailer_dsn: '%env(MAILER_DSN)%'
+    app.currency: '%env(APP_CURRENCY)%'
+    app.care_default_start: '%env(CARE_DEFAULT_START)%'
+    app.care_default_end: '%env(CARE_DEFAULT_END)%'
+    app.care_default_meals: '%env(int:CARE_DEFAULT_MEALS)%'
 
 services:
     # default configuration for services in *this* file
     _defaults:
         autowire: true      # Automatically injects dependencies in your services.
         autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+        bind:
+            bool $registrationEmailVerificationRequired: '%app.registration_email_verification_required%'
+            int $graceDays: '%app.email_verification_grace_days%'
+            string $mailerFrom: '%app.mailer_from%'
+            string $mailerDsn: '%app.mailer_dsn%'
+            string $currency: '%app.currency%'
+            string $defaultCareStart: '%app.care_default_start%'
+            string $defaultCareEnd: '%app.care_default_end%'
+            int $defaultCareMeals: '%app.care_default_meals%'
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name

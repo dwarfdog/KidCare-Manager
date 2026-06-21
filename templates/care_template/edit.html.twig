@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier {{ template.name }}{% endblock %}
+
+{% block body %}
+<div class="rounded-lg border border-slate-200 bg-white p-6">
+    <h1 class="text-2xl font-semibold">Modifier le template</h1>
+    {% include 'care_template/_form.html.twig' with {
+        form: form,
+        template: template,
+        days: days,
+        default_start: default_start,
+        default_end: default_end,
+        default_meals: default_meals,
+        submit_label: 'Enregistrer'
+    } only %}
+</div>
+{% endblock %}

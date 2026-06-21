@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier tarif{% endblock %}
+
+{% block body %}
+<div class="mx-auto max-w-xl rounded-lg border border-slate-200 bg-white p-6">
+    <h1 class="text-xl font-semibold">Modifier le tarif de {{ nanny.fullName }}</h1>
+    {{ form_start(form, {'attr': {'class': 'mt-6 space-y-4'}}) }}
+        {{ form_errors(form) }}
+        {{ form_row(form.effectiveFrom, {'attr': {'class': 'w-full rounded-md border border-slate-300 px-3 py-2'}}) }}
+        {{ form_row(form.hourlyRate, {'attr': {'class': 'w-full rounded-md border border-slate-300 px-3 py-2'}}) }}
+        {{ form_row(form.mealRate, {'attr': {'class': 'w-full rounded-md border border-slate-300 px-3 py-2'}}) }}
+        <div class="flex justify-end gap-3 pt-2">
+            <a href="{{ path('app_nanny_index') }}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium">Annuler</a>
+            <button class="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white">Enregistrer</button>
+        </div>
+    {{ form_end(form) }}
+</div>
+{% endblock %}

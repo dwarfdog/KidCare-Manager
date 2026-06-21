@@ -2,45 +2,46 @@
 
 namespace App\Controller;
 
-use App\Entity\User;
 use App\Repository\CareRepository;
 use App\Repository\MonthlyPaymentRepository;
+use App\Repository\NannyRepository;
+use App\Service\ApplicationSettings;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 #[Route('/', name: 'app_')]
 class HomeController extends AbstractController
 {
-    #[Route('', name: 'home')]
+    #[Route('', name: 'home', methods: ['GET'])]
     public function index(
         MonthlyPaymentRepository $monthlyPaymentRepository,
-        CareRepository $careRepository
-    ): Response
-    {
+        CareRepository $careRepository,
+        NannyRepository $nannyRepository,
+        ApplicationSettings $settings,
+    ): Response {
         if ($this->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
-            $allMontlyPaiements = $monthlyPaymentRepository->findAllExceptCurrentMonth($this->getUser());
-            $month = date('Y-m');
-            $actualMonth = $monthlyPaymentRepository->findOneBy(['user' => $this->getUser(), 'month' => $month]);
-            $nextCare = $careRepository->findNextCare();
+            $user = $this->getUser();
 
             return $this->render('home/index_logged.html.twig', [
-                'allMontlyPaiements' => $allMontlyPaiements,
-                'actualMonth' => $actualMonth,
-                'nextCare' => $nextCare,
+                'previousPayments' => $monthlyPaymentRepository->findAllExceptCurrentMonth($user),
+                'currentPayments' => $monthlyPaymentRepository->findCurrentMonth($user),
+                'nextCare' => $careRepository->findNextCare($user),
+                'nannies' => $nannyRepository->findAssignedToUser($user),
+                'currency' => $settings->currency(),
             ]);
         }
-        return $this->render('home/index.html.twig', [
-        ]);
+
+        return $this->render('home/index.html.twig');
     }
 
-    #[Route('privacy-policy', name: 'privacy_policy')]
+    #[Route('privacy-policy', name: 'privacy_policy', methods: ['GET'])]
     public function privacyPolicy(): Response
     {
         return $this->render('home/privacy_policy.html.twig');
     }
 
-    #[Route('terms-of-service', name: 'terms_of_service')]
+    #[Route('terms-of-service', name: 'terms_of_service', methods: ['GET'])]
     public function termsOfService(): Response
     {
         return $this->render('home/terms_of_service.html.twig');

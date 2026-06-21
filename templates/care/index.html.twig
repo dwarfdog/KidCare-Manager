@@ -1,83 +1,101 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Planning des gardes{% endblock %}
-
-{% block sidebar %}
-	<!-- Menu latéral -->
-	<aside
-		class="w-full lg:w-1/4 bg-gray-100 shadow rounded-lg p-4 space-y-6">
-		<!-- En-tête du menu -->
-		<div>
-			<h1 class="text-2xl font-semibold text-gray-900">Planning des gardes</h1>
-			{% if selected_nanny %}
-				<p class="mt-2 text-sm text-gray-700">
-					Planning de
-					<span class="font-medium text-indigo-600">{{ selected_nanny.firstname }}
-						{{ selected_nanny.lastname }}</span>
-				</p>
-			{% else %}
-				<p class="mt-2 text-sm text-gray-700">Sélectionnez une nounou pour voir son planning</p>
-			{% endif %}
-		</div>
-
-		<!-- Dropdown de sélection de nounou -->
-		<div>
-			<label for="nanny-select" class="block text-sm font-medium text-gray-700">Choisir une nounou :</label>
-			<select id="nanny-select" onchange="if(this.value) window.location.href=this.value" class="mt-2 block w-full pl-3 pr-10 py-2 text-sm border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-md">
-				<option value="{{ path('app_care_index') }}" {% if not selected_nanny %} selected {% endif %}>
-					Choisir une nounou
-				</option>
-				{% for nanny in nannies %}
-					<option value="{{ path('app_care_index', {'slug': nanny.slug}) }}" {% if selected_nanny and selected_nanny.id == nanny.id %} selected {% endif %}>
-						{{ nanny.firstname }}
-						{{ nanny.lastname }}
-					</option>
-				{% endfor %}
-			</select>
-		</div>
-
-		<!-- Liste des templates -->
-		{% if templates %}
-			<div>
-				<h2 class="text-lg font-semibold text-gray-700">Templates disponibles</h2>
-				{% if templates is empty %}
-					<p class="text-sm text-gray-500 italic">Aucun template disponible</p>
-				{% else %}
-					<div class="space-y-2">
-						{% for template in templates %}
-							<button onclick="window.calendarController.getWeekForTemplate('{{ template.slug }}')" class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-indigo-100 hover:border-indigo-500 transition flex items-center border border-gray-300">
-								<span class="flex-grow">{{ template.name }}</span>
-								<i class="fa-solid fa-check text-indigo-400"></i>
-							</button>
-						{% endfor %}
-					</div>
-				{% endif %}
-			</div>
-		{% endif %}
-	</aside>
-{% endblock %}
-
+{% block title %}Planning{% endblock %}
 
 {% block body %}
-<!-- Section principale avec le calendrier -->
-<div class="bg-white shadow rounded-lg overflow-hidden">
+<div
+    class="grid grid-cols-1 gap-4 lg:grid-cols-[20rem_minmax(0,1fr)]"
+    data-controller="calendar"
     {% if selected_nanny %}
-        <!-- Calendrier -->
-        <div
-            class="flex flex-col"
-            data-controller="calendar"
-            data-calendar-events-value="{{ events|json_encode|e('html_attr') }}"
-            data-calendar-nanny-id-value="{{ selected_nanny.id }}"
-			data-calendar-current-date-value="{{ currentDate }}"
-        >
-            <div data-calendar-target="calendar" class="w-full"></div>
-        </div>
-    {% else %}
-        <!-- Message si aucune nounou n'est sélectionnée -->
-        <div class="p-4 text-center">
-            <p class="text-sm text-gray-700">Veuillez sélectionner une nounou pour afficher le calendrier.</p>
-        </div>
+        data-calendar-events-value="{{ events|json_encode|e('html_attr') }}"
+        data-calendar-nanny-id-value="{{ selected_nanny.publicId }}"
+        data-calendar-current-date-value="{{ currentDate }}"
+        data-calendar-csrf-token-value="{{ csrf_token }}"
+        data-calendar-default-start-value="{{ default_start }}"
+        data-calendar-default-end-value="{{ default_end }}"
+        data-calendar-default-meals-value="{{ default_meals }}"
     {% endif %}
+>
+    <aside class="rounded-lg border border-slate-200 bg-white p-4">
+        <div>
+            <h1 class="text-lg font-semibold">Planning</h1>
+            {% if selected_nanny %}
+                <p class="mt-1 text-sm text-slate-500">{{ selected_nanny.fullName }}</p>
+            {% else %}
+                <p class="mt-1 text-sm text-slate-500">Selectionnez une nounou.</p>
+            {% endif %}
+        </div>
+
+        <div class="mt-5">
+            <label for="nanny-select" class="text-sm font-medium text-slate-700">Nounou</label>
+            <select id="nanny-select" data-action="change->calendar#changeNanny" class="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                <option value="{{ path('app_care_index') }}" {% if not selected_nanny %}selected{% endif %}>Choisir</option>
+                {% for nanny in nannies %}
+                    <option value="{{ path('app_care_index', {'publicId': nanny.publicId}) }}" {% if selected_nanny and selected_nanny.publicId == nanny.publicId %}selected{% endif %}>{{ nanny.fullName }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        {% if selected_nanny %}
+            <div class="mt-6">
+                <h2 class="text-sm font-semibold text-slate-700">Templates</h2>
+                <div class="mt-2 space-y-2">
+                    {% for template in templates %}
+                        <div class="rounded-md border border-slate-300 p-2">
+                            <p class="px-1 text-sm font-medium text-slate-800">{{ template.name }}</p>
+                            <div class="mt-2 grid grid-cols-2 gap-2">
+                                <button
+                                    type="button"
+                                    class="rounded-md bg-slate-900 px-2 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
+                                    data-action="calendar#applyTemplate"
+                                    data-template-url="{{ path('app_care_template_apply', {'publicId': template.publicId}) }}"
+                                    data-template-preview-url="{{ path('app_care_template_preview', {'publicId': template.publicId}) }}"
+                                    data-template-token="{{ csrf_token('apply_template_' ~ template.publicId) }}"
+                                    data-template-week-offset="0"
+                                >
+                                    Cette semaine
+                                </button>
+                                <button
+                                    type="button"
+                                    class="rounded-md border border-slate-300 px-2 py-1.5 text-xs font-semibold hover:bg-slate-50"
+                                    data-action="calendar#applyTemplate"
+                                    data-template-url="{{ path('app_care_template_apply', {'publicId': template.publicId}) }}"
+                                    data-template-preview-url="{{ path('app_care_template_preview', {'publicId': template.publicId}) }}"
+                                    data-template-token="{{ csrf_token('apply_template_' ~ template.publicId) }}"
+                                    data-template-week-offset="1"
+                                >
+                                    Semaine suivante
+                                </button>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="rounded-md border border-dashed border-slate-300 px-3 py-4 text-center text-sm text-slate-500">
+                            Aucun template.
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </aside>
+
+    <section class="rounded-lg border border-slate-200 bg-white p-3">
+        {% if selected_nanny %}
+            <div class="mb-3 grid grid-cols-2 gap-2 md:hidden">
+                <button type="button" data-action="calendar#showCalendar" class="rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white">Calendrier</button>
+                <button type="button" data-action="calendar#showList" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold">Liste</button>
+            </div>
+            <div data-calendar-target="calendarPanel">
+                <div data-calendar-target="calendar" class="min-h-[620px]"></div>
+            </div>
+            <div data-calendar-target="listPanel" class="hidden md:hidden">
+                <div data-calendar-target="list" class="space-y-2"></div>
+            </div>
+        {% else %}
+            <div class="p-10 text-center text-sm text-slate-500">
+                <i class="fa-regular fa-calendar mb-2 text-2xl text-slate-300"></i>
+                <p>Selectionnez une nounou pour afficher son planning.</p>
+            </div>
+        {% endif %}
+    </section>
 </div>
 {% endblock %}
-

@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Validation email requise{% endblock %}
+
+{% block body %}
+<div class="mx-auto flex min-h-[calc(100vh-14rem)] max-w-xl items-center px-4 py-10">
+    <div class="w-full rounded-lg border border-amber-200 bg-white p-6 shadow-sm">
+        <div class="flex items-start gap-3">
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-amber-100 text-amber-700">
+                <i class="fa-solid fa-envelope-circle-check"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-semibold text-slate-950">Validation email requise</h1>
+                <p class="mt-2 text-sm leading-6 text-slate-600">
+                    La validation email est obligatoire après {{ grace_days }} jours. Vous pouvez demander un nouveau lien ou vous déconnecter.
+                </p>
+            </div>
+        </div>
+
+        <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+            <form method="post" action="{{ path('app_resend_verification') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('resend_email_verification') }}">
+                <button type="submit" class="inline-flex w-full items-center justify-center rounded-md bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 sm:w-auto">
+                    Renvoyer le lien
+                </button>
+            </form>
+            <a href="{{ path('app_logout') }}" class="inline-flex items-center justify-center rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                Déconnexion
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

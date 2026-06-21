@@ -4,103 +4,50 @@ namespace App\Controller;
 
 use App\Entity\Care;
 use App\Entity\Nanny;
-use App\Entity\MonthlyPayment;
-use App\Service\RoundingService;
 use App\Repository\CareRepository;
-use Doctrine\ORM\EntityManagerInterface;
 use App\Repository\CareTemplateRepository;
-use App\Repository\MonthlyPaymentRepository;
+use App\Repository\NannyRepository;
+use App\Service\ApplicationSettings;
+use App\Service\CareManager;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 #[Route('/care', name: 'app_care_')]
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 class CareController extends AbstractController
 {
-
-    private RoundingService $roundingService;
-
-    public function __construct(
-        RoundingService $roundingService
-    )
-    {
-        $this->roundingService = $roundingService;
-    }
-
-    #[Route('/planning/{slug?}/{currentDate?}', name: 'index')]
-    #[IsGranted('ROLE_USER')]
+    #[Route('/planning/{publicId?}/{currentDate?}', name: 'index', methods: ['GET'])]
     public function index(
         CareRepository $careRepository,
         CareTemplateRepository $careTemplateRepository,
-        ?Nanny $nanny = null,
-        ?string $currentDate = null
+        NannyRepository $nannyRepository,
+        ApplicationSettings $settings,
+        ?string $publicId = null,
+        ?string $currentDate = null,
     ): Response {
         $user = $this->getUser();
-        $nannies = $user->getNannies();
+        $nannies = $nannyRepository->findAssignedToUser($user);
+        $nanny = null;
 
-        // Si une nounou est passée et qu'elle n'appartient pas à l'utilisateur
-        if ($nanny && !$nanny->getUsers()->contains($user)) {
-            $this->addFlash('warning', 'Vous n\'avez pas accès à cette nounou.');
-            return $this->redirectToRoute('app_care_index');
-        }
+        if ($publicId !== null) {
+            $nanny = $nannyRepository->findOneByPublicId($publicId);
+            if (!$nanny instanceof Nanny || !$nanny->isAssignedTo($user)) {
+                $this->addFlash('warning', 'Vous n\'avez pas acces a cette nounou.');
 
-        // Récupération des gardes si une nounou est sélectionnée
-        $events = [];
-        if ($nanny) {
-            $cares = $careRepository->findBy(['user' => $user, 'nanny' => $nanny]);
-
-            $events = [];
-            foreach ($cares as $care) {
-                if (!$care->getDate() || !$care->getStartTime() || !$care->getEndTime()) {
-                    continue;
-                }
-                if ($care->getMealsCount() === 0) {
-                    $events[] = [
-                        'id' => $care->getId(),
-                        'title' => $care->getHoursCount() . ' heures', // Titre avec le nombre d'heures
-                        'start' => $care->getDate()->format('Y-m-d') . 'T' . $care->getStartTime()->format('H:i:s'),
-                        'end' => $care->getDate()->format('Y-m-d') . 'T' . $care->getEndTime()->format('H:i:s'),
-                        'meals' => $care->getMealsCount(),
-                        'description' => sprintf(
-                            'De %s à %s',
-                            $care->getStartTime()->format('H:i'),
-                            $care->getEndTime()->format('H:i')
-                        ),
-                    ];
-                } else {
-                    $events[] = [
-                        'id' => $care->getId(),
-                        'title' => $care->getHoursCount() . ' heures', // Titre avec le nombre d'heures
-                        'start' => $care->getDate()->format('Y-m-d') . 'T' . $care->getStartTime()->format('H:i:s'),
-                        'end' => $care->getDate()->format('Y-m-d') . 'T' . $care->getEndTime()->format('H:i:s'),
-                        'meals' => $care->getMealsCount(),
-                        'description' => sprintf(
-                            'De %s à %s<br>%d repas',
-                            $care->getStartTime()->format('H:i'),
-                            $care->getEndTime()->format('H:i'),
-                            $care->getMealsCount()
-                        ),
-                    ];
-                }
+                return $this->redirectToRoute('app_care_index');
             }
         }
 
-        if ($nanny === null) {
-            $templates = false;
-        }
-        else {
-            $templates = $careTemplateRepository->findByUserAndNanny($user, $nanny) ?? false;
-        }
+        $events = $nanny instanceof Nanny
+            ? array_map(fn (Care $care): array => $this->eventPayload($care), $careRepository->findForUserAndNanny($user, $nanny))
+            : [];
 
-        if ($this->isValidDate($currentDate)) {
-            $date = new \DateTime($currentDate);
-        } else {
-            $date = new \DateTime();
-        }
+        $templates = $nanny instanceof Nanny ? $careTemplateRepository->findByUserAndNanny($user, $nanny) : [];
+        $date = $this->isValidDate($currentDate) ? new \DateTime($currentDate) : new \DateTime();
 
         return $this->render('care/index.html.twig', [
             'nannies' => $nannies,
@@ -108,352 +55,171 @@ class CareController extends AbstractController
             'currentDate' => $date->format('Y-m-d'),
             'events' => $events,
             'templates' => $templates,
-            'show_sidebar' => true,
+            'csrf_token' => $this->container->get('security.csrf.token_manager')->getToken('care_mutation')->getValue(),
+            'default_start' => $settings->defaultCareStart(),
+            'default_end' => $settings->defaultCareEnd(),
+            'default_meals' => $settings->defaultCareMeals(),
         ]);
     }
 
-    /**
-     * Vérifie si une chaîne donnée est une date valide.
-     *
-     * @param ?string $currentDate La chaîne représentant la date ou null.
-     * @return bool True si la date est valide, false sinon.
-     */
-    function isValidDate(?string $currentDate): bool
+    #[Route('/create', name: 'create', methods: ['POST'])]
+    public function create(
+        Request $request,
+        NannyRepository $nannyRepository,
+        CareManager $careManager,
+    ): JsonResponse {
+        $this->assertValidCareCsrf($request);
+        $payload = $this->jsonPayload($request);
+
+        $nanny = $nannyRepository->findOneByPublicId((string) ($payload['nanny'] ?? ''));
+        if (!$nanny instanceof Nanny || !$nanny->isAssignedTo($this->getUser())) {
+            return $this->json(['error' => 'La nounou n\'est pas valide.'], 400);
+        }
+
+        try {
+            $segments = $careManager->create(
+                $this->getUser(),
+                $nanny,
+                $this->localDateTimeFromPayload($payload, 'start'),
+                $this->localDateTimeFromPayload($payload, 'end'),
+                $this->mealsFromPayload($payload),
+            );
+        } catch (\Throwable $exception) {
+            return $this->json(['error' => $exception->getMessage()], 400);
+        }
+
+        return $this->json(['events' => array_map(fn (Care $care): array => $this->eventPayload($care), $segments)], 201);
+    }
+
+    #[Route('/update/{publicId}', name: 'update', methods: ['PATCH'])]
+    public function update(
+        string $publicId,
+        Request $request,
+        CareRepository $careRepository,
+        CareManager $careManager,
+    ): JsonResponse {
+        $this->assertValidCareCsrf($request);
+        $care = $careRepository->findOneForUserByPublicId($this->getUser(), $publicId);
+        if (!$care instanceof Care) {
+            return $this->json(['error' => 'La garde est introuvable.'], 404);
+        }
+
+        $payload = $this->jsonPayload($request);
+        try {
+            $segments = $careManager->replace(
+                $care,
+                $this->localDateTimeFromPayload($payload, 'start'),
+                $this->localDateTimeFromPayload($payload, 'end'),
+                $this->mealsFromPayload($payload),
+            );
+        } catch (\Throwable $exception) {
+            return $this->json(['error' => $exception->getMessage()], 400);
+        }
+
+        return $this->json([
+            'removed' => [$publicId],
+            'events' => array_map(fn (Care $segment): array => $this->eventPayload($segment), $segments),
+        ]);
+    }
+
+    #[Route('/delete/{publicId}', name: 'delete', methods: ['DELETE'])]
+    public function delete(
+        string $publicId,
+        Request $request,
+        CareRepository $careRepository,
+        CareManager $careManager,
+    ): JsonResponse {
+        $this->assertValidCareCsrf($request);
+        $care = $careRepository->findOneForUserByPublicId($this->getUser(), $publicId);
+        if (!$care instanceof Care) {
+            return $this->json(['error' => 'La garde est introuvable.'], 404);
+        }
+
+        try {
+            $careManager->delete($care);
+        } catch (\Throwable $exception) {
+            return $this->json(['error' => $exception->getMessage()], 400);
+        }
+
+        return $this->json(['success' => true]);
+    }
+
+    private function eventPayload(Care $care): array
+    {
+        $description = sprintf(
+            'De %s a %s%s',
+            $care->getStartDateTime()->format('H:i'),
+            $care->getEndDateTime()->format('H:i'),
+            $care->getMealsCount() > 0 ? sprintf('<br>%d repas', $care->getMealsCount()) : ''
+        );
+
+        return [
+            'id' => $care->getPublicId(),
+            'title' => number_format($care->getHoursCount(), 2, ',', ' ') . ' heures',
+            'start' => $this->formatCalendarDateTime($care->getStartDateTime()),
+            'end' => $this->formatCalendarDateTime($care->getEndDateTime()),
+            'meals' => $care->getMealsCount(),
+            'description' => $description,
+            'segment' => $care->isMultiSegment() ? sprintf('%d/%d', $care->getSegmentIndex(), $care->getSegmentTotal()) : null,
+        ];
+    }
+
+    private function localDateTimeFromPayload(array $payload, string $key): \DateTimeImmutable
+    {
+        $value = trim((string) ($payload[$key] ?? ''));
+        if (preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/', $value) === 1) {
+            $value .= ':00';
+        }
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/', $value) !== 1) {
+            throw new \InvalidArgumentException('Horaire invalide.');
+        }
+
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d\TH:i:s', $value);
+        $errors = \DateTimeImmutable::getLastErrors();
+        if (!$date || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+            throw new \InvalidArgumentException('Horaire invalide.');
+        }
+
+        return $date;
+    }
+
+    private function formatCalendarDateTime(\DateTimeInterface $dateTime): string
+    {
+        return $dateTime->format('Y-m-d\TH:i:s');
+    }
+
+    private function assertValidCareCsrf(Request $request): void
+    {
+        if (!$this->isCsrfTokenValid('care_mutation', (string) $request->headers->get('X-CSRF-Token'))) {
+            throw $this->createAccessDeniedException('Token CSRF invalide.');
+        }
+    }
+
+    private function jsonPayload(Request $request): array
+    {
+        $payload = json_decode($request->getContent(), true);
+
+        return is_array($payload) ? $payload : [];
+    }
+
+    private function mealsFromPayload(array $payload): int
+    {
+        return max(0, (int) ($payload['meals'] ?? 0));
+    }
+
+    private function isValidDate(?string $currentDate): bool
     {
         if ($currentDate === null || trim($currentDate) === '') {
-            return false; // La date est nulle ou vide.
+            return false;
         }
 
         try {
             $date = new \DateTime($currentDate);
-            // Optionnel : Vérifiez le format exact si nécessaire.
+
             return $date->format('Y-m-d') === $currentDate;
-        } catch (Exception $e) {
-            return false; // Une exception signifie que la date est invalide.
+        } catch (\Throwable) {
+            return false;
         }
-    }
-
-    #[Route('/create', name: 'create', methods: ['GET'])]
-    public function create(
-        Request $request,
-        EntityManagerInterface $em,
-        MonthlyPaymentRepository $monthlyPaymentRepository,
-        CareRepository $careRepository
-    ): JsonResponse {
-        // Récupérer les paramètres de la requête GET
-        $nannyId = (int)$request->query->get('nanny');
-        $startRaw = $request->query->get('start');
-        $endRaw = $request->query->get('end');
-        $meals = (int)$request->query->getInt('meals');
-        $user = $this->getUser();
-        try {
-            // Conversion en objets DateTime
-            $startDateTime = new \DateTime($startRaw);
-            $endDateTime = new \DateTime($endRaw);
-        } catch (\Exception $e) {
-            return new JsonResponse(['error' => 'Les dates ne sont pas bonnes'], 400);
-        }
-
-        $nanny = $em->getRepository(Nanny::class)->find($nannyId);
-
-        if (!$nanny || !$nanny->getUsers()->contains($user)) {
-            return new JsonResponse(['error' => 'La Nounou n\'est pas valide.'], 400);
-        }
-
-        $conflictingCare = $careRepository->findConflictingCare(
-            $nanny->getId(),
-            $startDateTime->format('Y-m-d'), // Date au format "YYYY-MM-DD"
-            $startDateTime->format('H:i:s'), // Heure au format "HH:MM:SS"
-            $endDateTime->format('H:i:s')    // Heure au format "HH:MM:SS"
-        );
-        if ($conflictingCare) {
-            return new JsonResponse(['error' => 'Un garde existe déjà pour cette nounou à cette date et dans cet intervalle de temps.'], 400);
-        }
-
-        try {
-            $em->beginTransaction();
-            try {
-                // Aucun conflit, création d'une nouvelle garde
-                $newCare = new Care();
-                $newCare->setUser($user);
-                $newCare->setNanny($nanny);
-                $newCare->setMonth($startDateTime->format('Y-m'));
-                $newCare->setDate($startDateTime);
-                $newCare->setStartTime($startDateTime);
-                $newCare->setEndTime($endDateTime);
-                $newCare->setMealsCount($meals);
-                $newCare->setCreatedAt(new \DateTime());
-
-                $slugbase = $startDateTime->format('Y-m-d') . '-' . $startDateTime->format('H:i') . '-' . $endDateTime->format('H:i');
-                $newCare->setSlugBase($slugbase);
-
-                // Calcul de la différence entre les deux heures
-                $interval = $startDateTime->diff($endDateTime);
-                // Convertir la différence en heures décimales
-                $hoursCount = $interval->h + ($interval->i / 60); // Heures + minutes en fraction d'heure
-
-                // Affecter le nombre d'heures à la garde
-                $newCare->setHoursCount($this->roundingService->roundToTwoDecimals($hoursCount));
-
-                // Persister la nouvelle garde
-                $em->persist($newCare);
-            } catch (\Throwable $th) {
-                $em->rollback();
-                return new JsonResponse(['error' => 'Une erreur est survenue lors de la création de la garde.'], 500);
-            }
-
-            try {
-                $month = $startDateTime->format('Y-m');
-                $monthlyPayment = $monthlyPaymentRepository->findOneBy([
-                    'user' => $user,
-                    'nanny' => $nanny,
-                    'month' => $month
-                ]) ?? new MonthlyPayment();
-                if ($monthlyPayment->getId() === null) {
-                    $monthlyPayment->setUser($user)
-                        ->setNanny($nanny)
-                        ->setMonth($month)
-                        ->setCreatedAt(new \DateTime());
-                }
-            } catch (\Throwable $th) {
-                $em->rollback();
-                return new JsonResponse(['error' => 'Une erreur est survenue lors de la récupération du paiement mensuel.'], 500);
-            }
-
-            try {
-                // Mise à jour des totaux
-                $monthlyPayment->setTotalsHours($this->roundingService->roundToTwoDecimals($monthlyPayment->getTotalsHours() + $hoursCount));
-                $monthlyPayment->setTotalMeals($monthlyPayment->getTotalMeals() + $meals);
-                // Calcul des montants
-                $amountHours = $hoursCount * $nanny->getHourlyRate();
-                $amountMeals = $meals * $nanny->getMealRate();
-                $monthlyPayment->setAmountHours($this->roundingService->roundToTwoDecimals($monthlyPayment->getAmountHours() + $amountHours));
-                $monthlyPayment->setAmountMeals($this->roundingService->roundToTwoDecimals($monthlyPayment->getAmountMeals() + $amountMeals));
-                $monthlyPayment->setTotalAmount($this->roundingService->roundToTwoDecimals($monthlyPayment->getTotalAmount() + $amountHours + $amountMeals));
-                // Persister le paiement mensuel
-                $em->persist($monthlyPayment);
-            } catch (\Throwable $th) {
-                $em->rollback();
-                return new JsonResponse(['error' => 'Une erreur est survenue lors de la mise à jour du paiement mensuel.'], 500);
-            }
-
-            try {
-                $em->flush();
-                $em->commit();
-            } catch (\Throwable $th) {
-                dd($th);
-                return new JsonResponse(['error' => 'Une erreur est survenue lors de la sauvegarde du paiement mensuel.'], 500);
-            }
-        } catch (\Throwable $th) {
-            $em->rollback();
-            return new JsonResponse(['error' => 'Une erreur est survenue lors de la transaction.'], 500);
-        }
-
-        return $this->json([
-            'id' => $newCare->getId(),
-            'start' => $newCare->getStartTime(),
-            'end' => $newCare->getEndTime(),
-            'meals' => $newCare->getMealsCount(),
-            'monthlyPayment' => [
-                'id' => $monthlyPayment->getId(),
-                'totalAmount' => $monthlyPayment->getTotalAmount()
-            ]
-        ]);
-    }
-
-
-    #[Route('/delete/{id}', name: 'delete', methods: ['DELETE'])]
-    public function delete(
-        Care $care,
-        EntityManagerInterface $em,
-        MonthlyPaymentRepository $monthlyPaymentRepository
-    ): JsonResponse {
-        $user = $this->getUser();
-        if ($care->getUser() !== $user) {
-            return new JsonResponse(['error' => 'Vous n\'avez pas accès à cette garde.'], 403);
-        }
-        $nanny = $care->getNanny();
-        $month = $care->getDate()->format('Y-m');
-        $monthlyPayment = $monthlyPaymentRepository->findOneBy([
-            'user' => $user,
-            'nanny' => $nanny,
-            'month' => $month
-        ]);
-
-        if (!$monthlyPayment) {
-            return new JsonResponse(['error' => 'Le paiement mensuel n\'a pas été trouvé.'], 404);
-        }
-
-
-        try {
-            $em->beginTransaction();
-            try {
-                $em->remove($care);
-            } catch (\Throwable $th) {
-                return new JsonResponse(['error' => 'Une erreur est survenue lors de la suppression de la garde.'], 500);
-            }
-
-            try {
-                $interval = $care->getStartTime()->diff($care->getEndTime());
-                $hoursCount = $interval->h + ($interval->i / 60);
-                $amountHours = $hoursCount * $nanny->getHourlyRate();
-                $amountMeals = $care->getMealsCount() * $nanny->getMealRate();
-                $monthlyPayment->setTotalsHours($this->roundingService->roundToTwoDecimals($monthlyPayment->getTotalsHours() - $hoursCount));
-                $monthlyPayment->setTotalMeals($monthlyPayment->getTotalMeals() - $care->getMealsCount());
-                $monthlyPayment->setAmountHours($this->roundingService->roundToTwoDecimals($monthlyPayment->getAmountHours() - $amountHours));
-                $monthlyPayment->setAmountMeals($this->roundingService->roundToTwoDecimals($monthlyPayment->getAmountMeals() - $amountMeals));
-                $monthlyPayment->setTotalAmount($this->roundingService->roundToTwoDecimals($monthlyPayment->getTotalAmount() - $amountHours - $amountMeals));
-            } catch (\Throwable $th) {
-                return new JsonResponse(['error' => 'Une erreur est survenue lors de la mise à jour du paiement mensuel.'], 500);
-            }
-
-            try {
-                $em->flush();
-                $em->commit();
-            } catch (\Throwable $th) {
-                return new JsonResponse(['error' => 'Une erreur est survenue lors de la sauvegarde du paiement mensuel.'], 500);
-            }
-        } catch (\Throwable $th) {
-            $em->rollback();
-            return new JsonResponse(['error' => 'Une erreur est survenue lors de la transaction.'], 500);
-        }
-
-        return new JsonResponse(['success' => 'La garde a été supprimée.'], 200);
-    }
-
-    #[Route('/update/{id}', name: 'update')]
-    public function update(
-        Care $care,
-        Request $request,
-        EntityManagerInterface $em,
-        MonthlyPaymentRepository $monthlyPaymentRepository
-    ): JsonResponse {
-        $user = $this->getUser();
-        if ($care->getUser() !== $user) {
-            return new JsonResponse(['error' => 'Vous n\'avez pas accès à cette garde.'], 403);
-        }
-
-        $nanny = $care->getNanny();
-        $month = $care->getDate()->format('Y-m');
-        $monthlyPayment = $monthlyPaymentRepository->findOneBy([
-            'user' => $user,
-            'nanny' => $nanny,
-            'month' => $month
-        ]);
-
-        if (!$monthlyPayment) {
-            return new JsonResponse(['error' => 'Le paiement mensuel n\'a pas été trouvé.'], 404);
-        }
-
-        $startRaw = $request->query->get('start');
-        $endRaw = $request->query->get('end');
-        $meals = (int)$request->query->getInt('meals') ?? null;
-
-        try {
-            // Conversion en objets DateTime
-            $startDateTime = new \DateTime($startRaw);
-            $endDateTime = new \DateTime($endRaw);
-        } catch (\Exception $e) {
-            return new JsonResponse(['error' => 'Les dates ne sont pas bonnes'], 400);
-        }
-
-        $conflictingCare = $em->getRepository(Care::class)->findConflictingCare(
-            $nanny->getId(),
-            $startDateTime->format('Y-m-d'), // Date au format "YYYY-MM-DD"
-            $startDateTime->format('H:i:s'), // Heure au format "HH:MM:SS"
-            $endDateTime->format('H:i:s'),    // Heure au format "HH:MM:SS"
-            $care->getId()
-        );
-        if ($conflictingCare !== null && $conflictingCare->getId() !== $care->getId()) {
-            return new JsonResponse(['error' => 'Un garde existe déjà pour cette nounou à cette date et dans cet intervalle de temps.'], 400);
-        }
-
-        try {
-            $em->beginTransaction();
-            try {
-                // Sauvegarde des anciennes heures pour calculer les différences
-                $LastHoursCareCount = $care->getHoursCount();
-                if ($meals !== null) {
-                    $LastMealsCount = $care->getMealsCount();
-                }
-                // Mise à jour de la garde
-                $care->setDate($startDateTime);
-                $care->setMonth($startDateTime->format('Y-m'));
-                $care->setStartTime($startDateTime);
-                $care->setEndTime($endDateTime);
-                if ($meals !== null) {
-                    $care->setMealsCount($meals);
-                }
-                // Calcul du nouveau nombre d'heures
-                $interval = $startDateTime->diff($endDateTime);
-                $NewHoursCareCount = $interval->h + ($interval->i / 60);
-                $care->setHoursCount($this->roundingService->roundToTwoDecimals($NewHoursCareCount));
-            } catch (\Throwable $th) {
-                return new JsonResponse(['error' => 'Une erreur est survenue lors de la mise à jour de la garde.'], 500);
-            }
-            try {
-                // Taux horaire
-                $hoursRate = $nanny->getHourlyRate();
-                // Calcul des montants avant/après
-                $lastAmountHours = $LastHoursCareCount * $hoursRate;
-                $newAmountHours = $NewHoursCareCount * $hoursRate;
-                // Mise à jour des totaux dans le paiement mensuel
-                $monthlyPayment->setTotalsHours(
-                    $this->roundingService->roundToTwoDecimals($monthlyPayment->getTotalsHours() - $LastHoursCareCount + $NewHoursCareCount)
-                );
-                $monthlyPayment->setAmountHours(
-                    $this->roundingService->roundToTwoDecimals($monthlyPayment->getAmountHours() - $lastAmountHours + $newAmountHours)
-                );
-                // Le montant global total doit refléter le montant des heures
-                $totalAmountBefore = $monthlyPayment->getTotalAmount();
-
-                // Gestion si le nombre de repas est modifié
-                if ($meals !== null) {
-                    $mealRate = $nanny->getMealRate();
-                    $lastAmountMeals = $LastMealsCount * $mealRate;
-                    $newAmountMeals = $meals * $mealRate;
-                    $monthlyPayment->setTotalMeals(
-                        $monthlyPayment->getTotalMeals() - $LastMealsCount + $meals
-                    );
-                    $monthlyPayment->setAmountMeals(
-                        $monthlyPayment->getAmountMeals() - $lastAmountMeals + $newAmountMeals
-                    );
-                    $monthlyPayment->setTotalAmount(
-                        $this->roundingService->roundToTwoDecimals($totalAmountBefore - $lastAmountHours + $newAmountHours - $lastAmountMeals + $newAmountMeals)
-                    );
-                }
-                else {
-                    $monthlyPayment->setTotalAmount(
-                        $this->roundingService->roundToTwoDecimals($totalAmountBefore - $lastAmountHours + $newAmountHours)
-                    );
-                }
-                // Persistance des modifications
-                $em->persist($monthlyPayment);
-            } catch (\Throwable $th) {
-                return new JsonResponse(['error' => 'Une erreur est survenue lors de la mise à jour du paiement mensuel.'], 500);
-            }
-
-
-            try {
-                $em->flush();
-                $em->commit();
-            } catch (\Throwable $th) {
-                return new JsonResponse(['error' => 'Une erreur est survenue lors de la sauvegarde du paiement mensuel.'], 500);
-            }
-        } catch (\Throwable $th) {
-            $em->rollback();
-            return new JsonResponse(['error' => 'Une erreur est survenue lors de la transaction.'], 500);
-        }
-
-        return $this->json([
-            'idCare' => $care->getId(),
-            'start' => $care->getStartTime(),
-            'end' => $care->getEndTime(),
-            'meals' => $care->getMealsCount(),
-            'monthlyPayment' => [
-                'id' => $monthlyPayment->getId(),
-                'totalAmount' => $monthlyPayment->getTotalAmount()
-            ]
-        ]);
     }
 }

@@ -1,135 +1,104 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Détails du paiement -
-	{{ payment.month }}
-{% endblock %}
+{% block title %}Paiement {{ payment.month }}{% endblock %}
 
 {% block body %}
-<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-    <div class="bg-white rounded-lg shadow-lg p-6">
-        <!-- En-tête -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 space-y-4 sm:space-y-0">
-            <h1 class="text-2xl font-bold text-gray-900">Détails du paiement - {{ payment.month }}</h1>
-            <a href="{{ path('app_home') }}" class="text-blue-600 hover:text-blue-800 text-sm">
-                Retour
-            </a>
+<div class="space-y-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-semibold">Paiement {{ payment.month }}</h1>
+            <p class="text-sm text-slate-500">{{ payment.nannyDisplayName }}</p>
         </div>
-
-        <!-- Informations Nounou -->
-        <div class="bg-gray-50 rounded-lg p-6 mb-4">
-            <h2 class="text-xl font-bold mb-4">Informations Nounou</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <p class="text-gray-600">Nom :</p>
-                    <p class="font-semibold">{{ payment.nanny.fullName }}</p>
-                </div>
-                <div>
-                    <p class="text-gray-600">Tarif horaire :</p>
-                    <p class="font-semibold">{{ payment.nanny.hourlyRate|number_format(2, ',', ' ') }} €</p>
-                </div>
-                <div>
-                    <p class="text-gray-600">Tarif repas :</p>
-                    <p class="font-semibold">{{ payment.nanny.mealRate|number_format(2, ',', ' ') }} €</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Résumé du mois -->
-        <div class="bg-blue-50 rounded-lg p-6 mb-4">
-            <h2 class="text-xl font-bold mb-4">Résumé du mois</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div>
-                    <p class="text-gray-600">Heures de garde :</p>
-                    <p class="font-semibold">{{ payment.totalsHours|number_format(2, ',', ' ') }} heures</p>
-                    <p class="text-sm text-gray-500">{{ payment.amountHours|number_format(2, ',', ' ') }} €</p>
-                </div>
-                <div>
-                    <p class="text-gray-600">Repas :</p>
-                    <p class="font-semibold">{{ payment.totalMeals }} repas</p>
-                    <p class="text-sm text-gray-500">{{ payment.amountMeals|number_format(2, ',', ' ') }} €</p>
-                </div>
-                <div>
-                    <p class="text-gray-600">Total :</p>
-                    <p class="font-bold text-lg text-blue-600">{{ payment.totalAmount|number_format(2, ',', ' ') }} €</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Détail des gardes -->
-        <div class="mb-4">
-            <h2 class="text-xl font-bold mb-4">Détail des gardes</h2>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Horaires</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Durée</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Repas</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for care in cares %}
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-3">{{ care.date|date('d/m/Y') }}</td>
-                                <td class="px-4 py-3">
-                                    {{ care.startTime|date('H:i') }} - {{ care.endTime|date('H:i') }}
-                                </td>
-                                <td class="px-4 py-3">{{ care.hoursCount|number_format(2, ',', ' ') }} h</td>
-                                <td class="px-4 py-3">
-                                    {% if care.mealsCount > 0 %}
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                            {{ care.mealsCount }}
-                                        </span>
-                                    {% else %}
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                                            0
-                                        </span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% else %}
-                            <tr>
-                                <td colspan="4" class="px-4 py-3 text-center text-gray-500">
-                                    Aucune garde enregistrée pour ce mois
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Section paiement -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-4 pt-6 border-t space-y-4 sm:space-y-0">
-            <div>
-                <p class="text-gray-600 mb-2">Statut du paiement :</p>
-                {% if payment.isPaid %}
-                    <div class="flex items-center">
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                            Payé le {{ payment.paidAt|date('d/m/Y') }}
-                        </span>
-                    </div>
-                {% else %}
-                    <div class="flex items-center">
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                            En attente de paiement
-                        </span>
-                    </div>
-                {% endif %}
-            </div>
-            {% if not payment.isPaid %}
-                <a href="{{ path('app_monthly_payment_mark_as_paid', {'slug': payment.slug}) }}"
-                   class="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-4 rounded">
-                    Marquer comme payé
+        <div class="flex flex-wrap gap-2">
+            {% if payment.isPaid %}
+                <a href="{{ path('app_monthly_payment_export_csv', {'publicId': payment.publicId}) }}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50">
+                    <i class="fa-solid fa-file-csv mr-2"></i>CSV
                 </a>
-            {% else %}
-                <a href="{{ path('app_monthly_payment_mark_as_unpaid', {'slug': payment.slug}) }}"
-                   class="bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2 px-4 rounded">
-                    Marquer comme non payé
+                <a href="{{ path('app_monthly_payment_export_pdf', {'publicId': payment.publicId}) }}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50">
+                    <i class="fa-solid fa-file-pdf mr-2"></i>PDF
                 </a>
             {% endif %}
+            <a href="{{ path('app_home') }}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50">Retour</a>
         </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div class="rounded-lg border border-slate-200 bg-white p-5">
+            <p class="text-sm text-slate-500">Heures</p>
+            <p class="mt-2 text-2xl font-semibold tabular-nums">{{ payment.totalsHours|number_format(2, ',', ' ') }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-5">
+            <p class="text-sm text-slate-500">Repas</p>
+            <p class="mt-2 text-2xl font-semibold tabular-nums">{{ payment.totalMeals }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-5">
+            <p class="text-sm text-slate-500">Total</p>
+            <p class="mt-2 text-2xl font-semibold tabular-nums">{{ payment.totalAmount|number_format(2, ',', ' ') }} {{ currency }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-5">
+            <p class="text-sm text-slate-500">Statut</p>
+            <div class="mt-3">{% include '_payment_status_badge.html.twig' with {payment: payment} only %}</div>
+        </div>
+    </div>
+
+    <div class="rounded-lg border border-slate-200 bg-white">
+        <div class="border-b border-slate-200 px-5 py-4">
+            <h2 class="font-semibold">Gardes du mois</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Date</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Horaires</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Duree</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Repas</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                    {% for care in cares %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-5 py-3 text-sm">{{ care.date|date('d/m/Y') }}</td>
+                            <td class="whitespace-nowrap px-5 py-3 text-sm">{{ care.startTime|date('H:i') }} - {{ care.endTime|date('H:i') }}</td>
+                            <td class="whitespace-nowrap px-5 py-3 text-sm tabular-nums">{{ care.hoursCount|number_format(2, ',', ' ') }} h</td>
+                            <td class="px-5 py-3 text-sm tabular-nums">{{ care.mealsCount }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="4" class="px-5 py-6 text-center text-sm text-slate-500">Aucune garde.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="flex justify-end">
+        {% if not payment.isPaid %}
+            <form
+                method="post"
+                action="{{ path('app_monthly_payment_mark_as_paid', {'publicId': payment.publicId}) }}"
+                data-controller="confirm"
+                data-action="submit->confirm#submit"
+                data-confirm-title-value="Marquer ce mois comme payé ?"
+                data-confirm-text-value="Les gardes de ce mois seront gelées après recalcul."
+                data-confirm-confirm-text-value="Marquer payé"
+            >
+                <input type="hidden" name="_token" value="{{ csrf_token('payment_paid_' ~ payment.publicId) }}">
+                <button class="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white">Marquer paye</button>
+            </form>
+        {% else %}
+            <form
+                method="post"
+                action="{{ path('app_monthly_payment_mark_as_unpaid', {'publicId': payment.publicId}) }}"
+                data-controller="confirm"
+                data-action="submit->confirm#submit"
+                data-confirm-title-value="Remettre ce mois en impayé ?"
+                data-confirm-text-value="Les montants seront recalculés avec les tarifs historiques applicables."
+                data-confirm-confirm-text-value="Remettre impayé"
+            >
+                <input type="hidden" name="_token" value="{{ csrf_token('payment_unpaid_' ~ payment.publicId) }}">
+                <button class="rounded-md border border-red-200 px-4 py-2 text-sm font-semibold text-red-700">Remettre impaye</button>
+            </form>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

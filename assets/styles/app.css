@@ -3,6 +3,10 @@
 @tailwind components;
 @tailwind utilities;
 
+[x-cloak] {
+    display: none !important;
+}
+
 @import url('./notif.min.css');
 @import url('./notyf.custom.css');
 @import url('./scrollbar.css');
