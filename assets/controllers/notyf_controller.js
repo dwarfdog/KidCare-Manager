@@ -1,9 +1,12 @@
 import { Controller } from '@hotwired/stimulus';
-import { Notyf } from "notyf";
-import 'notyf/notyf.min.css';
 export default class extends Controller {
-    connect() {
+    async connect() {
         this.flashesValue = JSON.parse(this.element.dataset.flashes || "{}");
+        if (!this.hasFlashes()) {
+            return;
+        }
+
+        const { Notyf } = await import('notyf');
         this.notyf = new Notyf({
             duration: 3000,
             position: {
@@ -41,7 +44,7 @@ export default class extends Controller {
         this.displayFlashes();
     }
     displayFlashes() {
-        if (!this.flashesValue) return;
+        if (!this.hasFlashes()) return;
         for (const [type, messages] of Object.entries(this.flashesValue)) {
             if (Array.isArray(messages)) {
                 messages.forEach((message) => {
@@ -53,5 +56,9 @@ export default class extends Controller {
                 });
             }
         }
+    }
+
+    hasFlashes() {
+        return this.flashesValue && Object.values(this.flashesValue).some((messages) => Array.isArray(messages) && messages.length > 0);
     }
 }

@@ -23,6 +23,8 @@
 /phpunit.xml
 ###< symfony/phpunit-bridge ###
 /bdd/data.db
+/bdd/*.db
+/bdd/*.backup-*
 
 ###> symfony/webpack-encore-bundle ###
 /node_modules/

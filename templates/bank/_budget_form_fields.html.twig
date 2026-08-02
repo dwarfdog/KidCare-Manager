@@ -1,0 +1,14 @@
+{# Champs du formulaire budget: les dates ne s'affichent que pour une periode personnalisee. #}
+<div x-data="{ periodType: '{{ form.periodType.vars.value }}' }">
+    {{ form_row(form.category) }}
+    <div class="mb-4">
+        {{ form_label(form.periodType) }}
+        {{ form_widget(form.periodType, {attr: {'x-on:change': 'periodType = $event.target.value'}}) }}
+        <p x-show="periodType !== 'custom'" class="mt-1 text-xs text-slate-500">Le budget repart de zero a chaque nouvelle periode, automatiquement.</p>
+    </div>
+    <div x-show="periodType === 'custom'" x-cloak class="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+        <div>{{ form_row(form.periodStart) }}</div>
+        <div>{{ form_row(form.periodEnd) }}</div>
+    </div>
+    {{ form_row(form.amount) }}
+</div>

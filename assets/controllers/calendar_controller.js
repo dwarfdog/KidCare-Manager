@@ -1,17 +1,4 @@
 import { Controller } from '@hotwired/stimulus';
-import { Calendar } from '@fullcalendar/core';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import interactionPlugin from '@fullcalendar/interaction';
-import frLocale from '@fullcalendar/core/locales/fr';
-import { Notyf } from 'notyf';
-import 'notyf/notyf.min.css';
-import Swal from 'sweetalert2';
-
-const notyf = new Notyf({
-    duration: 3500,
-    position: { x: 'right', y: 'top' },
-});
 
 export default class extends Controller {
     static targets = ['calendar', 'calendarPanel', 'listPanel', 'list'];
@@ -26,10 +13,34 @@ export default class extends Controller {
         defaultMeals: Number,
     };
 
-    connect() {
+    async connect() {
         if (!this.hasCalendarTarget) {
             return;
         }
+
+        const [
+            { Calendar },
+            { default: dayGridPlugin },
+            { default: timeGridPlugin },
+            { default: interactionPlugin },
+            { default: frLocale },
+            { Notyf },
+            { default: Swal },
+        ] = await Promise.all([
+            import('@fullcalendar/core'),
+            import('@fullcalendar/daygrid'),
+            import('@fullcalendar/timegrid'),
+            import('@fullcalendar/interaction'),
+            import('@fullcalendar/core/locales/fr'),
+            import('notyf'),
+            import('sweetalert2'),
+        ]);
+
+        this.Swal = Swal;
+        this.notyf = new Notyf({
+            duration: 3500,
+            position: { x: 'right', y: 'top' },
+        });
 
         const isMobile = window.matchMedia('(max-width: 767px)').matches;
 
@@ -95,9 +106,9 @@ export default class extends Controller {
             .then((data) => {
                 this.addReturnedEvents(data.events || []);
                 this.renderList();
-                notyf.success('La garde a été créée.');
+                this.notyf.success('La garde a été créée.');
             })
-            .catch((error) => notyf.error(error.message));
+            .catch((error) => this.notyf.error(error.message));
     }
 
     async openEditDialog(event) {
@@ -115,9 +126,9 @@ export default class extends Controller {
                 this.removeEvents(data.removed || [event.id]);
                 this.addReturnedEvents(data.events || []);
                 this.renderList();
-                notyf.success('La garde a été mise à jour.');
+                this.notyf.success('La garde a été mise à jour.');
             })
-            .catch((error) => notyf.error(error.message));
+            .catch((error) => this.notyf.error(error.message));
     }
 
     persistEventMove(info) {
@@ -134,16 +145,16 @@ export default class extends Controller {
                 this.removeEvents(data.removed || [event.id]);
                 this.addReturnedEvents(data.events || []);
                 this.renderList();
-                notyf.success('La garde a été déplacée.');
+                this.notyf.success('La garde a été déplacée.');
             })
             .catch((error) => {
                 info.revert();
-                notyf.error(error.message);
+                this.notyf.error(error.message);
             });
     }
 
     async handleEventDelete(event) {
-        const result = await Swal.fire({
+        const result = await this.Swal.fire({
             title: 'Supprimer la garde ?',
             text: `${this.formatReadableDate(event.start)} de ${this.formatTime(event.start)} à ${this.formatTime(event.end)}`,
             icon: 'warning',
@@ -161,16 +172,16 @@ export default class extends Controller {
             .then(() => {
                 event.remove();
                 this.renderList();
-                notyf.success('La garde a été supprimée.');
+                this.notyf.success('La garde a été supprimée.');
             })
-            .catch((error) => notyf.error(error.message));
+            .catch((error) => this.notyf.error(error.message));
     }
 
     async applyTemplate(event) {
         const button = event.currentTarget;
         const startDate = this.templateStartDate(button);
         const preview = await this.previewTemplate(button, startDate).catch((error) => {
-            notyf.error(error.message);
+            this.notyf.error(error.message);
             return null;
         });
 
@@ -182,7 +193,7 @@ export default class extends Controller {
             ? `<div class="max-h-72 overflow-y-auto text-left text-sm"><ul class="space-y-2">${preview.conflicts.map((conflict) => `<li><strong>${this.escapeHtml(conflict.label)}</strong><br><span class="text-slate-600">${this.escapeHtml(conflict.reason)}</span></li>`).join('')}</ul></div>`
             : '<p class="text-sm text-slate-600">Aucun conflit détecté.</p>';
 
-        const result = await Swal.fire({
+        const result = await this.Swal.fire({
             title: 'Appliquer le template ?',
             html: `
                 <div class="space-y-3">
@@ -273,7 +284,7 @@ export default class extends Controller {
     }
 
     async careDialog(title, start, end, meals, confirmButtonText) {
-        return Swal.fire({
+        return this.Swal.fire({
             title,
             html: `
                 <div class="space-y-4 text-left">
@@ -297,12 +308,12 @@ export default class extends Controller {
                 const mealsCount = Number.parseInt(document.getElementById('care-meals').value, 10);
 
                 if (!startTime || !endTime) {
-                    Swal.showValidationMessage('Les horaires sont obligatoires.');
+                    this.Swal.showValidationMessage('Les horaires sont obligatoires.');
                     return false;
                 }
 
                 if (!Number.isInteger(mealsCount) || mealsCount < 0) {
-                    Swal.showValidationMessage('Le nombre de repas doit être un entier positif ou zéro.');
+                    this.Swal.showValidationMessage('Le nombre de repas doit être un entier positif ou zéro.');
                     return false;
                 }
 

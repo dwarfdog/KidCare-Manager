@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block body %}
+{% include 'bank/_tabs.html.twig' %}
+<div class="mx-auto max-w-2xl" x-data="{ type: '{{ form.type.vars.value }}' }">
+    <div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <h1 class="mb-6 text-lg font-semibold">{{ title }}</h1>
+        {{ form_start(form) }}
+            <div class="grid gap-x-5 sm:grid-cols-2">
+                <div class="sm:col-span-2">{{ form_row(form.name) }}</div>
+                <div class="mb-4">
+                    {{ form_label(form.type) }}
+                    {{ form_widget(form.type, {attr: {'x-on:change': 'type = $event.target.value'}}) }}
+                </div>
+                <div>{{ form_row(form.iban) }}</div>
+                <div>{{ form_row(form.initialBalance) }}</div>
+                <div>{{ form_row(form.initialBalanceDate) }}</div>
+            </div>
+
+            <div x-show="type === 'loan'" x-cloak class="mt-2 rounded-md border border-amber-200 bg-amber-50 p-4">
+                <p class="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-800">
+                    <i class="fa-solid fa-building-columns"></i> Details du pret
+                </p>
+                <div class="grid gap-x-5 sm:grid-cols-2">
+                    <div>{{ form_row(form.loanInitialCapital) }}</div>
+                    <div>{{ form_row(form.loanRemainingCapital) }}</div>
+                    <div>{{ form_row(form.loanMonthlyPayment) }}</div>
+                    <div>{{ form_row(form.loanPaymentDay) }}</div>
+                    <div class="sm:col-span-2">{{ form_row(form.loanDebitAccount) }}</div>
+                    <div class="sm:col-span-2">{{ form_row(form.loanCategory) }}</div>
+                    <div>{{ form_row(form.loanAnnualRate) }}</div>
+                    <div>{{ form_row(form.loanEndDate) }}</div>
+                </div>
+                <p class="mt-1 text-xs text-amber-700"><i class="fa-solid fa-circle-info"></i> Chaque mois, la mensualite sera enregistree comme depense sur le compte a debiter et le capital restant diminuera automatiquement. Tu peux ajuster toutes ces valeurs a la main a tout moment.</p>
+            </div>
+
+            <div class="mt-4 flex flex-wrap gap-3">
+                <button class="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700">Enregistrer</button>
+                <a href="{{ path('app_bank_accounts') }}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Annuler</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

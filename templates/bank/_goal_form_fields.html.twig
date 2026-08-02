@@ -1,0 +1,15 @@
+{# Champs du formulaire objectif: le montant manuel est masque quand un compte est lie. #}
+<div x-data="{ linked: {{ form.linkedAccount.vars.value is not empty ? 'true' : 'false' }} }">
+    {{ form_row(form.name) }}
+    {{ form_row(form.targetAmount) }}
+    <div class="mb-4">
+        {{ form_label(form.linkedAccount) }}
+        {{ form_widget(form.linkedAccount, {attr: {'x-on:change': "linked = $event.target.value !== ''"}}) }}
+        {{ form_help(form.linkedAccount) }}
+    </div>
+    <div x-show="!linked">
+        {{ form_row(form.currentAmount) }}
+    </div>
+    <p x-show="linked" x-cloak class="mb-4 text-xs text-slate-500">Le montant actuel suivra automatiquement le solde du compte choisi.</p>
+    {{ form_row(form.targetDate) }}
+</div>

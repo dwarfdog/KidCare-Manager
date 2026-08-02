@@ -1,0 +1,221 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Banque{% endblock %}
+
+{% block body %}
+{% include 'bank/_tabs.html.twig' %}
+<div class="space-y-5">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold capitalize">{{ dashboard.month_start|format_date('none', 'MMMM yyyy', locale='fr') }}</h1>
+        <div class="flex gap-2">
+            <a href="{{ path('app_bank_transaction_new') }}" class="rounded-md bg-teal-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700"><i class="fa-solid fa-plus"></i> Operation</a>
+            <a href="{{ path('app_bank_transfer_new') }}" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Virement</a>
+        </div>
+    </div>
+
+    {# KPIs mensuels consolides #}
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="rounded-lg border border-slate-200 bg-white p-4">
+            <p class="flex items-center gap-1 text-sm font-medium text-slate-500">Solde reel
+                <i class="fa-regular fa-circle-question text-slate-400" data-tippy-content="Somme des soldes reels de tes comptes courants et epargne (hors prets)."></i>
+            </p>
+            <p class="mt-2 text-2xl font-semibold tabular-nums">{{ dashboard.real_balance|number_format(2, ',', ' ') }} €</p>
+            <p class="mt-1 text-xs text-slate-400">dont {{ dashboard.spendable_balance|number_format(2, ',', ' ') }} € sur comptes courants</p>
+        </div>
+        <div class="rounded-lg border-2 border-teal-200 bg-teal-50/50 p-4">
+            <p class="flex items-center gap-1 text-sm font-medium text-teal-800">Reste a vivre
+                <i class="fa-regular fa-circle-question text-teal-500" data-tippy-content="Argent disponible sur tes comptes courants jusqu'au prochain salaire, une fois les operations prevues d'ici la deduites."></i>
+            </p>
+            <p class="mt-2 text-2xl font-semibold tabular-nums {{ dashboard.reste_a_vivre < 0 ? 'text-rose-700' : 'text-teal-800' }}">{{ dashboard.reste_a_vivre|number_format(2, ',', ' ') }} €</p>
+            <p class="mt-1 text-xs text-teal-700">
+                {% if dashboard.next_salary_date %}avant le {{ dashboard.next_salary_date|date('d/m/Y') }}{% else %}aucun salaire planifie (cocher un repere){% endif %}
+            </p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-4">
+            <p class="flex items-center gap-1 text-sm font-medium text-slate-500">Projete fin de mois
+                <i class="fa-regular fa-circle-question text-slate-400" data-tippy-content="Solde courant estime au {{ dashboard.month_end|date('d/m/Y') }} en tenant compte des operations prevues restantes du mois."></i>
+            </p>
+            <p class="mt-2 text-2xl font-semibold tabular-nums {{ dashboard.projected_month_end < 0 ? 'text-rose-700' : '' }}">{{ dashboard.projected_month_end|number_format(2, ',', ' ') }} €</p>
+            <p class="mt-1 text-xs text-slate-400">au {{ dashboard.month_end|date('d/m') }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-4">
+            <p class="text-sm font-medium text-slate-500">Bilan du mois</p>
+            <p class="mt-2 text-lg font-semibold tabular-nums text-emerald-700">+{{ dashboard.income_month|number_format(2, ',', ' ') }} €</p>
+            <p class="text-lg font-semibold tabular-nums text-rose-700">-{{ dashboard.expense_month|number_format(2, ',', ' ') }} €</p>
+        </div>
+    </div>
+
+    {% set accountGroups = [
+        {title: 'Comptes courants', rows: dashboard.current_accounts, empty: 'Aucun compte courant.'},
+        {title: 'Autres comptes', rows: dashboard.other_accounts, empty: 'Aucun autre compte.'}
+    ] %}
+    <div class="space-y-3">
+        <div class="flex items-center justify-between gap-3">
+            <h2 class="text-lg font-semibold">Mes comptes</h2>
+            <a href="{{ path('app_bank_accounts') }}" class="text-sm font-medium text-teal-700 hover:text-teal-900">Gerer</a>
+        </div>
+        <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {% for group in accountGroups %}
+                <section class="rounded-lg border border-slate-200 bg-white">
+                    <div class="border-b border-slate-200 px-5 py-4">
+                        <h3 class="text-base font-semibold">{{ group.title }}</h3>
+                    </div>
+                    <div class="divide-y divide-slate-100">
+                        {% for row in group.rows %}
+                            <div x-data="{ open: false }" class="px-5 py-3">
+                                <button type="button" @click="open = !open" class="flex w-full items-center justify-between gap-3 text-left">
+                                    <span class="flex min-w-0 items-center gap-2">
+                                        <i class="fa-solid fa-chevron-right text-xs text-slate-400 transition-transform" :class="open && 'rotate-90'"></i>
+                                        <span class="truncate font-medium">{{ row.name }}</span>
+                                        {{ include('bank/_account_type_badge.html.twig', {type: row.type, label: row.type_label}) }}
+                                    </span>
+                                    <span class="shrink-0 text-right">
+                                        <span class="font-semibold tabular-nums {{ row.balance < 0 ? 'text-rose-700' : '' }}">{{ row.balance|number_format(2, ',', ' ') }} €</span>
+                                    </span>
+                                </button>
+                                <div x-show="open" x-collapse x-cloak class="mt-3">
+                                    <div class="grid grid-cols-2 gap-3 rounded-md bg-slate-50 p-3 text-sm sm:grid-cols-4">
+                                        {% if row.is_loan %}
+                                            <div><p class="text-xs text-slate-500">Capital restant</p><p class="font-semibold tabular-nums text-amber-800">{{ row.loan_remaining|number_format(2, ',', ' ') }} €</p></div>
+                                            <div class="sm:col-span-3 flex items-end"><a href="{{ path('app_bank_loans') }}" class="text-sm font-medium text-teal-700 hover:text-teal-900">Voir le suivi du pret →</a></div>
+                                        {% else %}
+                                            <div><p class="text-xs text-slate-500">Revenus du mois</p><p class="font-semibold tabular-nums text-emerald-700">+{{ row.income_month|number_format(2, ',', ' ') }} €</p></div>
+                                            <div><p class="text-xs text-slate-500">Depenses du mois</p><p class="font-semibold tabular-nums text-rose-700">-{{ row.expense_month|number_format(2, ',', ' ') }} €</p></div>
+                                            <div><p class="text-xs text-slate-500">Previsionnel</p><p class="font-semibold tabular-nums {{ row.projected_reference_balance is not null and row.projected_reference_balance < 0 ? 'text-rose-700' : '' }}">{{ row.projected_reference_balance is not null ? row.projected_reference_balance|number_format(2, ',', ' ') ~ ' €' : 'Reference manquante' }}</p></div>
+                                            <div class="flex items-end"><a href="{{ path('app_bank_account_show', {publicId: row.account.publicId}) }}" class="text-sm font-medium text-teal-700 hover:text-teal-900">Detail →</a></div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <p class="px-5 py-8 text-center text-sm text-slate-500">{{ group.empty }}</p>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div class="rounded-lg border border-slate-200 bg-white lg:col-span-2">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+                <h2 class="text-lg font-semibold">Operations recentes</h2>
+                <a href="{{ path('app_bank_transactions') }}" class="text-sm font-medium text-teal-700 hover:text-teal-900">Tout voir</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <tbody class="divide-y divide-slate-100">
+                        {% for transaction in recentTransactions %}
+                            <tr class="hover:bg-slate-50">
+                                <td class="whitespace-nowrap px-5 py-3 text-sm text-slate-500">{{ transaction.date|date('d/m/Y') }}</td>
+                                <td class="px-5 py-3 text-sm">
+                                    <a href="{{ path('app_bank_transaction_edit', {publicId: transaction.publicId}) }}" class="font-medium text-slate-950 hover:text-teal-700">{{ transactionManager.label(transaction) }}</a>
+                                    <div class="text-xs text-slate-500">
+                                        {{ accountManager.displayName(transaction.account) }}{% if transaction.category %} · {{ transaction.category.name }}{% endif %}
+                                        {{ include('bank/_transaction_status_badge.html.twig', {status: transaction.status}) }}
+                                        {% if transaction.real %}{{ include('bank/_transaction_verification_badge.html.twig', {transaction: transaction}) }}{% endif %}
+                                    </div>
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3 text-right text-sm font-semibold tabular-nums {{ transaction.amount < 0 ? 'text-rose-700' : 'text-emerald-700' }}">{{ transaction.amount|number_format(2, ',', ' ') }} €</td>
+                            </tr>
+                        {% else %}
+                            <tr><td class="px-5 py-8 text-center text-sm text-slate-500">Aucune operation.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div class="rounded-lg border border-slate-200 bg-white p-5">
+                <h2 class="text-lg font-semibold">Depenses par categorie</h2>
+                <p class="mb-4 text-xs text-slate-500">Mois en cours, hors virements internes.</p>
+                {% set expenseRows = dashboard.category_expense_rows %}
+                {% if expenseRows|length > 0 %}
+                    {% set expenseTotal = expenseRows|reduce((carry, row) => carry + row.amount, 0) %}
+                    <div class="h-56"
+                         data-controller="bank-chart"
+                         data-bank-chart-labels-value="{{ expenseRows|map(row => row.label)|json_encode|e('html_attr') }}"
+                         data-bank-chart-values-value="{{ expenseRows|map(row => row.amount)|json_encode|e('html_attr') }}"
+                         data-bank-chart-colors-value="{{ expenseRows|map(row => row.color)|json_encode|e('html_attr') }}">
+                        <canvas data-bank-chart-target="canvas"></canvas>
+                    </div>
+                    <ul class="mt-4 space-y-1.5">
+                        {% for row in expenseRows %}
+                            <li class="flex items-center justify-between gap-3 text-sm">
+                                <span class="flex min-w-0 items-center gap-2">
+                                    <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {{ row.color }}"></span>
+                                    <span class="truncate">{{ row.label }}</span>
+                                </span>
+                                <span class="whitespace-nowrap tabular-nums text-slate-600">
+                                    {{ row.amount|number_format(2, ',', ' ') }} €
+                                    <span class="text-xs text-slate-400">({{ expenseTotal > 0 ? (row.amount / expenseTotal * 100)|number_format(1, ',', ' ') : '0' }} %)</span>
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-sm text-slate-500">Aucune depense sur le mois.</p>
+                {% endif %}
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white">
+                <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+                    <h2 class="text-lg font-semibold">Budgets</h2>
+                    <a href="{{ path('app_bank_budgets') }}" class="text-sm font-medium text-teal-700 hover:text-teal-900">Gerer</a>
+                </div>
+                <div class="divide-y divide-slate-100">
+                    {% for row in budgetRows %}
+                        {% set barClass = row.status == 'over' ? 'bg-rose-600' : (row.status == 'risk' ? 'bg-amber-500' : 'bg-teal-600') %}
+                        <div class="px-5 py-3">
+                            <div class="flex items-center justify-between gap-3 text-sm">
+                                <span class="flex min-w-0 items-center gap-2 font-medium">
+                                    <span class="h-2 w-2 shrink-0 rounded-full" style="background-color: {{ row.budget.category.color }}"></span>
+                                    <span class="truncate">{{ row.budget.category.name }}</span>
+                                    {% if row.status == 'over' %}
+                                        <span class="inline-flex shrink-0 items-center rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-600/20">Depasse</span>
+                                    {% elseif row.status == 'risk' %}
+                                        <span class="inline-flex shrink-0 items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">A surveiller</span>
+                                    {% endif %}
+                                </span>
+                                <span class="shrink-0 tabular-nums">{{ row.spent|number_format(2, ',', ' ') }} / {{ row.budget.amount|number_format(2, ',', ' ') }}</span>
+                            </div>
+                            <div class="mt-2 h-2 rounded-full bg-slate-100">
+                                <div class="h-2 rounded-full {{ barClass }}" style="width: {{ row.rate > 100 ? 100 : row.rate }}%"></div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <p class="px-5 py-4 text-sm text-slate-500">Aucun budget actif. <a href="{{ path('app_bank_budgets') }}" class="font-medium text-teal-700 hover:text-teal-900">Creer un budget</a></p>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white">
+                <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+                    <h2 class="text-lg font-semibold">Objectifs</h2>
+                    <a href="{{ path('app_bank_goals') }}" class="text-sm font-medium text-teal-700 hover:text-teal-900">Gerer</a>
+                </div>
+                <div class="divide-y divide-slate-100">
+                    {% for row in goalRows %}
+                        <div class="px-5 py-3 text-sm">
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="flex min-w-0 items-center gap-2 font-medium">
+                                    <span class="truncate">{{ row.goal.name }}</span>
+                                    {% if row.achieved %}
+                                        <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20"><i class="fa-solid fa-trophy text-[10px]"></i> Atteint</span>
+                                    {% endif %}
+                                </span>
+                                <span class="shrink-0">{{ row.rate|number_format(0) }}%</span>
+                            </div>
+                            <div class="mt-2 h-2 rounded-full bg-slate-100">
+                                <div class="h-2 rounded-full {{ row.achieved ? 'bg-emerald-500' : 'bg-teal-600' }}" style="width: {{ row.rate }}%"></div>
+                            </div>
+                            <p class="mt-1 text-xs text-slate-500">{{ row.current|number_format(2, ',', ' ') }} / {{ row.goal.targetAmount|number_format(2, ',', ' ') }} €</p>
+                        </div>
+                    {% else %}
+                        <p class="px-5 py-4 text-sm text-slate-500">Aucun objectif actif. <a href="{{ path('app_bank_goals') }}" class="font-medium text-teal-700 hover:text-teal-900">Creer un objectif</a></p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

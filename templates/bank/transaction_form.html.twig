@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block body %}
+{% include 'bank/_tabs.html.twig' %}
+<div class="mx-auto max-w-3xl rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6" x-data="{ type: '{{ form.type.vars.value|default('expense') }}' }">
+    <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-lg font-semibold">{{ title }}</h1>
+        <a href="{{ path('app_bank_index') }}" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Annuler</a>
+    </div>
+
+    {{ form_start(form, {attr: {class: 'space-y-5'}}) }}
+        {{ form_errors(form) }}
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div class="md:col-span-2">
+                {{ form_label(form.type) }}
+                {{ form_errors(form.type) }}
+                {{ form_widget(form.type, {attr: {'x-model': 'type'}}) }}
+            </div>
+
+            <div>
+                <label for="{{ form.account.vars.id }}" class="mb-1 block text-sm font-medium text-slate-700">
+                    <span x-text="type === 'internal_transfer' ? 'Compte source' : 'Compte'"></span>
+                    <span class="text-rose-600"> *</span>
+                </label>
+                {{ form_errors(form.account) }}
+                {{ form_widget(form.account) }}
+            </div>
+
+            <div x-show="type === 'internal_transfer'" x-cloak>
+                {{ form_label(form.targetAccount) }}
+                {{ form_errors(form.targetAccount) }}
+                {{ form_widget(form.targetAccount) }}
+            </div>
+
+            <div x-show="type !== 'internal_transfer'" x-cloak>
+                {{ form_label(form.category) }}
+                {{ form_errors(form.category) }}
+                {{ form_widget(form.category) }}
+            </div>
+
+            <div>
+                {{ form_label(form.date) }}
+                {{ form_errors(form.date) }}
+                {{ form_widget(form.date) }}
+            </div>
+
+            <div>
+                {{ form_label(form.amount) }}
+                {{ form_errors(form.amount) }}
+                {{ form_widget(form.amount) }}
+            </div>
+
+            <div class="md:col-span-2">
+                {{ form_label(form.label) }}
+                {{ form_errors(form.label) }}
+                {{ form_widget(form.label) }}
+            </div>
+
+            <div class="md:col-span-2">
+                {{ form_label(form.status) }}
+                {{ form_errors(form.status) }}
+                {{ form_widget(form.status) }}
+            </div>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+            <button class="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700">
+                <i class="fa-solid fa-floppy-disk"></i>
+                Enregistrer
+            </button>
+        </div>
+    {{ form_end(form) }}
+</div>
+{% endblock %}

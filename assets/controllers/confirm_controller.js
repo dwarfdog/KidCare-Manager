@@ -1,5 +1,4 @@
 import { Controller } from '@hotwired/stimulus';
-import Swal from 'sweetalert2';
 
 export default class extends Controller {
     static values = {
@@ -18,6 +17,7 @@ export default class extends Controller {
         }
 
         event.preventDefault();
+        const { default: Swal } = await import('sweetalert2');
         const result = await Swal.fire({
             title: this.titleValue || 'Confirmer',
             text: this.textValue || '',

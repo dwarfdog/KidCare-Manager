@@ -1,0 +1,79 @@
+{# Theme de formulaire Tailwind: labels au-dessus, champs lisibles, aide et erreurs claires. #}
+{% use 'form_div_layout.html.twig' %}
+
+{%- block form_row -%}
+    <div class="mb-4 {{ row_attr.class|default('') }}">
+        {{- form_label(form) -}}
+        {{- form_errors(form) -}}
+        {{- form_widget(form) -}}
+        {{- form_help(form) -}}
+    </div>
+{%- endblock form_row -%}
+
+{%- block form_label -%}
+    {%- if label is not same as(false) -%}
+        {%- if label is empty -%}
+            {%- if label_format is not empty -%}
+                {%- set label = label_format|replace({'%name%': name, '%id%': id}) -%}
+            {%- else -%}
+                {%- set label = name|humanize -%}
+            {%- endif -%}
+        {%- endif -%}
+        <label{% if compound is not defined or not compound %} for="{{ id }}"{% endif %} class="mb-1 block text-sm font-medium text-slate-700">
+            {{- translation_domain is same as(false) ? label : label|trans({}, translation_domain) -}}
+            {%- if required -%}<span class="text-rose-600"> *</span>{%- endif -%}
+        </label>
+    {%- endif -%}
+{%- endblock form_label -%}
+
+{%- block form_help -%}
+    {%- if help is not empty -%}
+        <p class="mt-1 text-xs text-slate-500">{{ translation_domain is same as(false) ? help : help|trans({}, translation_domain) }}</p>
+    {%- endif -%}
+{%- endblock form_help -%}
+
+{%- block form_errors -%}
+    {%- if errors|length > 0 -%}
+        <ul class="mb-1 space-y-1">
+            {%- for error in errors -%}
+                <li class="text-xs font-medium text-rose-600">{{ error.message }}</li>
+            {%- endfor -%}
+        </ul>
+    {%- endif -%}
+{%- endblock form_errors -%}
+
+{%- block form_widget_simple -%}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500')|trim}) -%}
+    {{- parent() -}}
+{%- endblock form_widget_simple -%}
+
+{%- block textarea_widget -%}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500')|trim}) -%}
+    {{- parent() -}}
+{%- endblock textarea_widget -%}
+
+{%- block choice_widget_collapsed -%}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500')|trim}) -%}
+    {{- parent() -}}
+{%- endblock choice_widget_collapsed -%}
+
+{%- block checkbox_widget -%}
+    {%- set attr = attr|merge({class: (attr.class|default('') ~ ' h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500')|trim}) -%}
+    {{- parent() -}}
+{%- endblock checkbox_widget -%}
+
+{%- block checkbox_row -%}
+    <div class="mb-4 {{ row_attr.class|default('') }}">
+        <label class="flex items-center gap-2 text-sm font-medium text-slate-700">
+            {{- form_widget(form) -}}
+            <span>{{ label is not same as(false) ? (label ?? name|humanize) : '' }}</span>
+        </label>
+        {{- form_errors(form) -}}
+        {{- form_help(form) -}}
+    </div>
+{%- endblock checkbox_row -%}
+
+{%- block button_widget -%}
+    {%- set attr = attr|merge({class: (attr.class|default('inline-flex items-center rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700'))|trim}) -%}
+    {{- parent() -}}
+{%- endblock button_widget -%}

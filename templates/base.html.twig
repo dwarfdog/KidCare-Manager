@@ -3,24 +3,25 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>{% block title %}{% endblock %} - KidCare Manager</title>
-        <meta name="description" content="{% block meta_description %}Gestion des heures de garde, contrats et paiements{% endblock %}">
+        <title>{% block title %}{% endblock %} - KidCare & Bank Manager</title>
+        <meta name="description" content="{% block meta_description %}Gestion des heures de garde, contrats, paiements et finances du foyer{% endblock %}">
         <link rel="icon" href="{{ asset('favicon.png') }}">
         {% block stylesheets %}{{ encore_entry_link_tags('app') }}{% endblock %}
         {% block javascripts_head %}{{ encore_entry_script_tags('app') }}{% endblock %}
     </head>
-    <body class="min-h-screen bg-slate-50 text-slate-900">
+    <body class="min-h-screen bg-slate-50 text-slate-900" {{ stimulus_controller('tippy') }}>
         {% set current_route = app.request.attributes.get('_route')|default('') %}
         <header class="border-b border-slate-200 bg-white">
             <nav class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-                <a href="{{ path('app_home') }}" class="text-lg font-semibold text-slate-950">KidCare Manager</a>
+                <a href="{{ path('app_home') }}" class="text-lg font-semibold text-slate-950">KidCare & Bank</a>
 
                 {% if app.user %}
                     <div class="hidden items-center gap-1 md:flex">
-                        <a href="{{ path('app_home') }}" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route == 'app_home' or current_route starts with 'app_monthly_payment_' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Tableau de bord</a>
+                        <a href="{{ path('app_home') }}" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route == 'app_home' or current_route starts with 'app_monthly_payment_' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Accueil</a>
                         <a href="{{ path('app_care_index') }}" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route starts with 'app_care_' and not (current_route starts with 'app_care_template_') ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Planning</a>
                         <a href="{{ path('app_nanny_index') }}" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route starts with 'app_nanny_' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Nounous</a>
                         <a href="{{ path('app_care_template_index') }}" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route starts with 'app_care_template_' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Templates</a>
+                        <a href="{{ path('app_bank_index') }}" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route starts with 'app_bank_' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Banque</a>
                         <a href="{{ path('app_account_profile') }}" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route starts with 'app_account_' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Compte</a>
                     </div>
                 {% endif %}
@@ -41,10 +42,11 @@
                     </button>
                     <div x-show="open" x-cloak @click.away="open = false" class="absolute right-4 top-14 z-50 w-56 rounded-md border border-slate-200 bg-white py-2 shadow-lg">
                         {% if app.user %}
-                            <a href="{{ path('app_home') }}" class="block px-4 py-2 text-sm {{ current_route == 'app_home' or current_route starts with 'app_monthly_payment_' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Tableau de bord</a>
+                            <a href="{{ path('app_home') }}" class="block px-4 py-2 text-sm {{ current_route == 'app_home' or current_route starts with 'app_monthly_payment_' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Accueil</a>
                             <a href="{{ path('app_care_index') }}" class="block px-4 py-2 text-sm {{ current_route starts with 'app_care_' and not (current_route starts with 'app_care_template_') ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Planning</a>
                             <a href="{{ path('app_nanny_index') }}" class="block px-4 py-2 text-sm {{ current_route starts with 'app_nanny_' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Nounous</a>
                             <a href="{{ path('app_care_template_index') }}" class="block px-4 py-2 text-sm {{ current_route starts with 'app_care_template_' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Templates</a>
+                            <a href="{{ path('app_bank_index') }}" class="block px-4 py-2 text-sm {{ current_route starts with 'app_bank_' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Banque</a>
                             <a href="{{ path('app_account_profile') }}" class="block px-4 py-2 text-sm {{ current_route starts with 'app_account_' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Compte</a>
                             <a href="{{ path('app_logout') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Deconnexion</a>
                         {% else %}
@@ -67,7 +69,7 @@
 
         <footer class="mt-8 border-t border-slate-200 bg-white">
             <div class="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 text-sm text-slate-500 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-                <p>&copy; {{ "now"|date("Y") }} KidCare Manager.</p>
+                <p>&copy; {{ "now"|date("Y") }} KidCare & Bank Manager.</p>
                 <div class="flex flex-wrap gap-4">
                     <a href="{{ path('app_privacy_policy') }}" class="hover:text-slate-900">Confidentialite</a>
                     <a href="{{ path('app_terms_of_service') }}" class="hover:text-slate-900">Conditions</a>

@@ -1,0 +1,54 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Comptes bancaires{% endblock %}
+
+{% block body %}
+{% include 'bank/_tabs.html.twig' %}
+<div class="rounded-lg border border-slate-200 bg-white">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+        <h1 class="text-lg font-semibold">Comptes bancaires</h1>
+        <a href="{{ path('app_bank_account_new') }}" class="rounded-md bg-teal-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700"><i class="fa-solid fa-plus"></i> Nouveau compte</a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Compte</th>
+                    <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Type</th>
+                    <th class="px-5 py-3 text-right text-xs font-semibold uppercase text-slate-500">Solde</th>
+                    <th class="px-5 py-3 text-right text-xs font-semibold uppercase text-slate-500">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for account in accounts %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-5 py-3 text-sm font-medium">
+                            <a href="{{ path('app_bank_account_show', {publicId: account.publicId}) }}" class="hover:text-teal-700">{{ accountManager.displayName(account) }}</a>
+                            {% if accountManager.displayIban(account) %}<span class="block text-xs font-normal text-slate-400">{{ accountManager.displayIban(account) }}</span>{% endif %}
+                        </td>
+                        <td class="px-5 py-3 text-sm">{{ include('bank/_account_type_badge.html.twig', {type: account.type, label: accountManager.typeLabel(account)}) }}</td>
+                        <td class="px-5 py-3 text-right text-sm font-semibold tabular-nums {{ accountManager.balance(account) < 0 ? 'text-rose-700' : '' }}">{{ accountManager.balance(account)|number_format(2, ',', ' ') }} €</td>
+                        <td class="px-5 py-3 text-right text-sm">
+                            <a href="{{ path('app_bank_account_show', {publicId: account.publicId}) }}" class="font-medium text-teal-700 hover:text-teal-900" data-tippy-content="Consulter les operations">Voir</a>
+                            <span class="mx-1 text-slate-300">·</span>
+                            <a href="{{ path('app_bank_account_edit', {publicId: account.publicId}) }}" class="font-medium text-slate-700 hover:text-slate-950" data-tippy-content="Modifier le compte">Modifier</a>
+                            <span class="mx-1 text-slate-300">·</span>
+                            <form method="post" action="{{ path('app_bank_account_archive', {publicId: account.publicId}) }}" class="inline"
+                                  data-controller="confirm"
+                                  data-confirm-title-value="Archiver ce compte ?"
+                                  data-confirm-text-value="Il sera deplace dans les Archives. Tu pourras le restaurer a tout moment."
+                                  data-confirm-confirm-text-value="Archiver"
+                                  data-action="confirm#submit">
+                                <input type="hidden" name="_token" value="{{ csrf_token('bank_account_archive_' ~ account.publicId) }}">
+                                <button class="font-medium text-rose-600 hover:text-rose-800" data-tippy-content="Archiver (reversible)">Archiver</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="4" class="px-5 py-8 text-center text-sm text-slate-500">Aucun compte bancaire.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

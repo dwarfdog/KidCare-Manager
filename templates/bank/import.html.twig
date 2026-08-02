@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Import bancaire{% endblock %}
+
+{% block body %}
+{% include 'bank/_tabs.html.twig' %}
+<div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
+    <div class="rounded-lg border border-slate-200 bg-white p-5 lg:col-span-2">
+        <h1 class="mb-5 text-lg font-semibold">Importer un CSV</h1>
+        {{ form_start(form, {attr: {class: 'grid gap-4'}}) }}
+            {{ form_widget(form) }}
+            <button class="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700">Importer</button>
+        {{ form_end(form) }}
+    </div>
+    <div class="rounded-lg border border-slate-200 bg-white">
+        <div class="border-b border-slate-200 px-5 py-4">
+            <h2 class="text-base font-semibold">Derniers imports</h2>
+        </div>
+        <div class="divide-y divide-slate-100">
+            {% for batch in batches %}
+                <div class="px-5 py-3 text-sm">
+                    <p class="font-medium">{{ batch.originalFilename }}</p>
+                    <p class="text-xs text-slate-500">{{ batch.importedCount }} ajoutee(s), {{ batch.skippedCount }} ignoree(s), {{ batch.errorCount }} erreur(s)</p>
+                </div>
+            {% else %}
+                <p class="px-5 py-4 text-sm text-slate-500">Aucun import.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

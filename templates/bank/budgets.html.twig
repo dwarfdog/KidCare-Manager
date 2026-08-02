@@ -1,0 +1,115 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Budgets{% endblock %}
+
+{% block body %}
+{% include 'bank/_tabs.html.twig' %}
+
+<div class="mb-5 rounded-lg border border-teal-200 bg-teal-50" x-data="{ open: false }">
+    <button type="button" class="flex w-full items-center justify-between gap-3 px-5 py-3 text-left" x-on:click="open = !open">
+        <span class="flex items-center gap-2 text-sm font-semibold text-teal-900">
+            <i class="fa-regular fa-circle-question"></i>
+            Comment fonctionnent les budgets ?
+        </span>
+        <i class="fa-solid text-xs text-teal-700" x-bind:class="open ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+    </button>
+    <div x-show="open" x-cloak class="border-t border-teal-200 px-5 py-4 text-sm text-teal-900">
+        <p class="mb-2"><strong>A quoi ca sert ?</strong> Un budget fixe un plafond de depenses pour une categorie (Courses, Loisirs, Voitures...) sur une periode. Il permet de voir d'un coup d'oeil ou tu en es et d'eviter les mauvaises surprises en fin de mois.</p>
+        <ul class="mb-2 list-disc space-y-1 pl-5">
+            <li><strong>Creer un budget</strong> : choisis une categorie, une periode (mensuelle le plus souvent) et un plafond realiste.</li>
+            <li><strong>Reconduction automatique</strong> : un budget hebdomadaire, mensuel ou annuel repart de zero a chaque nouvelle periode, sans rien avoir a refaire.</li>
+            <li><strong>Suivi</strong> : la barre de progression montre les depenses reelles de la periode en cours. Vert = dans les clous, orange = depassement probable, rouge = plafond depasse.</li>
+            <li><strong>Projection</strong> : « a ce rythme » estime la depense en fin de periode si la tendance actuelle se poursuit.</li>
+        </ul>
+        <p>Seules les depenses reelles de la categorie comptent : les operations prevues et les virements internes sont ignores.</p>
+    </div>
+</div>
+
+{% set statusMeta = {
+    'ok': {label: 'Dans les clous', badge: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20', bar: 'bg-teal-600'},
+    'risk': {label: 'Depassement probable', badge: 'bg-amber-50 text-amber-700 ring-amber-600/20', bar: 'bg-amber-500'},
+    'over': {label: 'Depasse', badge: 'bg-rose-50 text-rose-700 ring-rose-600/20', bar: 'bg-rose-600'},
+    'upcoming': {label: 'A venir', badge: 'bg-slate-100 text-slate-600 ring-slate-500/20', bar: 'bg-slate-300'},
+    'ended': {label: 'Terminee', badge: 'bg-slate-100 text-slate-600 ring-slate-500/20', bar: 'bg-slate-400'},
+} %}
+
+<div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
+    <div class="rounded-lg border border-slate-200 bg-white lg:col-span-2">
+        <div class="border-b border-slate-200 px-5 py-4">
+            <h1 class="text-lg font-semibold">Budgets</h1>
+            <p class="text-sm text-slate-500">Suivi de la periode en cours pour chaque budget actif.</p>
+        </div>
+        <div class="divide-y divide-slate-100">
+            {% for row in budgetRows %}
+                {% set meta = statusMeta[row.status] %}
+                <div class="px-5 py-4">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="flex flex-wrap items-center gap-2 text-sm font-medium">
+                                <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {{ row.budget.category.color }}"></span>
+                                {{ row.budget.category.name }}
+                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset {{ meta.badge }}">{{ meta.label }}</span>
+                            </p>
+                            <p class="mt-0.5 text-xs text-slate-500">
+                                {% if row.budget.periodType == 'week' %}
+                                    Semaine du {{ row.period_start|date('d/m') }} au {{ row.period_end|date('d/m') }}
+                                {% elseif row.budget.periodType == 'month' %}
+                                    {{ row.period_start|format_date('none', 'MMMM yyyy', locale='fr')|capitalize }}
+                                {% elseif row.budget.periodType == 'year' %}
+                                    Annee {{ row.period_start|date('Y') }}
+                                {% else %}
+                                    Du {{ row.period_start|date('d/m/Y') }} au {{ row.period_end|date('d/m/Y') }}
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="text-right text-sm">
+                            <p class="font-semibold tabular-nums">{{ row.spent|number_format(2, ',', ' ') }} / {{ row.budget.amount|number_format(2, ',', ' ') }} €</p>
+                            <p class="text-xs {{ row.remaining < 0 ? 'font-medium text-rose-600' : 'text-slate-500' }}">
+                                {% if row.remaining < 0 %}
+                                    Depasse de {{ (row.remaining|abs)|number_format(2, ',', ' ') }} €
+                                {% else %}
+                                    Reste {{ row.remaining|number_format(2, ',', ' ') }} €
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="mt-3 h-2 rounded-full bg-slate-100">
+                        <div class="h-2 rounded-full {{ meta.bar }}" style="width: {{ row.rate > 100 ? 100 : row.rate }}%"></div>
+                    </div>
+                    <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="text-slate-500">
+                            {% if row.projected is not null %}
+                                A ce rythme : ~{{ row.projected|number_format(0, ',', ' ') }} € en fin de periode
+                            {% endif %}
+                        </span>
+                        <span class="flex items-center gap-3">
+                            <a href="{{ path('app_bank_budget_edit', {publicId: row.budget.publicId}) }}" class="font-medium text-teal-700 hover:text-teal-900">Modifier</a>
+                            <form method="post" action="{{ path('app_bank_budget_archive', {publicId: row.budget.publicId}) }}"
+                                  data-controller="confirm"
+                                  data-action="submit->confirm#submit"
+                                  data-confirm-title-value="Archiver ce budget ?"
+                                  data-confirm-text-value="Il ne sera plus suivi ni affiche sur le tableau de bord."
+                                  data-confirm-confirm-text-value="Archiver">
+                                <input type="hidden" name="_token" value="{{ csrf_token('bank_budget_archive_' ~ row.budget.publicId) }}">
+                                <button class="font-medium text-rose-600 hover:text-rose-800">Archiver</button>
+                            </form>
+                        </span>
+                    </div>
+                </div>
+            {% else %}
+                <div class="px-5 py-10 text-center text-sm text-slate-500">
+                    <p class="font-medium text-slate-700">Aucun budget pour le moment.</p>
+                    <p class="mt-1">Cree ton premier budget avec le formulaire ci-contre, par exemple un plafond mensuel pour les courses.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="rounded-lg border border-slate-200 bg-white p-5">
+        <h2 class="mb-4 text-base font-semibold">Nouveau budget</h2>
+        {{ form_start(form, {attr: {class: 'space-y-4'}}) }}
+            {{ include('bank/_budget_form_fields.html.twig', {form: form}) }}
+            <button class="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700">Enregistrer</button>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

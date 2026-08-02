@@ -1,0 +1,66 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Operations bancaires{% endblock %}
+
+{% block body %}
+{% include 'bank/_tabs.html.twig' %}
+<div class="space-y-5">
+    <div class="rounded-lg border border-slate-200 bg-white p-5">
+        <form method="get" class="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto_auto_auto_auto] md:items-end">
+            <label class="text-sm font-medium text-slate-700">Du
+                <input type="date" name="from" value="{{ from|date('Y-m-d') }}" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+            </label>
+            <label class="text-sm font-medium text-slate-700">Au
+                <input type="date" name="to" value="{{ to|date('Y-m-d') }}" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+            </label>
+            <button class="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Filtrer</button>
+            <a href="{{ path('app_bank_transaction_new') }}" class="rounded-md bg-teal-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-teal-700">Ajouter</a>
+            <a href="{{ path('app_bank_export', {format: 'csv', from: from|date('Y-m-d'), to: to|date('Y-m-d')}) }}" class="rounded-md border border-slate-300 px-4 py-2 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">CSV</a>
+            <a href="{{ path('app_bank_export', {format: 'xlsx', from: from|date('Y-m-d'), to: to|date('Y-m-d')}) }}" class="rounded-md border border-slate-300 px-4 py-2 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">XLSX</a>
+        </form>
+    </div>
+
+    <div class="rounded-lg border border-slate-200 bg-white">
+        <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <h1 class="text-lg font-semibold">Operations</h1>
+            <a href="{{ path('app_bank_export', {format: 'pdf', from: from|date('Y-m-d'), to: to|date('Y-m-d')}) }}" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">PDF</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Date</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Libelle</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Categorie</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Statut</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Verification</th>
+                        <th class="px-5 py-3 text-right text-xs font-semibold uppercase text-slate-500">Montant</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for transaction in transactions %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="whitespace-nowrap px-5 py-3 text-sm text-slate-500">{{ transaction.date|date('d/m/Y') }}</td>
+                            <td class="px-5 py-3 text-sm font-medium">
+                                <a href="{{ path('app_bank_transaction_edit', {publicId: transaction.publicId}) }}" class="hover:text-teal-700">{{ transactionManager.label(transaction) }}</a>
+                            </td>
+                            <td class="px-5 py-3 text-sm text-slate-600">{{ transaction.category ? transaction.category.name : 'Sans categorie' }}</td>
+                            <td class="px-5 py-3 text-sm text-slate-600">{{ include('bank/_transaction_status_badge.html.twig', {status: transaction.status}) }}</td>
+                            <td class="px-5 py-3 text-sm text-slate-600">
+                                {% if transaction.real %}
+                                    {{ include('bank/_transaction_verification_badge.html.twig', {transaction: transaction}) }}
+                                {% else %}
+                                    <span class="text-xs text-slate-400">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="whitespace-nowrap px-5 py-3 text-right text-sm font-semibold tabular-nums {{ transaction.amount < 0 ? 'text-rose-700' : 'text-emerald-700' }}">{{ transaction.amount|number_format(2, ',', ' ') }} €</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="6" class="px-5 py-8 text-center text-sm text-slate-500">Aucune operation sur cette periode.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

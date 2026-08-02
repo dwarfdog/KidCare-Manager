@@ -1,0 +1,137 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Operation bancaire{% endblock %}
+
+{% block body %}
+{% include 'bank/_tabs.html.twig' %}
+{% set edit_form_attr = {'class': 'space-y-5'} %}
+{% if transaction.verified %}
+    {% set edit_form_attr = edit_form_attr|merge({
+        'data-controller': 'sensitive-warning',
+        'data-action': 'submit->sensitive-warning#submit',
+        'data-sensitive-warning-title-value': 'Modifier une operation verifiee ?',
+        'data-sensitive-warning-text-value': 'Un champ sensible a change. La verification sera conservee.',
+        'data-sensitive-warning-confirm-text-value': 'Enregistrer'
+    }) %}
+{% endif %}
+
+<div class="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+    <div class="rounded-lg border border-slate-200 bg-white p-5">
+        <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h1 class="text-lg font-semibold">Modifier l'operation</h1>
+                <div class="mt-2 flex flex-wrap gap-2">
+                    {{ include('bank/_transaction_status_badge.html.twig', {status: transaction.status}) }}
+                    {% if transaction.real %}
+                        {{ include('bank/_transaction_verification_badge.html.twig', {transaction: transaction}) }}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if transaction.verified %}
+            <div class="mb-5 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                Cette operation est verifiee depuis le {{ transaction.verifiedAt|date('d/m/Y H:i') }}.
+            </div>
+        {% endif %}
+
+        <div x-data="{ type: '{{ form.type.vars.value|default('expense') }}' }">
+            {{ form_start(form, {attr: edit_form_attr}) }}
+                {{ form_errors(form) }}
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div class="md:col-span-2">
+                        {{ form_label(form.type) }}
+                        {{ form_errors(form.type) }}
+                        {{ form_widget(form.type, {attr: {'x-model': 'type', 'data-sensitive-warning-target': 'sensitive'}}) }}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.account.vars.id }}" class="mb-1 block text-sm font-medium text-slate-700">
+                            <span x-text="type === 'internal_transfer' ? 'Compte source' : 'Compte'"></span>
+                            <span class="text-rose-600"> *</span>
+                        </label>
+                        {{ form_errors(form.account) }}
+                        {{ form_widget(form.account, {attr: {'data-sensitive-warning-target': 'sensitive'}}) }}
+                    </div>
+
+                    <div x-show="type === 'internal_transfer'" x-cloak>
+                        {{ form_label(form.targetAccount) }}
+                        {{ form_errors(form.targetAccount) }}
+                        {{ form_widget(form.targetAccount, {attr: {'data-sensitive-warning-target': 'sensitive'}}) }}
+                    </div>
+
+                    <div x-show="type !== 'internal_transfer'" x-cloak>
+                        {{ form_label(form.category) }}
+                        {{ form_errors(form.category) }}
+                        {{ form_widget(form.category) }}
+                    </div>
+
+                    <div>
+                        {{ form_label(form.date) }}
+                        {{ form_errors(form.date) }}
+                        {{ form_widget(form.date, {attr: {'data-sensitive-warning-target': 'sensitive'}}) }}
+                    </div>
+
+                    <div>
+                        {{ form_label(form.amount) }}
+                        {{ form_errors(form.amount) }}
+                        {{ form_widget(form.amount, {attr: {'data-sensitive-warning-target': 'sensitive'}}) }}
+                    </div>
+
+                    <div class="md:col-span-2">
+                        {{ form_label(form.label) }}
+                        {{ form_errors(form.label) }}
+                        {{ form_widget(form.label) }}
+                    </div>
+
+                    <div class="md:col-span-2">
+                        {{ form_label(form.status) }}
+                        {{ form_errors(form.status) }}
+                        {{ form_widget(form.status, {attr: {'data-sensitive-warning-target': 'sensitive'}}) }}
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-3">
+                    <button class="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        Enregistrer
+                    </button>
+                </div>
+            {{ form_end(form) }}
+        </div>
+
+        <form method="post" action="{{ path('app_bank_transaction_archive', {publicId: transaction.publicId}) }}" class="mt-4"
+              data-controller="confirm"
+              data-action="submit->confirm#submit"
+              data-confirm-title-value="Archiver cette operation ?"
+              data-confirm-text-value="Elle sera deplacee dans les Archives et pourra etre restauree."
+              data-confirm-confirm-text-value="Archiver">
+            <input type="hidden" name="_token" value="{{ csrf_token('bank_transaction_archive_' ~ transaction.publicId) }}">
+            <button class="rounded-md border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50">Archiver</button>
+        </form>
+    </div>
+
+    <aside class="space-y-4">
+        <div class="rounded-lg border border-slate-200 bg-white p-5">
+            <h2 class="mb-4 text-base font-semibold">Pieces jointes</h2>
+            {{ form_start(attachmentForm, {action: path('app_bank_attachment_add', {publicId: transaction.publicId}), attr: {class: 'space-y-3'}}) }}
+                {{ form_widget(attachmentForm) }}
+                <button class="rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-700">Ajouter</button>
+            {{ form_end(attachmentForm) }}
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white">
+            <div class="divide-y divide-slate-100">
+                {% for attachment in attachments %}
+                    <a href="{{ path('app_bank_attachment_download', {publicId: attachment.publicId}) }}" class="block px-5 py-3 text-sm font-medium text-teal-700 hover:bg-slate-50">
+                        <span class="block truncate">{{ attachmentManager.originalName(attachment) }}</span>
+                        <span class="text-xs font-normal text-slate-500">{{ attachment.mimeType }} · {{ (attachment.sizeBytes / 1024)|number_format(0, ',', ' ') }} Ko</span>
+                    </a>
+                {% else %}
+                    <p class="px-5 py-4 text-sm text-slate-500">Aucune piece jointe.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </aside>
+</div>
+{% endblock %}

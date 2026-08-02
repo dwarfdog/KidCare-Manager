@@ -1,0 +1,11 @@
+{% set labels = {
+    'planned': 'Prevue',
+    'real': 'Reelle',
+    'reconciled': 'Reelle',
+} %}
+{% set styles = {
+    'planned': 'bg-indigo-50 text-indigo-700 ring-indigo-600/20',
+    'real': 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+    'reconciled': 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+} %}
+<span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset {{ styles[status]|default('bg-slate-100 text-slate-700 ring-slate-500/20') }}">{{ labels[status]|default(status) }}</span>

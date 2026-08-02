@@ -1,0 +1,81 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Archives{% endblock %}
+
+{% block body %}
+{% include 'bank/_tabs.html.twig' %}
+<div class="space-y-5">
+    <p class="rounded-md bg-slate-100 px-4 py-3 text-sm text-slate-600"><i class="fa-solid fa-circle-info"></i> Rien n'est supprime definitivement : tout element archive peut etre restaure depuis cette page.</p>
+
+    {# Comptes archives #}
+    <div class="rounded-lg border border-slate-200 bg-white">
+        <div class="border-b border-slate-200 px-5 py-4"><h2 class="text-lg font-semibold">Comptes archives</h2></div>
+        <div class="divide-y divide-slate-100">
+            {% for account in accounts %}
+                <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
+                    <div>
+                        <p class="font-medium">{{ accountManager.displayName(account) }}</p>
+                        <p class="text-xs text-slate-500">{{ accountManager.typeLabel(account) }} · archive le {{ account.archivedAt|date('d/m/Y') }}</p>
+                    </div>
+                    <form method="post" action="{{ path('app_bank_account_restore', {publicId: account.publicId}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('bank_account_restore_' ~ account.publicId) }}">
+                        <button class="rounded-md border border-teal-300 px-3 py-1.5 font-semibold text-teal-700 hover:bg-teal-50"><i class="fa-solid fa-rotate-left"></i> Restaurer</button>
+                    </form>
+                </div>
+            {% else %}
+                <p class="px-5 py-6 text-center text-sm text-slate-500">Aucun compte archive.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# Recurrences inactives #}
+    <div class="rounded-lg border border-slate-200 bg-white">
+        <div class="border-b border-slate-200 px-5 py-4"><h2 class="text-lg font-semibold">Recurrences inactives</h2></div>
+        <div class="divide-y divide-slate-100">
+            {% for rule in rules %}
+                <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
+                    <div>
+                        <p class="font-medium">{{ encryption.decrypt(rule.encryptedLabel) }}</p>
+                        <p class="text-xs text-slate-500">{{ accountManager.displayName(rule.account) }} · {{ rule.amount|number_format(2, ',', ' ') }} €</p>
+                    </div>
+                    <form method="post" action="{{ path('app_bank_recurring_reactivate', {publicId: rule.publicId}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('bank_recurring_reactivate_' ~ rule.publicId) }}">
+                        <button class="rounded-md border border-teal-300 px-3 py-1.5 font-semibold text-teal-700 hover:bg-teal-50"><i class="fa-solid fa-rotate-left"></i> Reactiver</button>
+                    </form>
+                </div>
+            {% else %}
+                <p class="px-5 py-6 text-center text-sm text-slate-500">Aucune recurrence inactive.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# Operations archivees #}
+    <div class="rounded-lg border border-slate-200 bg-white">
+        <div class="border-b border-slate-200 px-5 py-4"><h2 class="text-lg font-semibold">Operations archivees</h2></div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <tbody class="divide-y divide-slate-100">
+                    {% for transaction in transactions %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="whitespace-nowrap px-5 py-3 text-sm text-slate-500">{{ transaction.date|date('d/m/Y') }}</td>
+                            <td class="px-5 py-3 text-sm">
+                                <span class="font-medium">{{ transactionManager.label(transaction) }}</span>
+                                <span class="block text-xs text-slate-500">{{ accountManager.displayName(transaction.account) }}</span>
+                            </td>
+                            <td class="whitespace-nowrap px-5 py-3 text-right text-sm font-semibold tabular-nums {{ transaction.amount < 0 ? 'text-rose-700' : 'text-emerald-700' }}">{{ transaction.amount|number_format(2, ',', ' ') }} €</td>
+                            <td class="px-5 py-3 text-right">
+                                <form method="post" action="{{ path('app_bank_transaction_restore', {publicId: transaction.publicId}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('bank_transaction_restore_' ~ transaction.publicId) }}">
+                                    <button class="rounded-md border border-teal-300 px-3 py-1.5 text-sm font-semibold text-teal-700 hover:bg-teal-50"><i class="fa-solid fa-rotate-left"></i> Restaurer</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="4" class="px-5 py-6 text-center text-sm text-slate-500">Aucune operation archivee.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
