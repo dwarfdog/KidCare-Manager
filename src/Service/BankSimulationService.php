@@ -42,7 +42,8 @@ final class BankSimulationService
         $today = new \DateTimeImmutable('today');
 
         return match ($horizon) {
-            'next_salary' => $this->statistics->nextSalaryDate($user, $today) ?? $today->modify('last day of this month'),
+            // La periode de vie s'arrete la veille du prochain salaire (cf. BankStatisticsService::dashboard).
+            'next_salary' => $this->statistics->nextSalaryDate($user, $today)?->modify('-1 day') ?? $today->modify('last day of this month'),
             '3_months' => $today->modify('+3 months'),
             '6_months' => $today->modify('+6 months'),
             '12_months' => $today->modify('+12 months'),
@@ -77,6 +78,9 @@ final class BankSimulationService
             if ($transaction->getStatus() !== BankTransaction::STATUS_PLANNED) {
                 continue;
             }
+            if ($horizon === 'next_salary' && $transaction->getRecurringRule()?->isNextPeriodAttached()) {
+                continue;
+            }
             $planned += $transaction->getAmount();
             $items[] = [
                 'date' => $transaction->getDate(),
@@ -88,6 +92,9 @@ final class BankSimulationService
         // Recurrences are generated only a few months ahead in normal usage.
         // Project the missing occurrences without persisting synthetic transactions.
         foreach ($this->recurringRules->findActiveForUser($user) as $rule) {
+            if ($horizon === 'next_salary' && $rule->isNextPeriodAttached()) {
+                continue;
+            }
             $cursor = \DateTimeImmutable::createFromInterface($rule->getStartDate());
             while ($cursor < $from) {
                 $cursor = $this->recurringSchedule->nextOccurrence($rule, $cursor);

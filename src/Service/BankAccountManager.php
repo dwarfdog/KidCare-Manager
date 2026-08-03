@@ -55,6 +55,13 @@ final class BankAccountManager
                 ->setLoanPaymentDay(null)
                 ->setLoanDebitAccount(null)
                 ->setLoanCategory(null);
+
+            // Le compte n'est plus un pret: les echeances deja planifiees n'ont plus lieu d'etre.
+            if (!$isNew) {
+                foreach ($this->transactionRepository->findPlannedForLoan($account, new \DateTimeImmutable('+30 years')) as $echeance) {
+                    $echeance->archive();
+                }
+            }
         }
 
         // La categorie des echeances s'applique retroactivement a toutes les echeances

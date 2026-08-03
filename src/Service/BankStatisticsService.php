@@ -32,16 +32,13 @@ final class BankStatisticsService
         $accounts = $this->accountRepository->findActiveForUser($user);
         $currentAccounts = array_values(array_filter($accounts, fn (BankAccount $a): bool => $this->accountManager->countsForSpendableBalance($a)));
 
-        // Solde reel: tous les comptes hors prets (le capital d'un pret n'est pas du cash).
-        $realBalance = 0.0;
+        // Solde reel: comptes courants uniquement, comme le reste a vivre et les projections.
         $spendableBalance = 0.0;
         $loansRemaining = 0.0;
         foreach ($accounts as $account) {
             if ($account->isLoan()) {
                 $loansRemaining += $account->getLoanRemainingCapital() ?? 0.0;
-                continue;
             }
-            $realBalance += $this->accountManager->balance($account);
         }
         foreach ($currentAccounts as $account) {
             $spendableBalance += $this->accountManager->balance($account);
@@ -65,7 +62,7 @@ final class BankStatisticsService
             'today' => $today,
             'month_start' => $monthStart,
             'month_end' => $monthEnd,
-            'real_balance' => round($realBalance, 2),
+            'real_balance' => round($spendableBalance, 2),
             'spendable_balance' => round($spendableBalance, 2),
             'next_salary_date' => $nextSalaryDate,
             'reference_date' => $nextSalaryDate,

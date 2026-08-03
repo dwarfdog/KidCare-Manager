@@ -1,7 +1,105 @@
 <?php
-namespace App\Service;use App\Entity\BankAccount;use App\Entity\BankReconciliationBatch;use App\Entity\BankTransaction;use App\Entity\User;use App\Repository\BankTransactionRepository;use Doctrine\ORM\EntityManagerInterface;use League\Csv\Reader;
-final class BankReconciliationService{public function __construct(private readonly BankTransactionRepository$transactions,private readonly BankTransactionManager$manager,private readonly EntityManagerInterface$em,private readonly BankAuditLogger$audit){}
-/** @return array{delimiter:string,headers:array<int,string>,rows:array<int,array<string,string>>} */public function inspect(string$content):array{$first=strtok($content,"\r\n")?:'';$delimiters=[';'=>substr_count($first,';'),','=>substr_count($first,','),"\t"=>substr_count($first,"\t")];arsort($delimiters);$delimiter=(string)array_key_first($delimiters);$csv=Reader::createFromString($content);$csv->setDelimiter($delimiter);$csv->setHeaderOffset(0);return['delimiter'=>$delimiter,'headers'=>$csv->getHeader(),'rows'=>array_values(array_slice(iterator_to_array($csv->getRecords()),0,500))];}
-/** @return array<int,array<string,mixed>> */public function candidates(User$user,BankAccount$account,array$rows,array$mapping,string$dateFormat):array{$result=[];$used=[];foreach($rows as$i=>$row){$date=\DateTimeImmutable::createFromFormat('!'.$dateFormat,trim((string)($row[$mapping['date']]??'')));$amount=$this->amount((string)($row[$mapping['amount']]??''));$label=trim((string)($row[$mapping['label']]??''));if(!$date)continue;$best=null;$bestScore=-1;foreach($this->transactions->findForAccountPeriod($account,$date->modify('-3 days'),$date->modify('+3 days'))as$t){if(isset($used[$t->getPublicId()])||!$t->isReal()||$t->isArchived())continue;$score=(int)(abs($t->getAmount()-$amount)<0.005?60:0);$days=abs((int)$date->diff(\DateTimeImmutable::createFromInterface($t->getDate()))->format('%r%a'));$score+=max(0,25-$days*8);$score+=(int)round(15*$this->similarity($label,$this->manager->label($t)));if($score>$bestScore){$best=$t;$bestScore=$score;}}$result[]=['row'=>$i,'date'=>$date->format('Y-m-d'),'amount'=>$amount,'label'=>$label,'transaction'=>$best,'score'=>$bestScore];if($best&&$bestScore>=70)$used[$best->getPublicId()]=true;}return$result;}
-/** @param string[]$ids */public function confirm(User$user,BankAccount$account,string$filename,array$ids):BankReconciliationBatch{$count=0;foreach(array_unique($ids)as$id){$t=$this->transactions->findOneForUserByPublicId($user,$id);if(!$t||$t->getAccount()!==$account||!$t->isReal())continue;$t->setReconciledAt(new \DateTime());++$count;}$batch=(new BankReconciliationBatch())->setUser($user)->setAccount($account)->setFilename($filename)->setMatchedCount($count);$this->em->persist($batch);$this->audit->record($user,'bank.reconciliation.confirm','bank_reconciliation_batch',$batch->getPublicId(),['count'=>$count]);return$batch;}
-private function amount(string$value):float{$v=trim(str_replace(["\xc2\xa0",' '],'',$value));if(str_contains($v,',')&&str_contains($v,'.')){$v=str_replace('.','',$v);}$v=str_replace(',','.',$v);return round((float)$v,2);}private function similarity(string$a,string$b):float{$a=mb_strtolower(trim($a));$b=mb_strtolower(trim($b));if($a===''||$b==='')return 0.0;similar_text($a,$b,$percent);return$percent/100;}}
+
+namespace App\Service;
+
+use App\Entity\BankAccount;
+use App\Entity\BankReconciliationBatch;
+use App\Entity\BankTransaction;
+use App\Entity\User;
+use App\Repository\BankTransactionRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use League\Csv\Reader;
+
+final class BankReconciliationService
+{
+    public function __construct(private readonly BankTransactionRepository $transactions, private readonly BankTransactionManager $manager, private readonly EntityManagerInterface $em, private readonly BankAuditLogger $audit) {}
+    /** @return array{delimiter:string,headers:array<int,string>,rows:array<int,array<string,string>>} */ public function inspect(string $content): array
+    {
+        $first = strtok($content, "\r\n") ?: '';
+        $delimiters = [';' => substr_count($first, ';'), ',' => substr_count($first, ','), "\t" => substr_count($first, "\t")];
+        arsort($delimiters);
+        $delimiter = (string)array_key_first($delimiters);
+        $csv = Reader::createFromString($content);
+        $csv->setDelimiter($delimiter);
+        $csv->setHeaderOffset(0);
+        return ['delimiter' => $delimiter, 'headers' => $csv->getHeader(), 'rows' => array_values(array_slice(iterator_to_array($csv->getRecords()), 0, 500))];
+    }
+    /** @return array<int,array<string,mixed>> */ public function candidates(User $user, BankAccount $account, array $rows, array $mapping, string $dateFormat): array
+    {
+        $result = [];
+        $used = [];
+        foreach ($rows as $i => $row) {
+            $date = \DateTimeImmutable::createFromFormat('!' . $dateFormat, trim((string)($row[$mapping['date']] ?? '')));
+            $amount = $this->amount((string)($row[$mapping['amount']] ?? ''));
+            $label = trim((string)($row[$mapping['label']] ?? ''));
+            if (!$date) continue;
+            $best = null;
+            $bestScore = -1;
+            foreach ($this->transactions->findForAccountPeriod($account, $date->modify('-3 days'), $date->modify('+3 days')) as $t) {
+                if (isset($used[$t->getPublicId()]) || !$t->isReal() || $t->isArchived() || $t->getStatus() === BankTransaction::STATUS_RECONCILED) continue;
+                $score = (int)(abs($t->getAmount() - $amount) < 0.005 ? 60 : 0);
+                $days = abs((int)$date->diff(\DateTimeImmutable::createFromInterface($t->getDate()))->format('%r%a'));
+                $score += max(0, 25 - $days * 8);
+                $score += (int)round(15 * $this->similarity($label, $this->manager->label($t)));
+                if ($score > $bestScore) {
+                    $best = $t;
+                    $bestScore = $score;
+                }
+            }
+            $result[] = ['row' => $i, 'date' => $date->format('Y-m-d'), 'amount' => $amount, 'label' => $label, 'transaction' => $best, 'score' => $bestScore];
+            if ($best && $bestScore >= 70) $used[$best->getPublicId()] = true;
+        }
+        return $result;
+    }
+    /**
+     * @param string[] $ids
+     * @param array<int,array{date:string,amount:float,label:string}> $toCreate lignes de releve sans correspondance, a creer et rapprocher directement
+     */
+    public function confirm(User $user, BankAccount $account, string $filename, array $ids, array $toCreate = []): BankReconciliationBatch
+    {
+        $count = 0;
+        foreach (array_unique($ids) as $id) {
+            $t = $this->transactions->findOneForUserByPublicId($user, $id);
+            if (!$t || $t->getAccount() !== $account || !$t->isReal() || $t->getStatus() === BankTransaction::STATUS_RECONCILED) continue;
+            $t->setReconciledAt(new \DateTime());
+            ++$count;
+        }
+        foreach ($toCreate as $row) {
+            $date = \DateTimeImmutable::createFromFormat('!Y-m-d', (string) ($row['date'] ?? ''));
+            if (!$date) continue;
+            $amount = (float) ($row['amount'] ?? 0);
+            $transaction = $this->manager->save($user, new BankTransaction(), [
+                'account' => $account,
+                'date' => $date,
+                'label' => (string) ($row['label'] ?? ''),
+                'amount' => abs($amount),
+                'type' => $amount < 0 ? BankTransaction::TYPE_EXPENSE : BankTransaction::TYPE_INCOME,
+                'status' => BankTransaction::STATUS_REAL,
+                'source' => BankTransaction::SOURCE_IMPORT,
+            ]);
+            $transaction->setReconciledAt(new \DateTime());
+            ++$count;
+        }
+        $batch = (new BankReconciliationBatch())->setUser($user)->setAccount($account)->setFilename($filename)->setMatchedCount($count);
+        $this->em->persist($batch);
+        $this->audit->record($user, 'bank.reconciliation.confirm', 'bank_reconciliation_batch', $batch->getPublicId(), ['count' => $count]);
+        return $batch;
+    }
+    private function amount(string $value): float
+    {
+        $v = trim(str_replace(["\xc2\xa0", ' '], '', $value));
+        if (str_contains($v, ',') && str_contains($v, '.')) {
+            $v = str_replace('.', '', $v);
+        }
+        $v = str_replace(',', '.', $v);
+        return round((float)$v, 2);
+    }
+    private function similarity(string $a, string $b): float
+    {
+        $a = mb_strtolower(trim($a));
+        $b = mb_strtolower(trim($b));
+        if ($a === '' || $b === '') return 0.0;
+        similar_text($a, $b, $percent);
+        return $percent / 100;
+    }
+}

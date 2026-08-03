@@ -720,7 +720,7 @@ class BankController extends AbstractController
             throw $this->createNotFoundException();
         }
 
-        $form = $this->createForm(BankGoalType::class, $goal, ['account_choices' => $this->goalAccountChoices($accountRepository, $accountManager)]);
+        $form = $this->createForm(BankGoalType::class, $goal, ['account_choices' => $this->goalAccountChoices($accountRepository, $accountManager, $goal->getLinkedAccount())]);
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             $goalCalculator->syncStatuses([$goal]);
@@ -1100,14 +1100,22 @@ class BankController extends AbstractController
         return $choices;
     }
 
-    private function goalAccountChoices(BankAccountRepository $accountRepository, BankAccountManager $accountManager): array
+    private function goalAccountChoices(BankAccountRepository $accountRepository, BankAccountManager $accountManager, ?BankAccount $currentlyLinked = null): array
     {
         $choices = [];
-        foreach ($accountRepository->findActiveForUser($this->getUser()) as $account) {
+        $accounts = $accountRepository->findActiveForUser($this->getUser());
+        if ($currentlyLinked !== null && !in_array($currentlyLinked, $accounts, true)) {
+            $accounts[] = $currentlyLinked;
+        }
+
+        foreach ($accounts as $account) {
             if ($account->isLoan()) {
                 continue;
             }
             $label = $accountManager->displayName($account);
+            if ($account->isArchived()) {
+                $label .= ' (archive)';
+            }
             $choices[$label !== '' ? $label : 'Compte ' . substr($account->getPublicId(), -6)] = $account;
         }
 

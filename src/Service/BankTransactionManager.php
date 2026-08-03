@@ -151,15 +151,6 @@ final class BankTransactionManager
                 $mirror->setStatus(BankTransaction::STATUS_REAL);
             }
 
-            if ($rule !== null && $rule->getLoanRemainingCapital() !== null) {
-                $rule->decreaseLoanRemainingCapital($transaction->getAbsoluteAmount());
-                if (!$rule->isActive()) {
-                    foreach ($this->transactionRepository->findFuturePlannedForRule($rule, $today) as $futureTransaction) {
-                        $futureTransaction->archive();
-                    }
-                }
-            }
-
             // Echeance de pret: on decremente le capital restant du compte "Pret".
             $loan = $transaction->getLoanAccount();
             if ($loan !== null && $loan->getLoanRemainingCapital() !== null) {

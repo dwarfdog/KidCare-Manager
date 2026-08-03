@@ -16,7 +16,7 @@ final class NannyDocumentManager
 
     public function add(User $user, Nanny $nanny, UploadedFile $file, string $type, ?\DateTimeInterface $expiresAt): NannyDocument
     {
-        if ($file->getSize() === null || $file->getSize() > self::MAX_SIZE) { throw new \InvalidArgumentException('Le document PDF ne doit pas dépasser 10 Mo.'); }
+        if ($file->getSize() === false || $file->getSize() > self::MAX_SIZE) { throw new \InvalidArgumentException('Le document PDF ne doit pas dépasser 10 Mo.'); }
         if (($file->getMimeType() ?? '') !== 'application/pdf') { throw new \InvalidArgumentException('Seuls les documents PDF sont acceptés.'); }
         $content = (string) file_get_contents($file->getPathname());
         if (!str_starts_with($content, '%PDF-')) { throw new \InvalidArgumentException('Le fichier transmis n\'est pas un PDF valide.'); }

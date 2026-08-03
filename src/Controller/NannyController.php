@@ -123,8 +123,14 @@ class NannyController extends AbstractController
             throw $this->createNotFoundException();
         }
 
-        $nannyManager->attach($this->getUser(), $nanny);
-        $entityManager->flush();
+        try {
+            $nannyManager->attach($this->getUser(), $nanny);
+            $entityManager->flush();
+        } catch (\DomainException $exception) {
+            $this->addFlash('error', $exception->getMessage());
+
+            return $this->redirectToRoute('app_nanny_index');
+        }
         $this->addFlash('success', 'La nounou a ete rattachee a votre compte.');
 
         return $this->redirectToRoute('app_nanny_index');
@@ -148,8 +154,14 @@ class NannyController extends AbstractController
             return $this->redirectToRoute('app_nanny_index');
         }
 
-        $nannyManager->attach($this->getUser(), $nanny);
-        $entityManager->flush();
+        try {
+            $nannyManager->attach($this->getUser(), $nanny);
+            $entityManager->flush();
+        } catch (\DomainException $exception) {
+            $this->addFlash('error', $exception->getMessage());
+
+            return $this->redirectToRoute('app_nanny_index');
+        }
         $this->addFlash('success', 'La nounou a ete rattachee via le code.');
 
         return $this->redirectToRoute('app_nanny_index');

@@ -457,21 +457,6 @@ class BankTransactionRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /** @return BankTransaction[] */
-    public function findFuturePlannedForRule(\App\Entity\BankRecurringRule $rule, \DateTimeInterface $afterDate): array
-    {
-        return $this->createQueryBuilder('t')
-            ->andWhere('t.recurringRule = :rule')
-            ->andWhere('t.status = :status')
-            ->andWhere('t.date > :afterDate')
-            ->andWhere('t.archivedAt IS NULL')
-            ->setParameter('rule', $rule)
-            ->setParameter('status', BankTransaction::STATUS_PLANNED)
-            ->setParameter('afterDate', $afterDate->format('Y-m-d'))
-            ->getQuery()
-            ->getResult();
-    }
-
     /** @return list<string> */
     private function realStatuses(): array
     {

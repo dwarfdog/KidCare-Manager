@@ -44,8 +44,8 @@ final class TemplateApplicationServiceTest extends TestCase
 
         $careRepository = $this->createMock(CareRepository::class);
         $careRepository
-            ->method('overlaps')
-            ->willReturnCallback(static fn (User $user, Nanny $nanny, \DateTimeImmutable $start): bool => $start->format('Y-m-d') === '2026-06-23');
+            ->method('overlapsNannySchedule')
+            ->willReturnCallback(static fn (Nanny $nanny, \DateTimeImmutable $start): bool => $start->format('Y-m-d') === '2026-06-23');
 
         $rateRepository = $this->createMock(NannyRateRepository::class);
         $rateRepository

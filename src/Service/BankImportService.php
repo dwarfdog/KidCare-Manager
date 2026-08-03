@@ -123,13 +123,20 @@ final class BankImportService
         $debit = !empty($mapping['debit']) ? abs($this->normalizeAmount((string) ($record[$mapping['debit']] ?? '0'))) : 0.0;
         $credit = !empty($mapping['credit']) ? abs($this->normalizeAmount((string) ($record[$mapping['credit']] ?? '0'))) : 0.0;
 
-        return $credit > 0 ? $credit : -$debit;
+        return $credit - $debit;
     }
 
     private function normalizeAmount(string $value): float
     {
         $value = trim(str_replace(["\xc2\xa0", ' '], '', $value));
+        if (str_contains($value, ',') && str_contains($value, '.')) {
+            $value = str_replace('.', '', $value);
+        }
         $value = str_replace(',', '.', $value);
+
+        if ($value !== '' && !preg_match('/^-?\d+(\.\d+)?$/', $value)) {
+            throw new \InvalidArgumentException('montant invalide');
+        }
 
         return round((float) $value, 2);
     }

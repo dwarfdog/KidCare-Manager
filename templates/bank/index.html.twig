@@ -17,10 +17,9 @@
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div class="rounded-lg border border-slate-200 bg-white p-4">
             <p class="flex items-center gap-1 text-sm font-medium text-slate-500">Solde reel
-                <i class="fa-regular fa-circle-question text-slate-400" data-tippy-content="Somme des soldes reels de tes comptes courants et epargne (hors prets)."></i>
+                <i class="fa-regular fa-circle-question text-slate-400" data-tippy-content="Somme des soldes reels de tes comptes courants (hors epargne et prets)."></i>
             </p>
             <p class="mt-2 text-2xl font-semibold tabular-nums">{{ dashboard.real_balance|number_format(2, ',', ' ') }} €</p>
-            <p class="mt-1 text-xs text-slate-400">dont {{ dashboard.spendable_balance|number_format(2, ',', ' ') }} € sur comptes courants</p>
         </div>
         <div class="rounded-lg border-2 border-teal-200 bg-teal-50/50 p-4">
             <p class="flex items-center gap-1 text-sm font-medium text-teal-800">Reste a vivre

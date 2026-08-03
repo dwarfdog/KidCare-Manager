@@ -67,12 +67,6 @@ class BankRecurringRule
     #[ORM\Column(length: 16, options: ['default' => self::ATTACHMENT_CURRENT])]
     private string $periodAttachment = self::ATTACHMENT_CURRENT;
 
-    #[ORM\Column(type: Types::DECIMAL, precision: 12, scale: 2, nullable: true)]
-    private ?string $loanInitialCapital = null;
-
-    #[ORM\Column(type: Types::DECIMAL, precision: 12, scale: 2, nullable: true)]
-    private ?string $loanRemainingCapital = null;
-
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private \DateTimeInterface $createdAt;
 
@@ -262,50 +256,6 @@ class BankRecurringRule
     public function isIncome(): bool
     {
         return $this->getAmount() >= 0;
-    }
-
-    public function getLoanInitialCapital(): ?float
-    {
-        return $this->loanInitialCapital !== null ? (float) $this->loanInitialCapital : null;
-    }
-
-    public function setLoanInitialCapital(float|string|null $loanInitialCapital): static
-    {
-        $this->loanInitialCapital = $loanInitialCapital !== null && $loanInitialCapital !== ''
-            ? number_format(max(0, (float) $loanInitialCapital), 2, '.', '')
-            : null;
-        $this->touch();
-
-        return $this;
-    }
-
-    public function getLoanRemainingCapital(): ?float
-    {
-        return $this->loanRemainingCapital !== null ? (float) $this->loanRemainingCapital : null;
-    }
-
-    public function setLoanRemainingCapital(float|string|null $loanRemainingCapital): static
-    {
-        $this->loanRemainingCapital = $loanRemainingCapital !== null && $loanRemainingCapital !== ''
-            ? number_format(max(0, (float) $loanRemainingCapital), 2, '.', '')
-            : null;
-        $this->touch();
-
-        return $this;
-    }
-
-    public function decreaseLoanRemainingCapital(float $amount): static
-    {
-        if ($this->loanRemainingCapital === null) {
-            return $this;
-        }
-
-        $this->setLoanRemainingCapital(max(0, (float) $this->loanRemainingCapital - abs($amount)));
-        if ((float) $this->loanRemainingCapital <= 0.0) {
-            $this->isActive = false;
-        }
-
-        return $this;
     }
 
     public function getCreatedAt(): \DateTimeInterface

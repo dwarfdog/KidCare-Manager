@@ -331,9 +331,6 @@ class Care
             $this->nonRealizationReason = null;
             $this->remuneratedOverride = false;
         }
-        if ($status !== self::STATUS_CANCELLED) {
-            $this->nonRealizationReason = null;
-        }
 
         return $this;
     }

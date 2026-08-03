@@ -5,7 +5,6 @@ namespace App\Service;
 use App\Entity\Care;
 use App\Entity\Nanny;
 use App\Entity\User;
-use App\Repository\CareRepository;
 use App\Repository\NannyRateRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -13,7 +12,6 @@ final class CareManager
 {
     public function __construct(
         private readonly CareSegmenter $segmenter,
-        private readonly CareRepository $careRepository,
         private readonly NannyRateRepository $rateRepository,
         private readonly MonthlyPaymentCalculator $paymentCalculator,
         private readonly EntityManagerInterface $entityManager,

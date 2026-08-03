@@ -161,39 +161,6 @@ class CareRepository extends ServiceEntityRepository
         return array_map(static fn (array $row): string => $row['month'], $qb->getQuery()->getArrayResult());
     }
 
-    public function overlaps(User $user, Nanny $nanny, \DateTimeImmutable $start, \DateTimeImmutable $end, ?Care $ignoredCare = null): bool
-    {
-        if ($end <= $start) {
-            $end = $end->modify('+1 day');
-        }
-
-        $cares = $this->createQueryBuilder('c')
-            ->andWhere('c.user = :user')
-            ->andWhere('c.nanny = :nanny')
-            ->andWhere('c.date BETWEEN :fromDate AND :toDate')
-            ->andWhere('c.archivedAt IS NULL')
-            ->andWhere('c.status != :cancelled')
-            ->setParameter('user', $user)
-            ->setParameter('nanny', $nanny)
-            ->setParameter('fromDate', $start->modify('-1 day')->format('Y-m-d'))
-            ->setParameter('toDate', $end->format('Y-m-d'))
-            ->setParameter('cancelled', Care::STATUS_CANCELLED)
-            ->getQuery()
-            ->getResult();
-
-        foreach ($cares as $care) {
-            if ($ignoredCare !== null && $care->getId() === $ignoredCare->getId()) {
-                continue;
-            }
-
-            if ($care->getStartDateTime() < $end && $care->getEndDateTime() > $start) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     /**
      * Detect a shared-nanny conflict without returning another family's data.
      */

@@ -78,10 +78,6 @@ final class BankRecurringTransactionGenerator
                     ->setSource(BankTransaction::SOURCE_RECURRING)
                     ->setRecurringRule($rule);
 
-                if ($transaction->isReal() && $rule->getLoanRemainingCapital() !== null) {
-                    $rule->decreaseLoanRemainingCapital($transaction->getAbsoluteAmount());
-                }
-
                 $this->entityManager->persist($transaction);
                 $this->auditLogger->record($user, 'bank.recurring.generate_transaction', 'bank_transaction', $transaction->getPublicId(), [
                     'rule' => $rule->getPublicId(),
