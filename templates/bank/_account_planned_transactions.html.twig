@@ -27,7 +27,7 @@
                         <div class="min-w-0">
                             <p class="text-xs font-medium text-indigo-700">{{ transaction.date|date('d/m/Y') }}</p>
                             <a href="{{ path('app_bank_transaction_edit', {publicId: transaction.publicId}) }}" class="mt-1 block truncate text-sm font-semibold text-slate-950 hover:text-teal-700">{{ transactionManager.label(transaction) }}</a>
-                            <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">{% if transaction.category %}<span>{{ transaction.category.name }}</span>{% endif %}{{ include('bank/_transaction_status_badge.html.twig', {status: transaction.status}) }}</div>
+                            <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">{% if transaction.category %}<span class="inline-flex items-center gap-1">{{ include('bank/_category_icon.html.twig', {icon: transaction.category.icon, color: transaction.category.color, size: 'h-4 w-4'}) }} {{ transaction.category.name }}</span>{% endif %}{{ include('bank/_transaction_status_badge.html.twig', {status: transaction.status}) }}</div>
                         </div>
                         <span class="whitespace-nowrap text-sm font-semibold tabular-nums {{ transaction.amount < 0 ? 'text-rose-700' : 'text-emerald-700' }}">{{ transaction.amount|number_format(2, ',', ' ') }} €</span>
                     </div>

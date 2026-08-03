@@ -10,12 +10,12 @@
             <p class="text-sm text-slate-500">{{ template.nanny.fullName }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            <a href="{{ path('app_care_template_edit', {'publicId': template.publicId}) }}" class="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white">Modifier</a>
+            <a href="{{ path('app_care_template_edit', {'publicId': template.publicId}) }}" class="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white"><i class="fa-solid fa-pen"></i> Modifier</a>
             <form method="post" action="{{ path('app_care_template_duplicate', {'publicId': template.publicId}) }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('duplicate_template_' ~ template.publicId) }}">
-                <button class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium">Dupliquer</button>
+                <button class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium"><i class="fa-solid fa-copy"></i> Dupliquer</button>
             </form>
-            <a href="{{ path('app_care_template_index') }}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium">Retour</a>
+            <a href="{{ path('app_care_template_index') }}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium"><i class="fa-solid fa-arrow-left"></i> Retour</a>
         </div>
     </div>
 

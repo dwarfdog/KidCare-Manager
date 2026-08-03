@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% import 'components/_icon_action.html.twig' as icons %}
 
 {% block title %}Budgets{% endblock %}
 
@@ -26,11 +27,11 @@
 </div>
 
 {% set statusMeta = {
-    'ok': {label: 'Dans les clous', badge: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20', bar: 'bg-teal-600'},
-    'risk': {label: 'Depassement probable', badge: 'bg-amber-50 text-amber-700 ring-amber-600/20', bar: 'bg-amber-500'},
-    'over': {label: 'Depasse', badge: 'bg-rose-50 text-rose-700 ring-rose-600/20', bar: 'bg-rose-600'},
-    'upcoming': {label: 'A venir', badge: 'bg-slate-100 text-slate-600 ring-slate-500/20', bar: 'bg-slate-300'},
-    'ended': {label: 'Terminee', badge: 'bg-slate-100 text-slate-600 ring-slate-500/20', bar: 'bg-slate-400'},
+    'ok': {label: 'Dans les clous', icon: 'circle-check', badge: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20', bar: 'bg-teal-600'},
+    'risk': {label: 'Depassement probable', icon: 'triangle-exclamation', badge: 'bg-amber-50 text-amber-700 ring-amber-600/20', bar: 'bg-amber-500'},
+    'over': {label: 'Depasse', icon: 'circle-exclamation', badge: 'bg-rose-50 text-rose-700 ring-rose-600/20', bar: 'bg-rose-600'},
+    'upcoming': {label: 'A venir', icon: 'hourglass-start', badge: 'bg-slate-100 text-slate-600 ring-slate-500/20', bar: 'bg-slate-300'},
+    'ended': {label: 'Terminee', icon: 'flag-checkered', badge: 'bg-slate-100 text-slate-600 ring-slate-500/20', bar: 'bg-slate-400'},
 } %}
 
 <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -46,9 +47,9 @@
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div class="min-w-0">
                             <p class="flex flex-wrap items-center gap-2 text-sm font-medium">
-                                <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {{ row.budget.category.color }}"></span>
+                                {{ include('bank/_category_icon.html.twig', {icon: row.budget.category.icon, color: row.budget.category.color}) }}
                                 {{ row.budget.category.name }}
-                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset {{ meta.badge }}">{{ meta.label }}</span>
+                                <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset {{ meta.badge }}"><i class="fa-solid fa-{{ meta.icon }} text-[10px]"></i> {{ meta.label }}</span>
                             </p>
                             <p class="mt-0.5 text-xs text-slate-500">
                                 {% if row.budget.periodType == 'week' %}
@@ -82,8 +83,8 @@
                                 A ce rythme : ~{{ row.projected|number_format(0, ',', ' ') }} € en fin de periode
                             {% endif %}
                         </span>
-                        <span class="flex items-center gap-3">
-                            <a href="{{ path('app_bank_budget_edit', {publicId: row.budget.publicId}) }}" class="font-medium text-teal-700 hover:text-teal-900">Modifier</a>
+                        <span class="flex items-center gap-1">
+                            {{ icons.link('pen', 'Modifier le budget ' ~ row.budget.category.name, path('app_bank_budget_edit', {publicId: row.budget.publicId})) }}
                             <form method="post" action="{{ path('app_bank_budget_archive', {publicId: row.budget.publicId}) }}"
                                   data-controller="confirm"
                                   data-action="submit->confirm#submit"
@@ -91,7 +92,7 @@
                                   data-confirm-text-value="Il ne sera plus suivi ni affiche sur le tableau de bord."
                                   data-confirm-confirm-text-value="Archiver">
                                 <input type="hidden" name="_token" value="{{ csrf_token('bank_budget_archive_' ~ row.budget.publicId) }}">
-                                <button class="font-medium text-rose-600 hover:text-rose-800">Archiver</button>
+                                {{ icons.button('box-archive', 'Archiver le budget ' ~ row.budget.category.name, 'danger') }}
                             </form>
                         </span>
                     </div>

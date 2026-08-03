@@ -28,6 +28,19 @@ final class UserNotificationRepository extends ServiceEntityRepository
     {
         return (int) $this->count(['user' => $user, 'readAt' => null]);
     }
+
+    /** @return array{count:int, severity:?string} */
+    public function unreadSummary(User $user): array
+    {
+        $count = $this->countUnread($user);
+        if ($count === 0) {
+            return ['count' => 0, 'severity' => null];
+        }
+
+        $warnings = (int) $this->count(['user' => $user, 'readAt' => null, 'kind' => 'warning']);
+
+        return ['count' => $count, 'severity' => $warnings > 0 ? 'warning' : 'information'];
+    }
     public function findOneForUser(User $user, string $publicId): ?UserNotification
     {
         return $this->findOneBy(['user' => $user, 'publicId' => $publicId]);

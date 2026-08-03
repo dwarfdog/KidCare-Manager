@@ -18,27 +18,45 @@
             </div>
         </div>
 
-        <form method="get" class="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5" data-bank-category-evolution-target="form" data-action="submit->bank-category-evolution#submit change->bank-category-evolution#change">
+        <form method="get" class="mt-5 flex flex-wrap items-end gap-3" data-bank-category-evolution-target="form" data-action="submit->bank-category-evolution#submit change->bank-category-evolution#change">
             <label class="text-sm font-medium text-slate-700">Categorie
-                <select name="category" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2">
+                <select name="category" class="mt-1 rounded-md border border-slate-300 px-3 py-2 text-sm">
                     {% for category in categories %}<option value="{{ category.publicId }}" {{ selectedCategory and selectedCategory.publicId == category.publicId ? 'selected' }}>{{ category.name }}</option>{% endfor %}
                 </select>
             </label>
             <label class="text-sm font-medium text-slate-700">Periode
-                <select name="period" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2">
+                <select name="period" class="mt-1 rounded-md border border-slate-300 px-3 py-2 text-sm">
                     <option value="6" {{ period == '6' ? 'selected' }}>6 mois</option>
                     <option value="12" {{ period == '12' ? 'selected' }}>12 mois</option>
                     <option value="custom" {{ period == 'custom' ? 'selected' }}>Personnalisee</option>
                 </select>
             </label>
             <label class="text-sm font-medium text-slate-700 {{ period != 'custom' ? 'hidden' }}" data-bank-category-evolution-target="customPeriod">Du
-                <input type="date" name="from" value="{{ from|date('Y-m-d') }}" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2">
+                <input type="date" name="from" value="{{ from|date('Y-m-d') }}" class="mt-1 rounded-md border border-slate-300 px-3 py-2 text-sm">
             </label>
             <label class="text-sm font-medium text-slate-700 {{ period != 'custom' ? 'hidden' }}" data-bank-category-evolution-target="customPeriod">Au
-                <input type="date" name="to" value="{{ to|date('Y-m-d') }}" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2">
+                <input type="date" name="to" value="{{ to|date('Y-m-d') }}" class="mt-1 rounded-md border border-slate-300 px-3 py-2 text-sm">
             </label>
-            <fieldset class="text-sm font-medium text-slate-700 md:col-span-2 xl:col-span-1"><legend>Comptes</legend><div class="mt-1 max-h-32 space-y-1 overflow-y-auto rounded-md border border-slate-300 p-2">{% for account in accounts %}<label class="flex items-center gap-2 font-normal"><input type="checkbox" name="accounts[]" value="{{ account.publicId }}" {{ account.publicId in selectedAccountIds ? 'checked' }}> {{ accountManager.displayName(account) }}</label>{% endfor %}</div></fieldset>
-            <div class="flex items-end"><button class="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700">Actualiser</button></div>
+            <div class="text-sm font-medium text-slate-700" x-data="{ open: false, selected: {{ selectedAccountIds|json_encode }} }" @click.away="open = false">
+                Comptes
+                <div class="relative mt-1 w-48">
+                    <button type="button" @click="open = !open" :aria-expanded="open.toString()" class="flex w-full items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-sm font-normal text-slate-700">
+                        <span x-text="selected.length + ' compte' + (selected.length > 1 ? 's' : '')"></span>
+                        <i class="fa-solid fa-chevron-down text-xs" :class="open ? 'rotate-180' : ''"></i>
+                    </button>
+                    <div x-show="open" x-cloak x-transition class="absolute left-0 top-full z-20 mt-1 max-h-56 w-64 overflow-y-auto rounded-md border border-slate-200 bg-white p-2 shadow-lg">
+                        {% for account in accounts %}
+                            <label class="flex items-center gap-2 rounded px-2 py-1.5 text-sm font-normal hover:bg-slate-50">
+                                <input type="checkbox" name="accounts[]" value="{{ account.publicId }}" {{ account.publicId in selectedAccountIds ? 'checked' }}
+                                       @change="$event.target.checked ? selected.push('{{ account.publicId }}') : selected = selected.filter(id => id !== '{{ account.publicId }}')"
+                                       class="rounded border-slate-300 text-teal-600 focus:ring-teal-500">
+                                {{ accountManager.displayName(account) }}
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <button class="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700">Actualiser</button>
         </form>
     </section>
 

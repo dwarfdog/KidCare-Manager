@@ -1,11 +1,11 @@
 {% if payment.isPaid %}
     <span class="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-700 ring-1 ring-inset ring-teal-600/20">
-        <span class="h-1.5 w-1.5 rounded-full bg-teal-500"></span>
+        <i class="fa-solid fa-circle-check text-[10px]"></i>
         Paye
     </span>
 {% else %}
     <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20">
-        <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+        <i class="fa-solid fa-hourglass-half text-[10px]"></i>
         En attente
     </span>
 {% endif %}

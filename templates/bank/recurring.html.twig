@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% import 'components/_icon_action.html.twig' as icons %}
 
 {% block title %}Operations recurrentes{% endblock %}
 
@@ -54,11 +55,11 @@
                         </div>
                         <div class="flex items-center gap-3">
                             <span class="font-semibold tabular-nums {{ rule.amount < 0 ? 'text-rose-700' : 'text-emerald-700' }}">{{ rule.amount|number_format(2, ',', ' ') }} €</span>
-                            <a href="{{ path('app_bank_recurring_edit', {publicId: rule.publicId}) }}" class="font-medium text-slate-600 hover:text-slate-900" data-tippy-content="Modifier">Modifier</a>
+                            {{ icons.link('pen', 'Modifier ' ~ encryption.decrypt(rule.encryptedLabel), path('app_bank_recurring_edit', {publicId: rule.publicId})) }}
                             <form method="post" action="{{ path('app_bank_recurring_deactivate', {publicId: rule.publicId}) }}"
-                                  data-controller="confirm" data-confirm-title-value="Archiver cette recurrence ?" data-confirm-text-value="Les echeances prevues seront retirees du budget. La recurrence restera consultable dans les Archives, sans restauration possible." data-confirm-confirm-text-value="Archiver" data-action="confirm#submit">
+                                  data-controller="confirm" data-confirm-title-value="Archiver cette recurrence ?" data-confirm-text-value="Les echeances prevues seront retirees du budget. La recurrence restera consultable dans les Archives, sans possibilite de restauration." data-confirm-confirm-text-value="Archiver" data-action="confirm#submit">
                                 <input type="hidden" name="_token" value="{{ csrf_token('bank_recurring_deactivate_' ~ rule.publicId) }}">
-                                <button class="font-medium text-rose-600 hover:text-rose-800">Archiver</button>
+                                {{ icons.button('box-archive', 'Archiver ' ~ encryption.decrypt(rule.encryptedLabel), 'danger') }}
                             </form>
                         </div>
                     </div>

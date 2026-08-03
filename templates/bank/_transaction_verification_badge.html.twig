@@ -13,14 +13,12 @@
         {% endfor %}
     {% endif %}
     {% if transaction.verified %}
-        <button type="submit" class="inline-flex cursor-pointer items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20 hover:bg-emerald-100" data-tippy-content="Verifiee le {{ transaction.verifiedAt|date('d/m/Y H:i') }} — cliquer pour retirer la verification">
-            <i class="fa-solid fa-check text-[10px]"></i>
-            Verifiee
+        <button type="submit" class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 hover:bg-emerald-100" aria-label="Verifiee" data-tippy-content="Verifiee le {{ transaction.verifiedAt|date('d/m/Y H:i') }} — cliquer pour retirer la verification">
+            <i class="fa-regular fa-square-check text-xs"></i>
         </button>
     {% else %}
-        <button type="submit" class="inline-flex cursor-pointer items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20 hover:bg-amber-100" data-tippy-content="Cliquer pour verifier cette operation">
-            <i class="fa-regular fa-circle text-[10px]"></i>
-            Non verifiee
+        <button type="submit" class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20 hover:bg-amber-100" aria-label="Non verifiee" data-tippy-content="Non verifiee — cliquer pour verifier cette operation">
+            <i class="fa-regular fa-square text-xs"></i>
         </button>
     {% endif %}
 </form>

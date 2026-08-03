@@ -1,25 +1,63 @@
 {% set current_route = app.request.attributes.get('_route')|default('') %}
+{% set groups = {
+    comptes: {
+        label: 'Comptes',
+        icon: 'building-columns',
+        active: current_route starts with 'app_bank_account' or current_route starts with 'app_bank_loans' or current_route starts with 'app_bank_transfer',
+        items: [
+            {route: 'app_bank_accounts', prefix: 'app_bank_account', label: 'Comptes', icon: 'building-columns'},
+            {route: 'app_bank_loans', prefix: 'app_bank_loans', label: 'Prets', icon: 'hand-holding-dollar'},
+            {route: 'app_bank_transfer_new', prefix: 'app_bank_transfer', label: 'Virements', icon: 'right-left'},
+        ],
+    },
+    suivi: {
+        label: 'Suivi',
+        icon: 'chart-line',
+        active: current_route starts with 'app_bank_budgets' or current_route starts with 'app_bank_goals' or current_route starts with 'app_bank_analytics' or current_route starts with 'app_bank_net_worth',
+        items: [
+            {route: 'app_bank_budgets', prefix: 'app_bank_budgets', label: 'Budgets', icon: 'scale-balanced'},
+            {route: 'app_bank_goals', prefix: 'app_bank_goals', label: 'Objectifs', icon: 'bullseye'},
+            {route: 'app_bank_analytics', prefix: 'app_bank_analytics', label: 'Analyses', icon: 'chart-pie'},
+            {route: 'app_bank_net_worth', prefix: 'app_bank_net_worth', label: 'Patrimoine', icon: 'sack-dollar'},
+        ],
+    },
+    outils: {
+        label: 'Outils',
+        icon: 'toolbox',
+        active: current_route starts with 'app_bank_import' or current_route starts with 'app_bank_categories' or current_route starts with 'app_bank_category_rule' or current_route starts with 'app_bank_reconciliation' or current_route starts with 'app_bank_simulation' or current_route starts with 'app_bank_alert',
+        items: [
+            {route: 'app_bank_import', prefix: 'app_bank_import', label: 'Import', icon: 'file-import'},
+            {route: 'app_bank_categories', prefix: 'app_bank_categories', label: 'Categories', icon: 'tags'},
+            {route: 'app_bank_category_rules', prefix: 'app_bank_category_rule', label: 'Règles', icon: 'code-branch'},
+            {route: 'app_bank_reconciliation', prefix: 'app_bank_reconciliation', label: 'Rapprochement', icon: 'file-invoice'},
+            {route: 'app_bank_simulations', prefix: 'app_bank_simulation', label: 'Simulations', icon: 'wand-magic-sparkles'},
+            {route: 'app_bank_alerts', prefix: 'app_bank_alert', label: 'Alertes', icon: 'bell'},
+        ],
+    },
+} %}
 <div class="mb-4">
-<p class="mb-1 text-right text-[11px] text-slate-400 md:hidden">Faire défiler les onglets horizontalement →</p>
-<div class="overflow-x-auto border-b border-slate-200">
-    <nav class="flex min-w-max gap-1 text-sm">
+<div class="border-b border-slate-200">
+    <nav class="flex flex-wrap items-center gap-1 text-sm">
         <a href="{{ path('app_bank_index') }}" class="px-3 py-2 font-medium {{ current_route == 'app_bank_index' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Tableau</a>
-        <a href="{{ path('app_bank_accounts') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_account' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Comptes</a>
-        <a href="{{ path('app_bank_loans') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_loans' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Prets</a>
         <a href="{{ path('app_bank_transactions') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_transaction' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Operations</a>
-        <a href="{{ path('app_bank_transfer_new') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_transfer' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Virements</a>
         <a href="{{ path('app_bank_recurring') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_recurring' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Recurrences</a>
-        <a href="{{ path('app_bank_budgets') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_budgets' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Budgets</a>
-        <a href="{{ path('app_bank_goals') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_goals' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Objectifs</a>
-        <a href="{{ path('app_bank_analytics') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_analytics' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Analyses</a>
-        <a href="{{ path('app_bank_import') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_import' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Import</a>
-        <a href="{{ path('app_bank_categories') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_categories' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Categories</a>
-        <a href="{{ path('app_bank_category_rules') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_category_rule' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Règles</a>
-        <a href="{{ path('app_bank_reconciliation') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_reconciliation' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Rapprochement</a>
-        <a href="{{ path('app_bank_simulations') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_simulation' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Simulations</a>
-        <a href="{{ path('app_bank_net_worth') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_net_worth' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Patrimoine</a>
-        <a href="{{ path('app_bank_alerts') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_alert' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Alertes</a>
-        <a href="{{ path('app_archives') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_archives' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-400 hover:text-slate-700' }}"><i class="fa-regular fa-box-archive"></i> Archives</a>
+        {% for key, group in groups %}
+            <div class="relative" x-data="{ open: false }" @click.away="open = false">
+                <button type="button" @click="open = !open" :aria-expanded="open.toString()" class="flex items-center gap-1.5 px-3 py-2 font-medium {{ group.active ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">
+                    <i class="fa-solid fa-{{ group.icon }} text-xs"></i>
+                    {{ group.label }}
+                    <i class="fa-solid fa-chevron-down text-[10px]" :class="open ? 'rotate-180' : ''"></i>
+                </button>
+                <div x-show="open" x-cloak x-transition class="absolute left-0 top-full z-20 mt-1 w-52 rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+                    {% for item in group.items %}
+                        <a href="{{ path(item.route) }}" @click="open = false" class="flex items-center gap-2 px-4 py-2 text-sm {{ current_route starts with item.prefix ? 'bg-slate-100 font-medium text-teal-700' : 'text-slate-700 hover:bg-slate-50' }}">
+                            <i class="fa-solid fa-{{ item.icon }} w-4 text-center text-xs"></i>
+                            {{ item.label }}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
     </nav>
 </div>
 </div>

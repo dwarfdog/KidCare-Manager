@@ -56,6 +56,25 @@
     {{- parent() -}}
 {%- endblock textarea_widget -%}
 
+{%- block _bank_category_icon_widget -%}
+    {%- set curated_icons = ['tag', 'house', 'bolt', 'droplet', 'fire', 'wrench', 'car', 'bus', 'plane', 'cart-shopping', 'utensils', 'mug-hot', 'heart-pulse', 'shield-halved', 'piggy-bank', 'money-bill-wave', 'graduation-cap', 'baby', 'paw', 'shirt', 'dumbbell', 'gamepad', 'champagne-glasses', 'gift', 'mobile-screen', 'wifi', 'book', 'film', 'music', 'umbrella-beach', 'briefcase', 'coins', 'right-left', 'building-columns', 'hand-holding-dollar', 'robot'] -%}
+    <div x-data="{ iconValue: '{{ value|default('tag') }}' }">
+        <input type="hidden" name="{{ full_name }}" id="{{ id }}" x-model="iconValue">
+        <div class="grid grid-cols-7 gap-1.5 rounded-md border border-slate-300 bg-white p-2 sm:grid-cols-9">
+            {%- for iconName in curated_icons -%}
+                <button type="button"
+                        aria-label="{{ iconName }}"
+                        data-tippy-content="{{ iconName }}"
+                        @click="iconValue = '{{ iconName }}'"
+                        :class="iconValue === '{{ iconName }}' ? 'bg-teal-600 text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'"
+                        class="flex h-8 w-8 items-center justify-center rounded-md">
+                    <i class="fa-solid fa-{{ iconName }}"></i>
+                </button>
+            {%- endfor -%}
+        </div>
+    </div>
+{%- endblock _bank_category_icon_widget -%}
+
 {%- block choice_widget_collapsed -%}
     {%- set attr = attr|merge({class: (attr.class|default('') ~ ' block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500')|trim}) -%}
     {{- parent() -}}

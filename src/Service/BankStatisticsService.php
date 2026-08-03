@@ -125,6 +125,7 @@ final class BankStatisticsService
         $expense = 0.0;
         $categoryExpenses = [];
         $categoryColors = [];
+        $categoryIcons = [];
 
         foreach ($transactions as $transaction) {
             if (in_array($transaction->getType(), [BankTransaction::TYPE_TRANSFER_IN, BankTransaction::TYPE_TRANSFER_OUT], true)) {
@@ -139,6 +140,7 @@ final class BankStatisticsService
                     $categoryName = $split->getCategory()?->getName() ?? 'Sans categorie';
                     $categoryExpenses[$categoryName] = ($categoryExpenses[$categoryName] ?? 0.0) + abs($split->getAmount());
                     $categoryColors[$categoryName] = $split->getCategory()?->getColor() ?? '#64748b';
+                    $categoryIcons[$categoryName] = $split->getCategory()?->getIcon() ?? 'tag';
                 }
             } elseif ($transaction->getAmount() >= 0) {
                 $income += $transaction->getAmount();
@@ -147,6 +149,7 @@ final class BankStatisticsService
                 $categoryName = $transaction->getCategory()?->getName() ?? 'Sans categorie';
                 $categoryExpenses[$categoryName] = ($categoryExpenses[$categoryName] ?? 0.0) + abs($transaction->getAmount());
                 $categoryColors[$categoryName] = $transaction->getCategory()?->getColor() ?? '#64748b';
+                $categoryIcons[$categoryName] = $transaction->getCategory()?->getIcon() ?? 'tag';
             }
         }
 
@@ -154,7 +157,7 @@ final class BankStatisticsService
 
         $rows = [];
         foreach ($categoryExpenses as $name => $value) {
-            $rows[] = ['label' => $name, 'amount' => round($value, 2), 'color' => $categoryColors[$name]];
+            $rows[] = ['label' => $name, 'amount' => round($value, 2), 'color' => $categoryColors[$name], 'icon' => $categoryIcons[$name]];
         }
 
         return [
@@ -169,9 +172,9 @@ final class BankStatisticsService
      * Limite le nombre de parts du graphique: au-dela de $limit categories,
      * les plus petites sont regroupees dans une part "Autres".
      *
-     * @param array<int, array{label: string, amount: float, color: string}> $rows
+     * @param array<int, array{label: string, amount: float, color: string, icon: string}> $rows
      *
-     * @return array<int, array{label: string, amount: float, color: string}>
+     * @return array<int, array{label: string, amount: float, color: string, icon: string}>
      */
     private function groupTopCategories(array $rows, int $limit): array
     {
@@ -184,7 +187,7 @@ final class BankStatisticsService
         foreach (array_slice($rows, $limit) as $row) {
             $othersAmount += $row['amount'];
         }
-        $top[] = ['label' => 'Autres', 'amount' => round($othersAmount, 2), 'color' => '#94a3b8'];
+        $top[] = ['label' => 'Autres', 'amount' => round($othersAmount, 2), 'color' => '#94a3b8', 'icon' => 'ellipsis'];
 
         return $top;
     }

@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% import 'components/_icon_action.html.twig' as icons %}
 
 {% block title %}Templates{% endblock %}
 
@@ -22,9 +23,9 @@
                         <h2 class="font-semibold">{{ template.name }}</h2>
                         <p class="text-sm text-slate-500">{{ template.nanny.fullName }}</p>
                     </div>
-                    <div class="flex gap-3 text-sm font-medium">
-                        <a href="{{ path('app_care_template_show', {'publicId': template.publicId}) }}" class="text-teal-700 hover:text-teal-900">Voir</a>
-                        <a href="{{ path('app_care_template_edit', {'publicId': template.publicId}) }}" class="text-slate-700 hover:text-slate-950">Modifier</a>
+                    <div class="flex items-center gap-1">
+                        {{ icons.link('eye', 'Voir le template ' ~ template.name, path('app_care_template_show', {'publicId': template.publicId}), 'primary') }}
+                        {{ icons.link('pen', 'Modifier le template ' ~ template.name, path('app_care_template_edit', {'publicId': template.publicId})) }}
                     </div>
                 </div>
 
@@ -40,10 +41,10 @@
                     {% endif %}
                 </div>
 
-                <div class="mt-5 flex flex-wrap gap-3 text-sm font-medium">
+                <div class="mt-5 flex items-center gap-1">
                     <form method="post" action="{{ path('app_care_template_duplicate', {'publicId': template.publicId}) }}">
                         <input type="hidden" name="_token" value="{{ csrf_token('duplicate_template_' ~ template.publicId) }}">
-                        <button class="text-slate-700 hover:text-slate-950">Dupliquer</button>
+                        {{ icons.button('copy', 'Dupliquer le template ' ~ template.name) }}
                     </form>
                     <form
                         method="post"
@@ -55,7 +56,7 @@
                         data-confirm-confirm-text-value="Supprimer"
                     >
                         <input type="hidden" name="_token" value="{{ csrf_token('delete_template_' ~ template.publicId) }}">
-                        <button class="text-red-700 hover:text-red-900">Supprimer</button>
+                        {{ icons.button('trash-can', 'Supprimer le template ' ~ template.name, 'danger') }}
                     </form>
                 </div>
             </article>

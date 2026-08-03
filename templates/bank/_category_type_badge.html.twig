@@ -1,0 +1,22 @@
+{% set labels = {
+    'expense': 'Depense',
+    'income': 'Revenu',
+    'transfer': 'Virement',
+    'neutral': 'Neutre',
+} %}
+{% set icons = {
+    'expense': 'arrow-trend-down',
+    'income': 'arrow-trend-up',
+    'transfer': 'right-left',
+    'neutral': 'piggy-bank',
+} %}
+{% set styles = {
+    'expense': 'bg-rose-50 text-rose-700 ring-rose-600/20',
+    'income': 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+    'transfer': 'bg-slate-100 text-slate-700 ring-slate-500/20',
+    'neutral': 'bg-indigo-50 text-indigo-700 ring-indigo-600/20',
+} %}
+{% set label = labels[type]|default(type) %}
+<span class="inline-flex h-7 w-7 items-center justify-center rounded-full ring-1 ring-inset {{ styles[type]|default('bg-slate-100 text-slate-700 ring-slate-500/20') }}" data-tippy-content="{{ label }}" aria-label="{{ label }}">
+    <i class="fa-solid fa-{{ icons[type]|default('tag') }} text-xs"></i>
+</span>

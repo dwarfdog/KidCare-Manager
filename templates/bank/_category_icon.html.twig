@@ -1,0 +1,4 @@
+{# Pastille icone+couleur d'une categorie. Params: icon, color, size (classe tailwind optionnelle) #}
+<span class="inline-flex {{ size|default('h-5 w-5') }} shrink-0 items-center justify-center rounded-full text-[10px] text-white" style="background-color: {{ color|default('#64748b') }}">
+    <i class="fa-solid fa-{{ icon|default('tag') }}"></i>
+</span>

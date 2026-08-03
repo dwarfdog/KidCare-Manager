@@ -18,19 +18,23 @@ final class KidCareReportService
 {
     public function __construct(private readonly CareRepository $cares, private readonly NannyRateRepository $rates, private readonly ApplicationSettings $settings, private readonly Environment $twig) {}
 
-    /** @return array{rows: array<int, array<string, mixed>>, summary: array<string, float|int>, byMonth: array<string, array<string, float|int>>} */
+    /** @return array{rows: array<int, array<string, mixed>>, summary: array<string, float|int>, byMonth: array<int, array{month: string, hours: float, meals: int, amount: float}>} */
     public function build(User $user, \DateTimeInterface $from, \DateTimeInterface $to, ?Nanny $nanny = null): array
     {
-        $rows = []; $summary = ['hours' => 0.0, 'meals' => 0, 'amount' => 0.0]; $byMonth = [];
+        $rows = []; $summary = ['hours' => 0.0, 'meals' => 0, 'amount' => 0.0]; $monthly = [];
         foreach ($this->cares->findBillableForReport($user, $from, $to, $nanny) as $care) {
             $rate = $care->getNanny() ? $this->rates->findApplicableRate($user, $care->getNanny(), $care->getDate()) : null;
             $amount = $rate ? ($care->getHoursCount() * $rate->getHourlyRate()) + ($care->getMealsCount() * $rate->getMealRate()) : 0.0;
             $row = ['care' => $care, 'nanny' => $care->getNannyDisplayName(), 'amount' => round($amount, 2), 'status' => $care->isRealized() ? 'Réalisée' : 'Non réalisée rémunérée']; $rows[] = $row;
             $summary['hours'] += $care->getHoursCount(); $summary['meals'] += $care->getMealsCount(); $summary['amount'] += $amount;
-            $month = (string) $care->getMonth(); $byMonth[$month] ??= ['hours' => 0.0, 'meals' => 0, 'amount' => 0.0];
-            $byMonth[$month]['hours'] += $care->getHoursCount(); $byMonth[$month]['meals'] += $care->getMealsCount(); $byMonth[$month]['amount'] += $amount;
+            $month = (string) $care->getMonth(); $monthly[$month] ??= ['month' => $month, 'hours' => 0.0, 'meals' => 0, 'amount' => 0.0];
+            $monthly[$month]['hours'] += $care->getHoursCount(); $monthly[$month]['meals'] += $care->getMealsCount(); $monthly[$month]['amount'] += $amount;
         }
         $summary['hours'] = round((float) $summary['hours'], 2); $summary['amount'] = round((float) $summary['amount'], 2);
+        ksort($monthly);
+        foreach ($monthly as &$m) { $m['hours'] = round((float) $m['hours'], 2); $m['amount'] = round((float) $m['amount'], 2); }
+        unset($m);
+        $byMonth = array_values($monthly);
         return compact('rows', 'summary', 'byMonth');
     }
 

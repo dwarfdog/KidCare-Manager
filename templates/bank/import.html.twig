@@ -2,6 +2,7 @@
 
 {% block title %}Import bancaire{% endblock %}
 
+{% import 'components/_icon_action.html.twig' as icons %}
 {% block body %}
 {% include 'bank/_tabs.html.twig' %}
 <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -21,7 +22,7 @@
                 <div class="px-5 py-3 text-sm">
                     <p class="font-medium">{{ batch.originalFilename }}</p>
                     <p class="text-xs text-slate-500">{{ batch.importedCount }} ajoutee(s), {{ batch.skippedCount }} ignoree(s), {{ batch.errorCount }} erreur(s)</p>
-                    {% if not batch.undoneAt %}<form method="post" action="{{ path('app_bank_import_undo', {publicId: batch.publicId}) }}" class="mt-2" data-controller="confirm" data-confirm-message-value="Les opérations intactes seront archivées. Les opérations modifiées seront conservées."><input type="hidden" name="_token" value="{{ csrf_token('bank_import_undo_' ~ batch.publicId) }}"><button class="text-xs font-semibold text-rose-700">Annuler cet import</button></form>{% else %}<p class="mt-1 text-xs font-medium text-slate-400">Import annulé le {{ batch.undoneAt|date('d/m/Y') }}</p>{% endif %}
+                    {% if not batch.undoneAt %}<form method="post" action="{{ path('app_bank_import_undo', {publicId: batch.publicId}) }}" class="mt-2" data-controller="confirm" data-confirm-message-value="Les opérations intactes seront archivées. Les opérations modifiées seront conservées."><input type="hidden" name="_token" value="{{ csrf_token('bank_import_undo_' ~ batch.publicId) }}">{{ icons.button('rotate-left', 'Annuler l\'import ' ~ batch.originalFilename, 'danger') }}</form>{% else %}<p class="mt-1 text-xs font-medium text-slate-400">Import annulé le {{ batch.undoneAt|date('d/m/Y') }}</p>{% endif %}
                 </div>
             {% else %}
                 <p class="px-5 py-4 text-sm text-slate-500">Aucun import.</p>

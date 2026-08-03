@@ -6,4 +6,14 @@
     'loan': 'bg-amber-50 text-amber-800 ring-amber-600/20',
     'cash': 'bg-slate-100 text-slate-700 ring-slate-500/20',
 } %}
-<span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset {{ styles[type]|default('bg-slate-100 text-slate-700 ring-slate-500/20') }}">{{ label }}</span>
+{% set icons = {
+    'current': 'building-columns',
+    'savings': 'piggy-bank',
+    'deferred_card': 'credit-card',
+    'credit': 'money-check',
+    'loan': 'hand-holding-dollar',
+    'cash': 'money-bill-wave',
+} %}
+<span class="inline-flex h-7 w-7 items-center justify-center rounded-full ring-1 ring-inset {{ styles[type]|default('bg-slate-100 text-slate-700 ring-slate-500/20') }}" data-tippy-content="{{ label }}" aria-label="{{ label }}">
+    <i class="fa-solid fa-{{ icons[type]|default('tag') }} text-xs"></i>
+</span>

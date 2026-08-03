@@ -20,10 +20,10 @@
                 <a href="{{ path('app_bank_transaction_new', {account: account.publicId}) }}" class="rounded-md bg-teal-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700">
                     <i class="fa-solid fa-plus"></i> Operation
                 </a>
-                <a href="{{ path('app_bank_account_edit', {publicId: account.publicId}) }}" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Modifier</a>
-                <a href="{{ path('app_bank_analytics', {accounts: account.publicId}) }}" class="rounded-md border border-teal-300 px-3 py-2 text-sm font-semibold text-teal-800 hover:bg-teal-50">Analyser</a>
+                <a href="{{ path('app_bank_account_edit', {publicId: account.publicId}) }}" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-pen"></i> Modifier</a>
+                <a href="{{ path('app_bank_analytics', {accounts: account.publicId}) }}" class="rounded-md border border-teal-300 px-3 py-2 text-sm font-semibold text-teal-800 hover:bg-teal-50"><i class="fa-solid fa-chart-line"></i> Analyser</a>
                 {% if account.isLoan() %}
-                    <a href="{{ path('app_bank_loans') }}" class="rounded-md border border-amber-300 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-50">Suivi du pret</a>
+                    <a href="{{ path('app_bank_loans') }}" class="rounded-md border border-amber-300 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-50"><i class="fa-solid fa-hand-holding-dollar"></i> Suivi du pret</a>
                 {% endif %}
             </div>
         </div>

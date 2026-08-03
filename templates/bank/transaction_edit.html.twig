@@ -1,4 +1,5 @@
 {% extends 'base.html.twig' %}
+{% import 'components/_icon_action.html.twig' as icons %}
 
 {% block title %}Operation bancaire{% endblock %}
 
@@ -110,10 +111,12 @@
               data-controller="confirm"
               data-action="submit->confirm#submit"
               data-confirm-title-value="Archiver cette operation ?"
-              data-confirm-text-value="Elle restera consultable dans les Archives, sans restauration possible."
+              data-confirm-text-value="Elle restera consultable dans les Archives, sans possibilite de restauration."
               data-confirm-confirm-text-value="Archiver">
             <input type="hidden" name="_token" value="{{ csrf_token('bank_transaction_archive_' ~ transaction.publicId) }}">
-            <button class="rounded-md border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50">Archiver</button>
+            <button class="inline-flex items-center gap-2 rounded-md border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50" aria-label="Archiver cette operation" data-tippy-content="Archiver cette operation">
+                <i class="fa-solid fa-box-archive"></i> Archiver
+            </button>
         </form>
     </div>
 
@@ -131,7 +134,10 @@
                     <div class="flex items-center justify-between gap-3 px-5 py-3"><a href="{{ path('app_bank_attachment_download', {publicId: attachment.publicId}) }}" class="min-w-0 text-sm font-medium text-teal-700 hover:text-teal-900">
                         <span class="block truncate">{{ attachmentManager.originalName(attachment) }}</span>
                         <span class="text-xs font-normal text-slate-500">{{ attachment.mimeType }} · {{ (attachment.sizeBytes / 1024)|number_format(0, ',', ' ') }} Ko</span>
-                    </a><form method="post" action="{{ path('app_bank_attachment_archive',{publicId:attachment.publicId}) }}" data-controller="confirm"><input type="hidden" name="_token" value="{{ csrf_token('bank_attachment_archive_'~attachment.publicId) }}"><button aria-label="Archiver la pièce jointe" class="text-rose-700"><i class="fa-regular fa-trash-can"></i></button></form></div>
+                    </a><form method="post" action="{{ path('app_bank_attachment_archive',{publicId:attachment.publicId}) }}" data-controller="confirm">
+                        <input type="hidden" name="_token" value="{{ csrf_token('bank_attachment_archive_'~attachment.publicId) }}">
+                        {{ icons.button('trash-can', 'Archiver la piece jointe ' ~ attachmentManager.originalName(attachment), 'danger') }}
+                    </form></div>
                 {% else %}
                     <p class="px-5 py-4 text-sm text-slate-500">Aucune piece jointe.</p>
                 {% endfor %}

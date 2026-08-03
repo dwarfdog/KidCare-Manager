@@ -41,10 +41,12 @@
                     {% for transaction in transactions %}
                         <tr class="hover:bg-slate-50">
                             <td class="whitespace-nowrap px-5 py-3 text-sm text-slate-500">{{ transaction.date|date('d/m/Y') }}</td>
-                            <td class="px-5 py-3 text-sm font-medium">
+                            <td class="whitespace-nowrap px-5 py-3 text-sm font-medium">
                                 <a href="{{ path('app_bank_transaction_edit', {publicId: transaction.publicId}) }}" class="hover:text-teal-700">{{ transactionManager.label(transaction) }}</a>
                             </td>
-                            <td class="px-5 py-3 text-sm text-slate-600">{{ transaction.category ? transaction.category.name : 'Sans categorie' }}</td>
+                            <td class="whitespace-nowrap px-5 py-3 text-sm text-slate-600">
+                                {% if transaction.category %}<span class="inline-flex items-center gap-1.5">{{ include('bank/_category_icon.html.twig', {icon: transaction.category.icon, color: transaction.category.color, size: 'h-4 w-4'}) }} {{ transaction.category.name }}</span>{% else %}Sans categorie{% endif %}
+                            </td>
                             <td class="px-5 py-3 text-sm text-slate-600">{{ include('bank/_transaction_status_badge.html.twig', {status: transaction.status}) }}</td>
                             <td class="px-5 py-3 text-sm text-slate-600">
                                 {% if transaction.real %}

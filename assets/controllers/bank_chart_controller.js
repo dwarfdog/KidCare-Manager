@@ -6,6 +6,7 @@ export default class extends Controller {
     static targets = ['canvas'];
     static values = {
         type: { type: String, default: 'doughnut' },
+        unit: { type: String, default: 'eur' },
         labels: Array,
         values: Array,
         colors: Array,
@@ -27,7 +28,7 @@ export default class extends Controller {
     }
 
     renderLine(Chart) {
-        const euro = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
+        const format = this.formatter();
         this.chart = new Chart(this.canvasTarget, {
             type: 'line',
             data: {
@@ -44,11 +45,21 @@ export default class extends Controller {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
-                    tooltip: { callbacks: { label: (context) => euro.format(context.parsed.y) } },
+                    tooltip: { callbacks: { label: (context) => format(context.parsed.y) } },
                 },
-                scales: { y: { ticks: { callback: (value) => euro.format(value) } } },
+                scales: { y: { ticks: { callback: (value) => format(value) } } },
             },
         });
+    }
+
+    formatter() {
+        if (this.unitValue === 'hours') {
+            const hours = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 });
+            return (value) => `${hours.format(value)} h`;
+        }
+
+        const euro = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
+        return (value) => euro.format(value);
     }
 
     renderDoughnut(Chart) {
