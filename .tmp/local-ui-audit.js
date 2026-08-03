@@ -1,7 +1,7 @@
 const { chromium } = require('@playwright/test');
 
 const baseUrl = 'http://localhost:8080';
-const credentials = { username: 'Lynda', password: 'Lynda27121979' };
+const credentials = { username: 'Test', password: 'Azerty,123456' };
 const viewports = [
     { name: 'desktop', width: 1920, height: 1080 },
     { name: 'mobile', width: 390, height: 844 },
