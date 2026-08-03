@@ -1,5 +1,52 @@
 <?php
-namespace App\Service;use App\Entity\BankTransaction;use App\Entity\BankTransactionSplit;use App\Entity\User;use App\Repository\BankCategoryRepository;use App\Repository\BankTransactionSplitRepository;use Doctrine\ORM\EntityManagerInterface;
-final class BankTransactionSplitManager{public function __construct(private readonly BankTransactionSplitRepository$splits,private readonly BankCategoryRepository$categories,private readonly BankEncryptionService$encryption,private readonly EntityManagerInterface$em,private readonly BankAuditLogger$audit){}
-/** @param array<int,array{label?:string,amount?:mixed,category?:string}>$rows */public function replace(User$user,BankTransaction$transaction,array$rows):array{if($transaction->isReconciled())throw new \DomainException('Une opération rapprochée doit être dérapprochée avant modification.');$normalized=[];$sum=0.0;foreach($rows as$row){$amount=(float)str_replace(',','.',(string)($row['amount']??0));if($transaction->getAmount()<0)$amount=-abs($amount);else$amount=abs($amount);if(abs($amount)<0.005)continue;$category=$this->categories->findOneForUserByPublicId($user,(string)($row['category']??''));if(!$category)throw new \InvalidArgumentException('Chaque ligne doit avoir une catégorie valide.');$normalized[]=['amount'=>$amount,'label'=>trim((string)($row['label']??''))?:$this->encryption->decrypt($transaction->getEncryptedLabel()),'category'=>$category];$sum+=$amount;}if(count($normalized)<2)throw new \InvalidArgumentException('Une ventilation doit contenir au moins deux lignes.');if((int)round($sum*100)!==(int)round($transaction->getAmount()*100))throw new \InvalidArgumentException(sprintf('La somme des lignes (%.2f) doit être strictement égale au montant parent (%.2f).',$sum,$transaction->getAmount()));foreach($this->splits->findForTransaction($transaction)as$old)$this->em->remove($old);$created=[];foreach($normalized as$row){$split=(new BankTransactionSplit())->setUser($user)->setTransaction($transaction)->setCategory($row['category'])->setAmount($row['amount'])->setEncryptedLabel($this->encryption->encrypt($row['label'])??'');$this->em->persist($split);$created[]=$split;}$this->audit->record($user,'bank.transaction.split','bank_transaction',$transaction->getPublicId(),['lines'=>count($created)]);return$created;}
-public function clear(User$user,BankTransaction$transaction):void{if($transaction->isReconciled())throw new \DomainException('Une opération rapprochée doit être dérapprochée avant modification.');foreach($this->splits->findForTransaction($transaction)as$split)$this->em->remove($split);$this->audit->record($user,'bank.transaction.unsplit','bank_transaction',$transaction->getPublicId());}public function label(BankTransactionSplit$split):string{return$this->encryption->decrypt($split->getEncryptedLabel());}}
+
+namespace App\Service;
+
+use App\Entity\BankTransaction;
+use App\Entity\BankTransactionSplit;
+use App\Entity\User;
+use App\Repository\BankCategoryRepository;
+use App\Repository\BankTransactionSplitRepository;
+use Doctrine\ORM\EntityManagerInterface;
+
+final class BankTransactionSplitManager
+{
+    public function __construct(private readonly BankTransactionSplitRepository $splits, private readonly BankCategoryRepository $categories, private readonly BankEncryptionService $encryption, private readonly EntityManagerInterface $em, private readonly BankAuditLogger $audit) {}
+    /** @param array<int,array{label?:string,amount?:mixed,category?:string}>$rows */ public function replace(User $user, BankTransaction $transaction, array $rows): array
+    {
+        if ($transaction->isReconciled()) throw new \DomainException('Une opération rapprochée doit être dérapprochée avant modification.');
+        $normalized = [];
+        $sum = 0.0;
+        foreach ($rows as $row) {
+            $amount = (float)str_replace(',', '.', (string)($row['amount'] ?? 0));
+            if ($transaction->getAmount() < 0) $amount = -abs($amount);
+            else $amount = abs($amount);
+            if (abs($amount) < 0.005) continue;
+            $category = $this->categories->findOneForUserByPublicId($user, (string)($row['category'] ?? ''));
+            if (!$category) throw new \InvalidArgumentException('Chaque ligne doit avoir une catégorie valide.');
+            $normalized[] = ['amount' => $amount, 'label' => trim((string)($row['label'] ?? '')) ?: $this->encryption->decrypt($transaction->getEncryptedLabel()), 'category' => $category];
+            $sum += $amount;
+        }
+        if (count($normalized) < 2) throw new \InvalidArgumentException('Une ventilation doit contenir au moins deux lignes.');
+        if ((int)round($sum * 100) !== (int)round($transaction->getAmount() * 100)) throw new \InvalidArgumentException(sprintf('La somme des lignes (%.2f) doit être strictement égale au montant parent (%.2f).', $sum, $transaction->getAmount()));
+        foreach ($this->splits->findForTransaction($transaction) as $old) $this->em->remove($old);
+        $created = [];
+        foreach ($normalized as $row) {
+            $split = (new BankTransactionSplit())->setUser($user)->setTransaction($transaction)->setCategory($row['category'])->setAmount($row['amount'])->setEncryptedLabel($this->encryption->encrypt($row['label']) ?? '');
+            $this->em->persist($split);
+            $created[] = $split;
+        }
+        $this->audit->record($user, 'bank.transaction.split', 'bank_transaction', $transaction->getPublicId(), ['lines' => count($created)]);
+        return $created;
+    }
+    public function clear(User $user, BankTransaction $transaction): void
+    {
+        if ($transaction->isReconciled()) throw new \DomainException('Une opération rapprochée doit être dérapprochée avant modification.');
+        foreach ($this->splits->findForTransaction($transaction) as $split) $this->em->remove($split);
+        $this->audit->record($user, 'bank.transaction.unsplit', 'bank_transaction', $transaction->getPublicId());
+    }
+    public function label(BankTransactionSplit $split): string
+    {
+        return $this->encryption->decrypt($split->getEncryptedLabel());
+    }
+}

@@ -5,3 +5,5 @@ export const app = startStimulusApp(require.context(
     true,
     /\.[jt]sx?$/
 ));
+
+app.debug = false;

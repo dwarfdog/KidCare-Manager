@@ -14,9 +14,7 @@ use Symfony\Component\Validator\Constraints\PositiveOrZero;
 
 class NannyRateType extends AbstractType
 {
-    public function __construct(private readonly ApplicationSettings $settings)
-    {
-    }
+    public function __construct(private readonly ApplicationSettings $settings) {}
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {

@@ -74,5 +74,8 @@ class CareTemplateRepository extends ServiceEntityRepository
     }
 
     /** @return CareTemplate[] */
-    public function findArchivedForUser(User $user): array { return $this->createQueryBuilder('t')->andWhere('t.user = :user')->andWhere('t.archivedAt IS NOT NULL')->setParameter('user',$user)->orderBy('t.archivedAt','DESC')->getQuery()->getResult(); }
+    public function findArchivedForUser(User $user): array
+    {
+        return $this->createQueryBuilder('t')->andWhere('t.user = :user')->andWhere('t.archivedAt IS NOT NULL')->setParameter('user', $user)->orderBy('t.archivedAt', 'DESC')->getQuery()->getResult();
+    }
 }

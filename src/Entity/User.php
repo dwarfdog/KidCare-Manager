@@ -204,9 +204,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function eraseCredentials(): void
-    {
-    }
+    public function eraseCredentials(): void {}
 
     public function getCreatedAt(): \DateTimeInterface
     {
@@ -268,8 +266,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         return new ArrayCollection(
             $this->nannyAssignments
-                ->filter(static fn (NannyAssignment $assignment): bool => $assignment->getDetachedAt() === null)
-                ->map(static fn (NannyAssignment $assignment): Nanny => $assignment->getNanny())
+                ->filter(static fn(NannyAssignment $assignment): bool => $assignment->getDetachedAt() === null)
+                ->map(static fn(NannyAssignment $assignment): Nanny => $assignment->getNanny())
                 ->toArray()
         );
     }

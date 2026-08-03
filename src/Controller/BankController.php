@@ -625,7 +625,7 @@ class BankController extends AbstractController
 
         return $this->render('bank/categories.html.twig', [
             'categories' => $categoryRepository->findActiveForUser($this->getUser()),
-            'analyticsCategoryIds' => array_map(static fn (BankCategory $item): string => $item->getPublicId(), $analyticsCategories),
+            'analyticsCategoryIds' => array_map(static fn(BankCategory $item): string => $item->getPublicId(), $analyticsCategories),
             'form' => $form,
         ]);
     }
@@ -981,8 +981,22 @@ class BankController extends AbstractController
     private function sanitizeAccountListParameters(array $parameters): array
     {
         $allowed = [
-            'real_page', 'real_from', 'real_to', 'real_category', 'real_type', 'real_verified', 'real_sort', 'real_direction', 'real_per_page',
-            'planned_from', 'planned_to', 'planned_category', 'planned_type', 'planned_sort', 'planned_direction', 'planned_per_page',
+            'real_page',
+            'real_from',
+            'real_to',
+            'real_category',
+            'real_type',
+            'real_verified',
+            'real_sort',
+            'real_direction',
+            'real_per_page',
+            'planned_from',
+            'planned_to',
+            'planned_category',
+            'planned_type',
+            'planned_sort',
+            'planned_direction',
+            'planned_per_page',
         ];
         $sanitized = [];
         foreach ($allowed as $name) {

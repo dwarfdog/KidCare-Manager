@@ -63,13 +63,36 @@ class CareAbsence
         $this->createdAt = new \DateTime();
     }
 
-    public function getId(): ?int { return $this->id; }
-    public function getPublicId(): string { return $this->publicId; }
-    public function getUser(): ?User { return $this->user; }
-    public function setUser(?User $user): static { $this->user = $user; return $this; }
-    public function getNanny(): ?Nanny { return $this->nanny; }
-    public function setNanny(?Nanny $nanny): static { $this->nanny = $nanny; return $this; }
-    public function getType(): string { return $this->type; }
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+    public function getPublicId(): string
+    {
+        return $this->publicId;
+    }
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+    public function setUser(?User $user): static
+    {
+        $this->user = $user;
+        return $this;
+    }
+    public function getNanny(): ?Nanny
+    {
+        return $this->nanny;
+    }
+    public function setNanny(?Nanny $nanny): static
+    {
+        $this->nanny = $nanny;
+        return $this;
+    }
+    public function getType(): string
+    {
+        return $this->type;
+    }
 
     public function setType(string $type): static
     {
@@ -95,17 +118,62 @@ class CareAbsence
         ];
     }
 
-    public function getTypeLabel(): string { return self::typeLabels()[$this->type] ?? $this->type; }
-    public function getStartsAt(): ?\DateTimeInterface { return $this->startsAt; }
-    public function setStartsAt(\DateTimeInterface $startsAt): static { $this->startsAt = $startsAt; return $this; }
-    public function getEndsAt(): ?\DateTimeInterface { return $this->endsAt; }
-    public function setEndsAt(\DateTimeInterface $endsAt): static { $this->endsAt = $endsAt; return $this; }
-    public function isRemunerated(): bool { return $this->remunerated; }
-    public function setRemunerated(bool $remunerated): static { $this->remunerated = $remunerated; return $this; }
-    public function getNotes(): ?string { return $this->notes; }
-    public function setNotes(?string $notes): static { $notes = $notes !== null ? trim($notes) : null; $this->notes = $notes !== '' ? $notes : null; return $this; }
-    public function getArchivedAt(): ?\DateTimeInterface { return $this->archivedAt; }
-    public function archive(): static { $this->archivedAt = new \DateTime(); return $this; }
-    public function isArchived(): bool { return $this->archivedAt !== null; }
-    public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
+    public function getTypeLabel(): string
+    {
+        return self::typeLabels()[$this->type] ?? $this->type;
+    }
+    public function getStartsAt(): ?\DateTimeInterface
+    {
+        return $this->startsAt;
+    }
+    public function setStartsAt(\DateTimeInterface $startsAt): static
+    {
+        $this->startsAt = $startsAt;
+        return $this;
+    }
+    public function getEndsAt(): ?\DateTimeInterface
+    {
+        return $this->endsAt;
+    }
+    public function setEndsAt(\DateTimeInterface $endsAt): static
+    {
+        $this->endsAt = $endsAt;
+        return $this;
+    }
+    public function isRemunerated(): bool
+    {
+        return $this->remunerated;
+    }
+    public function setRemunerated(bool $remunerated): static
+    {
+        $this->remunerated = $remunerated;
+        return $this;
+    }
+    public function getNotes(): ?string
+    {
+        return $this->notes;
+    }
+    public function setNotes(?string $notes): static
+    {
+        $notes = $notes !== null ? trim($notes) : null;
+        $this->notes = $notes !== '' ? $notes : null;
+        return $this;
+    }
+    public function getArchivedAt(): ?\DateTimeInterface
+    {
+        return $this->archivedAt;
+    }
+    public function archive(): static
+    {
+        $this->archivedAt = new \DateTime();
+        return $this;
+    }
+    public function isArchived(): bool
+    {
+        return $this->archivedAt !== null;
+    }
+    public function getCreatedAt(): \DateTimeInterface
+    {
+        return $this->createdAt;
+    }
 }

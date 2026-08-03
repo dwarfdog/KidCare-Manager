@@ -5,6 +5,7 @@ import { Controller } from '@hotwired/stimulus';
 export default class extends Controller {
     static targets = ['canvas'];
     static values = {
+        type: { type: String, default: 'doughnut' },
         labels: Array,
         values: Array,
         colors: Array,
@@ -16,6 +17,41 @@ export default class extends Controller {
         }
 
         const { default: Chart } = await import('chart.js/auto');
+
+        if (this.typeValue === 'line') {
+            this.renderLine(Chart);
+            return;
+        }
+
+        this.renderDoughnut(Chart);
+    }
+
+    renderLine(Chart) {
+        const euro = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
+        this.chart = new Chart(this.canvasTarget, {
+            type: 'line',
+            data: {
+                labels: this.labelsValue,
+                datasets: [{
+                    data: this.valuesValue,
+                    borderColor: '#0f766e',
+                    backgroundColor: '#0f766e',
+                    tension: 0.25,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: (context) => euro.format(context.parsed.y) } },
+                },
+                scales: { y: { ticks: { callback: (value) => euro.format(value) } } },
+            },
+        });
+    }
+
+    renderDoughnut(Chart) {
         const euro = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
         const total = this.valuesValue.reduce((sum, value) => sum + value, 0);
         const colors = this.colorsValue.length === this.valuesValue.length

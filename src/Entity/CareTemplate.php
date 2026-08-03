@@ -143,7 +143,17 @@ class CareTemplate
         return $this;
     }
 
-    public function getArchivedAt(): ?\DateTimeInterface { return $this->archivedAt; }
-    public function archive(): static { $this->archivedAt = new \DateTime(); return $this; }
-    public function isArchived(): bool { return $this->archivedAt !== null; }
+    public function getArchivedAt(): ?\DateTimeInterface
+    {
+        return $this->archivedAt;
+    }
+    public function archive(): static
+    {
+        $this->archivedAt = new \DateTime();
+        return $this;
+    }
+    public function isArchived(): bool
+    {
+        return $this->archivedAt !== null;
+    }
 }

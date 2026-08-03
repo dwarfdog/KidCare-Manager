@@ -15,6 +15,5 @@ final class BankTransactionPage
         public readonly int $page,
         public readonly int $pages,
         public readonly int $perPage,
-    ) {
-    }
+    ) {}
 }

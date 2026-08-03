@@ -118,5 +118,8 @@ class NannyRateRepository extends ServiceEntityRepository
     }
 
     /** @return NannyRate[] */
-    public function findArchivedForUser(User $user): array { return $this->createQueryBuilder('r')->andWhere('r.user = :user')->andWhere('r.archivedAt IS NOT NULL')->setParameter('user',$user)->orderBy('r.archivedAt','DESC')->getQuery()->getResult(); }
+    public function findArchivedForUser(User $user): array
+    {
+        return $this->createQueryBuilder('r')->andWhere('r.user = :user')->andWhere('r.archivedAt IS NOT NULL')->setParameter('user', $user)->orderBy('r.archivedAt', 'DESC')->getQuery()->getResult();
+    }
 }

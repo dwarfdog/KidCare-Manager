@@ -19,8 +19,7 @@ final class TemplateApplicationService
         private readonly MonthlyPaymentCalculator $paymentCalculator,
         private readonly EntityManagerInterface $entityManager,
         private readonly ActivityLogger $activityLogger,
-    ) {
-    }
+    ) {}
 
     public function preview(User $user, CareTemplate $template, \DateTimeImmutable $weekStart): array
     {
@@ -57,7 +56,7 @@ final class TemplateApplicationService
             ]);
             $this->entityManager->flush();
 
-            $result['events'] = array_map(fn (Care $care): array => [
+            $result['events'] = array_map(fn(Care $care): array => [
                 'id' => $care->getPublicId(),
                 'date' => $care->getDate()->format('Y-m-d'),
             ], $created);
@@ -95,10 +94,10 @@ final class TemplateApplicationService
                     if (str_starts_with($reason, 'Conflit')) {
                         $conflicts[] = ['label' => $candidate['label'], 'reason' => $reason];
                     } else {
-                    $rejected[] = [
-                        'label' => $candidate['label'],
-                        'reason' => $reason,
-                    ];
+                        $rejected[] = [
+                            'label' => $candidate['label'],
+                            'reason' => $reason,
+                        ];
                         continue;
                     }
                 }

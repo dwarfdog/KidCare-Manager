@@ -61,7 +61,7 @@ final class BankAnalyticsController extends AbstractController
     ): array {
         $user = $this->getUser();
         $accounts = $accountRepository->findActiveForUser($user);
-        $categories = array_values(array_filter($categoryRepository->findActiveForUser($user), fn (BankCategory $category): bool => $analytics->hasAnyData($user, $category, $accounts)));
+        $categories = array_values(array_filter($categoryRepository->findActiveForUser($user), fn(BankCategory $category): bool => $analytics->hasAnyData($user, $category, $accounts)));
         $selectedCategory = $this->selectedCategory($request, $categories);
         $selectedAccounts = $this->selectedAccounts($request, $accounts);
         [$period, $from, $to, $error] = $this->period($request);
@@ -80,7 +80,7 @@ final class BankAnalyticsController extends AbstractController
             'categories' => $categories,
             'selectedCategory' => $selectedCategory,
             'selectedAccounts' => $selectedAccounts,
-            'selectedAccountIds' => array_map(static fn (BankAccount $account): string => $account->getPublicId(), $selectedAccounts),
+            'selectedAccountIds' => array_map(static fn(BankAccount $account): string => $account->getPublicId(), $selectedAccounts),
             'period' => $period,
             'from' => $from,
             'to' => $to,
@@ -118,7 +118,7 @@ final class BankAnalyticsController extends AbstractController
 
         return array_values(array_filter(
             $accounts,
-            static fn (BankAccount $account): bool => in_array($account->getPublicId(), $requested, true),
+            static fn(BankAccount $account): bool => in_array($account->getPublicId(), $requested, true),
         ));
     }
 

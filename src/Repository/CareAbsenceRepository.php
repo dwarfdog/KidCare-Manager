@@ -11,7 +11,10 @@ use Doctrine\Persistence\ManagerRegistry;
 /** @extends ServiceEntityRepository<CareAbsence> */
 final class CareAbsenceRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry) { parent::__construct($registry, CareAbsence::class); }
+    public function __construct(ManagerRegistry $registry)
+    {
+        parent::__construct($registry, CareAbsence::class);
+    }
 
     /** @return CareAbsence[] */
     public function findActiveFor(User $user, Nanny $nanny): array

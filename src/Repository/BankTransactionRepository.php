@@ -269,7 +269,7 @@ class BankTransactionRepository extends ServiceEntityRepository
      */
     public function monthlyEvolutionForCategory(User $user, \App\Entity\BankCategory $category, array $accounts, \DateTimeInterface $from, \DateTimeInterface $to): array
     {
-        $accountIds = array_values(array_filter(array_map(static fn (BankAccount $account): ?int => $account->getId(), $accounts)));
+        $accountIds = array_values(array_filter(array_map(static fn(BankAccount $account): ?int => $account->getId(), $accounts)));
         if ($accountIds === []) {
             return [];
         }
@@ -303,7 +303,7 @@ class BankTransactionRepository extends ServiceEntityRepository
             ],
         )->fetchAllAssociative();
 
-        return array_map(static fn (array $row): array => [
+        return array_map(static fn(array $row): array => [
             'month' => (string) $row['month'],
             'gains' => round((float) $row['gains'], 2),
             'expenses' => round((float) $row['expenses'], 2),

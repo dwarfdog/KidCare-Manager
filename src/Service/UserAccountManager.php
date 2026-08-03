@@ -16,8 +16,7 @@ final class UserAccountManager
         private readonly NannyRepository $nannyRepository,
         private readonly ActivityLogger $activityLogger,
         private readonly NannyOwnershipService $ownershipService,
-    ) {
-    }
+    ) {}
 
     public function deleteAccount(User $user): void
     {

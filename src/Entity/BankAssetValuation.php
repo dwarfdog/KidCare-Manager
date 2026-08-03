@@ -1,3 +1,50 @@
 <?php
-namespace App\Entity;use App\Repository\BankAssetValuationRepository;use Doctrine\DBAL\Types\Types;use Doctrine\ORM\Mapping as ORM;
-#[ORM\Entity(repositoryClass:BankAssetValuationRepository::class)]#[ORM\Index(columns:['asset_id','valued_at'],name:'IDX_ASSET_VALUATION_DATE')]class BankAssetValuation{#[ORM\Id,ORM\GeneratedValue,ORM\Column]private ?int $id=null;#[ORM\ManyToOne,ORM\JoinColumn(nullable:false,onDelete:'CASCADE')]private ?BankAsset $asset=null;#[ORM\Column(type:Types::DECIMAL,precision:14,scale:2)]private string $value='0.00';#[ORM\Column(type:Types::DATE_MUTABLE)]private \DateTimeInterface $valuedAt;public function __construct(){$this->valuedAt=new \DateTime('today');}public function getId():?int{return $this->id;}public function getAsset():?BankAsset{return $this->asset;}public function setAsset(?BankAsset $v):static{$this->asset=$v;return $this;}public function getValue():float{return(float)$this->value;}public function setValue(float|string $v):static{$this->value=number_format(abs((float)$v),2,'.','');return $this;}public function getValuedAt():\DateTimeInterface{return $this->valuedAt;}public function setValuedAt(\DateTimeInterface $v):static{$this->valuedAt=$v;return $this;}}
+
+namespace App\Entity;
+
+use App\Repository\BankAssetValuationRepository;
+use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity(repositoryClass: BankAssetValuationRepository::class)] #[ORM\Index(columns: ['asset_id', 'valued_at'], name: 'IDX_ASSET_VALUATION_DATE')] class BankAssetValuation
+{
+    #[ORM\Id, ORM\GeneratedValue, ORM\Column] private ?int $id = null;
+    #[ORM\ManyToOne, ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')] private ?BankAsset $asset = null;
+    #[ORM\Column(type: Types::DECIMAL, precision: 14, scale: 2)] private string $value = '0.00';
+    #[ORM\Column(type: Types::DATE_MUTABLE)] private \DateTimeInterface $valuedAt;
+    public function __construct()
+    {
+        $this->valuedAt = new \DateTime('today');
+    }
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+    public function getAsset(): ?BankAsset
+    {
+        return $this->asset;
+    }
+    public function setAsset(?BankAsset $v): static
+    {
+        $this->asset = $v;
+        return $this;
+    }
+    public function getValue(): float
+    {
+        return (float)$this->value;
+    }
+    public function setValue(float|string $v): static
+    {
+        $this->value = number_format(abs((float)$v), 2, '.', '');
+        return $this;
+    }
+    public function getValuedAt(): \DateTimeInterface
+    {
+        return $this->valuedAt;
+    }
+    public function setValuedAt(\DateTimeInterface $v): static
+    {
+        $this->valuedAt = $v;
+        return $this;
+    }
+}

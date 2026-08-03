@@ -1,2 +1,28 @@
 <?php
-namespace App\Repository;use App\Entity\BankAsset;use App\Entity\User;use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;use Doctrine\Persistence\ManagerRegistry;/** @extends ServiceEntityRepository<BankAsset> */final class BankAssetRepository extends ServiceEntityRepository{public function __construct(ManagerRegistry$r){parent::__construct($r,BankAsset::class);}public function findActiveForUser(User$u):array{return$this->findBy(['user'=>$u,'archivedAt'=>null],['type'=>'ASC','name'=>'ASC']);}public function findOneForUser(User$u,string$id):?BankAsset{return$this->findOneBy(['user'=>$u,'publicId'=>$id,'archivedAt'=>null]);}public function findArchivedForUser(User$u):array{return$this->createQueryBuilder('a')->andWhere('a.user=:u')->andWhere('a.archivedAt IS NOT NULL')->setParameter('u',$u)->getQuery()->getResult();}}
+
+namespace App\Repository;
+
+use App\Entity\BankAsset;
+use App\Entity\User;
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Persistence\ManagerRegistry;
+
+/** @extends ServiceEntityRepository<BankAsset> */ final class BankAssetRepository extends ServiceEntityRepository
+{
+    public function __construct(ManagerRegistry $r)
+    {
+        parent::__construct($r, BankAsset::class);
+    }
+    public function findActiveForUser(User $u): array
+    {
+        return $this->findBy(['user' => $u, 'archivedAt' => null], ['type' => 'ASC', 'name' => 'ASC']);
+    }
+    public function findOneForUser(User $u, string $id): ?BankAsset
+    {
+        return $this->findOneBy(['user' => $u, 'publicId' => $id, 'archivedAt' => null]);
+    }
+    public function findArchivedForUser(User $u): array
+    {
+        return $this->createQueryBuilder('a')->andWhere('a.user=:u')->andWhere('a.archivedAt IS NOT NULL')->setParameter('u', $u)->getQuery()->getResult();
+    }
+}

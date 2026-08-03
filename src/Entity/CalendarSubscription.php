@@ -30,15 +30,54 @@ class CalendarSubscription
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $regeneratedAt = null;
 
-    public function __construct() { $this->publicId = UlidGenerator::generate(); $this->accessToken = bin2hex(random_bytes(32)); $this->createdAt = new \DateTime(); }
-    public function getId(): ?int { return $this->id; }
-    public function getPublicId(): string { return $this->publicId; }
-    public function getUser(): ?User { return $this->user; }
-    public function setUser(?User $user): static { $this->user = $user; return $this; }
-    public function getNanny(): ?Nanny { return $this->nanny; }
-    public function setNanny(?Nanny $nanny): static { $this->nanny = $nanny; return $this; }
-    public function getAccessToken(): string { return $this->accessToken; }
-    public function regenerate(): static { $this->accessToken = bin2hex(random_bytes(32)); $this->regeneratedAt = new \DateTime(); return $this; }
-    public function getCreatedAt(): \DateTimeInterface { return $this->createdAt; }
-    public function getRegeneratedAt(): ?\DateTimeInterface { return $this->regeneratedAt; }
+    public function __construct()
+    {
+        $this->publicId = UlidGenerator::generate();
+        $this->accessToken = bin2hex(random_bytes(32));
+        $this->createdAt = new \DateTime();
+    }
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+    public function getPublicId(): string
+    {
+        return $this->publicId;
+    }
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+    public function setUser(?User $user): static
+    {
+        $this->user = $user;
+        return $this;
+    }
+    public function getNanny(): ?Nanny
+    {
+        return $this->nanny;
+    }
+    public function setNanny(?Nanny $nanny): static
+    {
+        $this->nanny = $nanny;
+        return $this;
+    }
+    public function getAccessToken(): string
+    {
+        return $this->accessToken;
+    }
+    public function regenerate(): static
+    {
+        $this->accessToken = bin2hex(random_bytes(32));
+        $this->regeneratedAt = new \DateTime();
+        return $this;
+    }
+    public function getCreatedAt(): \DateTimeInterface
+    {
+        return $this->createdAt;
+    }
+    public function getRegeneratedAt(): ?\DateTimeInterface
+    {
+        return $this->regeneratedAt;
+    }
 }

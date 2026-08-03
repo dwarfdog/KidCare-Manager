@@ -39,6 +39,8 @@ class BankBudgetRepository extends ServiceEntityRepository
     }
 
     /** @return BankBudget[] */
-    public function findArchivedForUser(User $user): array { return $this->createQueryBuilder('b')->andWhere('b.user=:user')->andWhere('b.archivedAt IS NOT NULL')->setParameter('user',$user)->orderBy('b.archivedAt','DESC')->getQuery()->getResult(); }
-
+    public function findArchivedForUser(User $user): array
+    {
+        return $this->createQueryBuilder('b')->andWhere('b.user=:user')->andWhere('b.archivedAt IS NOT NULL')->setParameter('user', $user)->orderBy('b.archivedAt', 'DESC')->getQuery()->getResult();
+    }
 }

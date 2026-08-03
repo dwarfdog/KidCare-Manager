@@ -15,8 +15,7 @@ final class PaymentExportService
     public function __construct(
         private readonly Environment $twig,
         private readonly ApplicationSettings $settings,
-    ) {
-    }
+    ) {}
 
     /** @param Care[] $cares */
     public function csv(MonthlyPayment $payment, array $cares): StreamedResponse

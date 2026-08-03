@@ -17,8 +17,7 @@ final class NannyRateManager
         private readonly MonthlyPaymentCalculator $paymentCalculator,
         private readonly EntityManagerInterface $entityManager,
         private readonly ActivityLogger $activityLogger,
-    ) {
-    }
+    ) {}
 
     public function add(User $user, Nanny $nanny, NannyRate $rate): void
     {

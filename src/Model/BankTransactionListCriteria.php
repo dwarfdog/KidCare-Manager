@@ -18,8 +18,7 @@ final class BankTransactionListCriteria
         public readonly string $sort = 'date',
         public readonly string $direction = 'desc',
         public readonly int $perPage = self::DEFAULT_PER_PAGE,
-    ) {
-    }
+    ) {}
 
     public function withPage(int $page): self
     {
@@ -62,7 +61,9 @@ final class BankTransactionListCriteria
             $query[$prefix . '_sort'] = $this->sort;
         }
         $query[$prefix . '_direction'] = $this->direction;
-        if ($this->perPage !== self::DEFAULT_PER_PAGE) { $query[$prefix . '_per_page'] = $this->perPage; }
+        if ($this->perPage !== self::DEFAULT_PER_PAGE) {
+            $query[$prefix . '_per_page'] = $this->perPage;
+        }
 
         return $query;
     }

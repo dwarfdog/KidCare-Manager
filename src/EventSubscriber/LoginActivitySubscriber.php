@@ -19,12 +19,17 @@ final class LoginActivitySubscriber implements EventSubscriberInterface
         private readonly EntityManagerInterface $entityManager,
     ) {}
 
-    public static function getSubscribedEvents(): array { return [LoginSuccessEvent::class => 'onLoginSuccess']; }
+    public static function getSubscribedEvents(): array
+    {
+        return [LoginSuccessEvent::class => 'onLoginSuccess'];
+    }
 
     public function onLoginSuccess(LoginSuccessEvent $event): void
     {
         $user = $event->getUser();
-        if (!$user instanceof User) { return; }
+        if (!$user instanceof User) {
+            return;
+        }
         // A returning owner is active again before the global inactivity audit.
         $user->setLastLoginAt(new \DateTime());
         $this->entityManager->flush();

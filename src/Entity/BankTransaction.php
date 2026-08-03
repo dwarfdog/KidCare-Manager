@@ -321,11 +321,30 @@ class BankTransaction
         return $this;
     }
 
-    public function getImportedStateHash(): ?string { return $this->importedStateHash; }
-    public function setImportedStateHash(?string $hash): static { $this->importedStateHash = $hash; return $this; }
-    public function getReconciledAt(): ?\DateTimeInterface { return $this->reconciledAt; }
-    public function setReconciledAt(?\DateTimeInterface $at): static { $this->reconciledAt = $at; $this->status = $at ? self::STATUS_RECONCILED : self::STATUS_REAL; $this->touch(); return $this; }
-    public function isReconciled(): bool { return $this->reconciledAt !== null || $this->status === self::STATUS_RECONCILED; }
+    public function getImportedStateHash(): ?string
+    {
+        return $this->importedStateHash;
+    }
+    public function setImportedStateHash(?string $hash): static
+    {
+        $this->importedStateHash = $hash;
+        return $this;
+    }
+    public function getReconciledAt(): ?\DateTimeInterface
+    {
+        return $this->reconciledAt;
+    }
+    public function setReconciledAt(?\DateTimeInterface $at): static
+    {
+        $this->reconciledAt = $at;
+        $this->status = $at ? self::STATUS_RECONCILED : self::STATUS_REAL;
+        $this->touch();
+        return $this;
+    }
+    public function isReconciled(): bool
+    {
+        return $this->reconciledAt !== null || $this->status === self::STATUS_RECONCILED;
+    }
 
     public function getImportBatch(): ?BankImportBatch
     {

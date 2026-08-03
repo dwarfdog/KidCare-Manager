@@ -1,7 +1,37 @@
 <?php
 namespace App\Controller;
 
-use App\Entity\BankAlertSetting;use App\Entity\BankAnalyticsFavorite;use App\Entity\BankAsset;use App\Entity\BankCategoryRule;use App\Entity\BankSimulation;use App\Entity\BankTransaction;use App\Repository\BankAccountRepository;use App\Repository\BankAlertSettingRepository;use App\Repository\BankAnalyticsFavoriteRepository;use App\Repository\BankAssetRepository;use App\Repository\BankCategoryRepository;use App\Repository\BankCategoryRuleRepository;use App\Repository\BankImportBatchRepository;use App\Repository\BankRecurringRuleRepository;use App\Repository\BankSimulationRepository;use App\Repository\BankTransactionRepository;use App\Repository\BankTransactionSplitRepository;use App\Service\BankAccountManager;use App\Service\BankAlertService;use App\Service\BankImportUndoService;use App\Service\BankNetWorthService;use App\Service\BankReconciliationService;use App\Service\BankSimulationService;use App\Service\BankTransactionSplitManager;use Doctrine\ORM\EntityManagerInterface;use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;use Symfony\Component\HttpFoundation\JsonResponse;use Symfony\Component\HttpFoundation\Request;use Symfony\Component\HttpFoundation\Response;use Symfony\Component\Routing\Attribute\Route;use Symfony\Component\Security\Http\Attribute\IsGranted;
+use App\Entity\BankAlertSetting;
+use App\Entity\BankAnalyticsFavorite;
+use App\Entity\BankAsset;
+use App\Entity\BankCategoryRule;
+use App\Entity\BankSimulation;
+use App\Entity\BankTransaction;
+use App\Repository\BankAccountRepository;
+use App\Repository\BankAlertSettingRepository;
+use App\Repository\BankAnalyticsFavoriteRepository;
+use App\Repository\BankAssetRepository;
+use App\Repository\BankCategoryRepository;
+use App\Repository\BankCategoryRuleRepository;
+use App\Repository\BankImportBatchRepository;
+use App\Repository\BankRecurringRuleRepository;
+use App\Repository\BankSimulationRepository;
+use App\Repository\BankTransactionRepository;
+use App\Repository\BankTransactionSplitRepository;
+use App\Service\BankAccountManager;
+use App\Service\BankAlertService;
+use App\Service\BankImportUndoService;
+use App\Service\BankNetWorthService;
+use App\Service\BankReconciliationService;
+use App\Service\BankSimulationService;
+use App\Service\BankTransactionSplitManager;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/bank',name:'app_bank_')]
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]

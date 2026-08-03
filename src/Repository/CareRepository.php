@@ -158,7 +158,7 @@ class CareRepository extends ServiceEntityRepository
             $qb->andWhere('c.date < :toDate')->setParameter('toDate', $to->format('Y-m-d'));
         }
 
-        return array_map(static fn (array $row): string => $row['month'], $qb->getQuery()->getArrayResult());
+        return array_map(static fn(array $row): string => $row['month'], $qb->getQuery()->getArrayResult());
     }
 
     /**
@@ -245,7 +245,9 @@ class CareRepository extends ServiceEntityRepository
             ->andWhere('c.date BETWEEN :from AND :to')->andWhere('(c.status = :realized OR (c.status = :cancelled AND c.remuneratedOverride = true))')
             ->setParameter('user', $user)->setParameter('from', $from->format('Y-m-d'))->setParameter('to', $to->format('Y-m-d'))
             ->setParameter('realized', Care::STATUS_REALIZED)->setParameter('cancelled', Care::STATUS_CANCELLED)->orderBy('c.date', 'ASC')->addOrderBy('c.startTime', 'ASC');
-        if ($nanny !== null) { $qb->andWhere('c.nanny = :nanny')->setParameter('nanny', $nanny); }
+        if ($nanny !== null) {
+            $qb->andWhere('c.nanny = :nanny')->setParameter('nanny', $nanny);
+        }
         return $qb->getQuery()->getResult();
     }
 }

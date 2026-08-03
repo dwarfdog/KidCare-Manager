@@ -169,7 +169,17 @@ class BankImportBatch
         return $this->createdAt;
     }
 
-    public function getUndoneAt(): ?\DateTimeInterface { return $this->undoneAt; }
-    public function markUndone(): static { $this->undoneAt = new \DateTime(); return $this; }
-    public function isUndone(): bool { return $this->undoneAt !== null; }
+    public function getUndoneAt(): ?\DateTimeInterface
+    {
+        return $this->undoneAt;
+    }
+    public function markUndone(): static
+    {
+        $this->undoneAt = new \DateTime();
+        return $this;
+    }
+    public function isUndone(): bool
+    {
+        return $this->undoneAt !== null;
+    }
 }
