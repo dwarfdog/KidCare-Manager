@@ -42,6 +42,10 @@ final class CareSegmenter
                 ->setSegmentGroup($group)
                 ->setSegmentIndex($index);
 
+            if ($segmentEnd <= new \DateTimeImmutable()) {
+                $care->setStatus(Care::STATUS_REALIZED);
+            }
+
             $segments[] = $care;
             $cursor = $segmentEnd;
             $index++;

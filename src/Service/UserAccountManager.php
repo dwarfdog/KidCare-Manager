@@ -15,6 +15,7 @@ final class UserAccountManager
         private readonly NannyAssignmentRepository $assignmentRepository,
         private readonly NannyRepository $nannyRepository,
         private readonly ActivityLogger $activityLogger,
+        private readonly NannyOwnershipService $ownershipService,
     ) {
     }
 
@@ -47,7 +48,9 @@ final class UserAccountManager
         }
 
         foreach ($this->nannyRepository->findBy(['createdBy' => $user]) as $nanny) {
-            $nanny->setCreatedBy(null);
+            if (!$this->ownershipService->transferBeforeAccountDeletion($nanny, $user)) {
+                $nanny->setCreatedBy(null);
+            }
             $candidateNannies[$nanny->getPublicId()] = $nanny;
         }
 

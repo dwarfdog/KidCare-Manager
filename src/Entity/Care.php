@@ -13,6 +13,19 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(columns: ['user_id', 'month'], name: 'IDX_CARE_USER_MONTH')]
 class Care
 {
+    public const STATUS_PLANNED = 'planned';
+    public const STATUS_REALIZED = 'realized';
+    public const STATUS_CANCELLED = 'cancelled';
+
+    public const REASON_CHILD_ABSENCE = 'child_absence';
+    public const REASON_NANNY_ABSENCE = 'nanny_absence';
+    public const REASON_PAID_LEAVE = 'paid_leave';
+    public const REASON_UNPAID_LEAVE = 'unpaid_leave';
+    public const REASON_CHILD_SICK_LEAVE = 'child_sick_leave';
+    public const REASON_NANNY_SICK_LEAVE = 'nanny_sick_leave';
+    public const REASON_CLOSURE = 'closure';
+    public const REASON_OTHER = 'other';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -61,6 +74,24 @@ class Care
 
     #[ORM\Column(options: ['default' => 1])]
     private int $segmentTotal = 1;
+
+    #[ORM\Column(length: 20, options: ['default' => self::STATUS_PLANNED])]
+    private string $status = self::STATUS_PLANNED;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $statusLocked = false;
+
+    #[ORM\Column(options: ['default' => false])]
+    private bool $remuneratedOverride = false;
+
+    #[ORM\Column(length: 32, nullable: true)]
+    private ?string $nonRealizationReason = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $notes = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $archivedAt = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private \DateTimeInterface $createdAt;
@@ -281,5 +312,115 @@ class Care
     public function isMultiSegment(): bool
     {
         return $this->segmentTotal > 1;
+    }
+
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(string $status, bool $lock = false): static
+    {
+        if (!in_array($status, [self::STATUS_PLANNED, self::STATUS_REALIZED, self::STATUS_CANCELLED], true)) {
+            throw new \InvalidArgumentException('Statut de garde invalide.');
+        }
+
+        $this->status = $status;
+        $this->statusLocked = $lock;
+        if ($status !== self::STATUS_CANCELLED) {
+            $this->nonRealizationReason = null;
+            $this->remuneratedOverride = false;
+        }
+        if ($status !== self::STATUS_CANCELLED) {
+            $this->nonRealizationReason = null;
+        }
+
+        return $this;
+    }
+
+    public function isPlanned(): bool
+    {
+        return $this->status === self::STATUS_PLANNED;
+    }
+
+    public function isRealized(): bool
+    {
+        return $this->status === self::STATUS_REALIZED;
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === self::STATUS_CANCELLED;
+    }
+
+    public function isStatusLocked(): bool
+    {
+        return $this->statusLocked;
+    }
+
+    public function setStatusLocked(bool $statusLocked): static
+    {
+        $this->statusLocked = $statusLocked;
+
+        return $this;
+    }
+
+    public function isRemuneratedOverride(): bool
+    {
+        return $this->remuneratedOverride;
+    }
+
+    public function setRemuneratedOverride(bool $remuneratedOverride): static
+    {
+        $this->remuneratedOverride = $remuneratedOverride;
+
+        return $this;
+    }
+
+    public function isBillable(): bool
+    {
+        return $this->isRealized() || ($this->isCancelled() && $this->remuneratedOverride);
+    }
+
+    public function getNonRealizationReason(): ?string
+    {
+        return $this->nonRealizationReason;
+    }
+
+    public function setNonRealizationReason(?string $nonRealizationReason): static
+    {
+        $this->nonRealizationReason = $nonRealizationReason !== null && trim($nonRealizationReason) !== '' ? trim($nonRealizationReason) : null;
+
+        return $this;
+    }
+
+    public function getNotes(): ?string
+    {
+        return $this->notes;
+    }
+
+    public function setNotes(?string $notes): static
+    {
+        $notes = $notes !== null ? trim($notes) : null;
+        $this->notes = $notes !== '' ? $notes : null;
+
+        return $this;
+    }
+
+    public function getArchivedAt(): ?\DateTimeInterface
+    {
+        return $this->archivedAt;
+    }
+
+    public function archive(): static
+    {
+        $this->archivedAt = new \DateTime();
+
+        return $this;
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archivedAt !== null;
     }
 }

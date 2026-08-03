@@ -46,6 +46,9 @@ class CareTemplate
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private \DateTimeInterface $createdAt;
 
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $archivedAt = null;
+
     public function __construct()
     {
         $this->publicId = UlidGenerator::generate();
@@ -139,4 +142,8 @@ class CareTemplate
 
         return $this;
     }
+
+    public function getArchivedAt(): ?\DateTimeInterface { return $this->archivedAt; }
+    public function archive(): static { $this->archivedAt = new \DateTime(); return $this; }
+    public function isArchived(): bool { return $this->archivedAt !== null; }
 }

@@ -51,6 +51,9 @@ class Nanny
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private \DateTimeInterface $createdAt;
 
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $ownershipTransferredAt = null;
+
     /** @var Collection<int, NannyAssignment> */
     #[ORM\OneToMany(targetEntity: NannyAssignment::class, mappedBy: 'nanny', orphanRemoval: true)]
     private Collection $assignments;
@@ -233,6 +236,18 @@ class Nanny
     public function setCreatedAt(\DateTimeInterface $createdAt): static
     {
         $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    public function getOwnershipTransferredAt(): ?\DateTimeInterface
+    {
+        return $this->ownershipTransferredAt;
+    }
+
+    public function setOwnershipTransferredAt(?\DateTimeInterface $ownershipTransferredAt): static
+    {
+        $this->ownershipTransferredAt = $ownershipTransferredAt;
 
         return $this;
     }

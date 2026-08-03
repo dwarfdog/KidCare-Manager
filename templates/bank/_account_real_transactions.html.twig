@@ -1,0 +1,96 @@
+<section id="real-transactions"
+         class="rounded-lg border border-slate-200 bg-white"
+         data-controller="bank-transaction-list"
+         data-bank-transaction-list-section-value="real"
+         data-bank-transaction-list-endpoint-value="{{ path('app_bank_account_transactions', {publicId: account.publicId, section: 'real'}) }}"
+         data-bank-transaction-list-focus-value="{{ focusId|default('') }}">
+    <div class="border-b border-slate-200 px-5 py-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-semibold">Operations realisees</h2>
+                <p class="text-sm text-slate-500">{{ realPage.total }} operation{{ realPage.total > 1 ? 's' : '' }}</p>
+            </div>
+            <a href="{{ path('app_bank_transaction_new', {account: account.publicId}) }}" class="rounded-md bg-teal-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700"><i class="fa-solid fa-plus"></i> Ajouter</a>
+        </div>
+        <form method="get" action="{{ path('app_bank_account_show', {publicId: account.publicId}) }}" class="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4" data-bank-transaction-list-target="form" data-action="submit->bank-transaction-list#submit change->bank-transaction-list#change">
+            <label class="text-xs font-medium text-slate-600">Du
+                <input type="date" name="real_from" value="{{ realCriteria.from ? realCriteria.from|date('Y-m-d') : '' }}" class="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+            </label>
+            <label class="text-xs font-medium text-slate-600">Au
+                <input type="date" name="real_to" value="{{ realCriteria.to ? realCriteria.to|date('Y-m-d') : '' }}" class="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+            </label>
+            <label class="text-xs font-medium text-slate-600">Categorie
+                <select name="real_category" class="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+                    <option value="">Toutes</option>
+                    {% for category in categories %}<option value="{{ category.publicId }}" {{ realCriteria.category and realCriteria.category.publicId == category.publicId ? 'selected' }}>{{ category.name }}</option>{% endfor %}
+                </select>
+            </label>
+            <label class="text-xs font-medium text-slate-600">Type
+                <select name="real_type" class="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+                    <option value="">Tous</option>
+                    {% for value, label in transactionTypes %}<option value="{{ value }}" {{ realCriteria.type == value ? 'selected' }}>{{ label }}</option>{% endfor %}
+                </select>
+            </label>
+            <label class="text-xs font-medium text-slate-600">Verification
+                <select name="real_verified" class="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+                    <option value="">Toutes</option>
+                    <option value="verified" {{ realCriteria.verified is same as(true) ? 'selected' }}>Verifiees</option>
+                    <option value="unverified" {{ realCriteria.verified is same as(false) ? 'selected' }}>Non verifiees</option>
+                </select>
+            </label>
+            <label class="text-xs font-medium text-slate-600">Trier par
+                <select name="real_sort" class="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+                    <option value="date" {{ realCriteria.sort == 'date' ? 'selected' }}>Date</option>
+                    <option value="amount" {{ realCriteria.sort == 'amount' ? 'selected' }}>Montant</option>
+                    <option value="category" {{ realCriteria.sort == 'category' ? 'selected' }}>Categorie</option>
+                </select>
+            </label>
+            <label class="text-xs font-medium text-slate-600">Ordre
+                <select name="real_direction" class="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+                    <option value="desc" {{ realCriteria.direction == 'desc' ? 'selected' }}>Decroissant</option>
+                    <option value="asc" {{ realCriteria.direction == 'asc' ? 'selected' }}>Croissant</option>
+                </select>
+            </label>
+            <label class="text-xs font-medium text-slate-600">Par page
+                <select name="real_per_page" class="mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm">{% for size in [25,50,100] %}<option value="{{ size }}" {{ realCriteria.perPage == size ? 'selected' }}>{{ size }}</option>{% endfor %}</select>
+            </label>
+            <div class="flex items-end gap-2">
+                <button class="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white">Appliquer</button>
+                <a href="{{ path('app_bank_account_show', {publicId: account.publicId}) }}" class="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700">Effacer</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="divide-y divide-slate-100" data-bank-transaction-list-target="content">
+        {% for transaction in realPage.items %}
+            {% set previous = loop.index0 > 0 ? realPage.items[loop.index0 - 1] : null %}
+            {% if realCriteria.sort == 'date' and (previous is null or transaction.date|date('Y-m') != previous.date|date('Y-m')) %}
+                <div class="bg-slate-50 px-5 py-2 text-xs font-semibold uppercase text-slate-500">{{ transaction.date|format_date('none', 'MMMM yyyy', locale='fr') }}</div>
+            {% endif %}
+            <article id="bank-transaction-{{ transaction.publicId }}" tabindex="-1" class="bank-transaction-row grid grid-cols-1 gap-3 px-5 py-4 hover:bg-slate-50 sm:grid-cols-[6rem_minmax(0,1fr)_auto] sm:items-center">
+                <div class="text-sm font-medium text-slate-500">{{ transaction.date|date('d/m/Y') }}</div>
+                <div class="min-w-0">
+                    <a href="{{ path('app_bank_transaction_edit', {publicId: transaction.publicId}) }}" class="block truncate font-medium text-slate-950 hover:text-teal-700">{{ transactionManager.label(transaction) }}</a>
+                    <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                        {% if transaction.category %}<span>{{ transaction.category.name }}</span>{% endif %}
+                        {{ include('bank/_transaction_status_badge.html.twig', {status: transaction.status}) }}
+                        {{ include('bank/_transaction_verification_badge.html.twig', {transaction: transaction, return_context: 'account', return_params: returnParameters}) }}
+                    </div>
+                </div>
+                <span class="whitespace-nowrap text-right text-sm font-semibold tabular-nums {{ transaction.amount < 0 ? 'text-rose-700' : 'text-emerald-700' }}">{{ transaction.amount|number_format(2, ',', ' ') }} €</span>
+            </article>
+        {% else %}
+            <p class="px-5 py-8 text-center text-sm text-slate-500">Aucune operation realisee pour ces filtres.</p>
+        {% endfor %}
+    </div>
+
+    {% if realPage.pages > 1 %}
+        <nav class="flex items-center justify-between gap-3 border-t border-slate-200 px-5 py-3 text-sm" aria-label="Pagination des operations">
+            {% set previousParams = returnParameters|merge({real_page: realPage.page - 1}) %}
+            {% set nextParams = returnParameters|merge({real_page: realPage.page + 1}) %}
+            {% if realPage.page > 1 %}<a href="{{ path('app_bank_account_show', {publicId: account.publicId}|merge(previousParams)) }}" data-action="bank-transaction-list#paginate" class="font-medium text-teal-700">← Precedent</a>{% else %}<span></span>{% endif %}
+            <span class="text-slate-500">Page {{ realPage.page }} / {{ realPage.pages }}</span>
+            {% if realPage.page < realPage.pages %}<a href="{{ path('app_bank_account_show', {publicId: account.publicId}|merge(nextParams)) }}" data-action="bank-transaction-list#paginate" class="font-medium text-teal-700">Suivant →</a>{% else %}<span></span>{% endif %}
+        </nav>
+    {% endif %}
+</section>

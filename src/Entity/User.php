@@ -51,6 +51,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private \DateTimeInterface $createdAt;
 
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $lastLoginAt = null;
+
+    #[ORM\Column(type: Types::JSON, options: ['default' => '{}'])]
+    private array $dashboardPreferences = [];
+
     /** @var Collection<int, NannyAssignment> */
     #[ORM\OneToMany(targetEntity: NannyAssignment::class, mappedBy: 'user', orphanRemoval: true)]
     private Collection $nannyAssignments;
@@ -210,6 +216,32 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setCreatedAt(\DateTimeInterface $createdAt): static
     {
         $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    public function getLastLoginAt(): ?\DateTimeInterface
+    {
+        return $this->lastLoginAt;
+    }
+
+    public function setLastLoginAt(?\DateTimeInterface $lastLoginAt): static
+    {
+        $this->lastLoginAt = $lastLoginAt;
+
+        return $this;
+    }
+
+    /** @return array<string, mixed> */
+    public function getDashboardPreferences(): array
+    {
+        return $this->dashboardPreferences;
+    }
+
+    /** @param array<string, mixed> $dashboardPreferences */
+    public function setDashboardPreferences(array $dashboardPreferences): static
+    {
+        $this->dashboardPreferences = $dashboardPreferences;
 
         return $this;
     }

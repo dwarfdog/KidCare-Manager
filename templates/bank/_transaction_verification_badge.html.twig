@@ -6,6 +6,12 @@
       data-confirm-confirm-text-value="{{ transaction.verified ? 'Retirer la verification' : 'Verifier' }}">
     <input type="hidden" name="_token" value="{{ csrf_token('bank_transaction_verify_' ~ transaction.publicId) }}">
     <input type="hidden" name="verified" value="{{ transaction.verified ? '0' : '1' }}">
+    {% if return_context|default(null) == 'account' %}
+        <input type="hidden" name="return_context" value="account">
+        {% for name, value in return_params|default([]) %}
+            <input type="hidden" name="return[{{ name }}]" value="{{ value }}">
+        {% endfor %}
+    {% endif %}
     {% if transaction.verified %}
         <button type="submit" class="inline-flex cursor-pointer items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20 hover:bg-emerald-100" data-tippy-content="Verifiee le {{ transaction.verifiedAt|date('d/m/Y H:i') }} — cliquer pour retirer la verification">
             <i class="fa-solid fa-check text-[10px]"></i>

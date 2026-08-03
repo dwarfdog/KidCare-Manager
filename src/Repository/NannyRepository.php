@@ -80,4 +80,14 @@ class NannyRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getOneOrNullResult();
     }
+
+    /** @return Nanny[] */
+    public function findWithInactiveOwner(\DateTimeInterface $cutoff): array
+    {
+        return $this->createQueryBuilder('n')
+            ->innerJoin('n.createdBy', 'owner')
+            ->andWhere('COALESCE(owner.lastLoginAt, owner.createdAt) < :cutoff')
+            ->setParameter('cutoff', $cutoff)
+            ->getQuery()->getResult();
+    }
 }

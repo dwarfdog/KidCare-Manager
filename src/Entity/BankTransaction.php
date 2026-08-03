@@ -75,6 +75,12 @@ class BankTransaction
     #[ORM\Column(length: 64, nullable: true)]
     private ?string $importHash = null;
 
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $importedStateHash = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $reconciledAt = null;
+
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?BankImportBatch $importBatch = null;
@@ -315,6 +321,12 @@ class BankTransaction
         return $this;
     }
 
+    public function getImportedStateHash(): ?string { return $this->importedStateHash; }
+    public function setImportedStateHash(?string $hash): static { $this->importedStateHash = $hash; return $this; }
+    public function getReconciledAt(): ?\DateTimeInterface { return $this->reconciledAt; }
+    public function setReconciledAt(?\DateTimeInterface $at): static { $this->reconciledAt = $at; $this->status = $at ? self::STATUS_RECONCILED : self::STATUS_REAL; $this->touch(); return $this; }
+    public function isReconciled(): bool { return $this->reconciledAt !== null || $this->status === self::STATUS_RECONCILED; }
+
     public function getImportBatch(): ?BankImportBatch
     {
         return $this->importBatch;
@@ -395,14 +407,6 @@ class BankTransaction
     public function archive(): static
     {
         $this->archivedAt = new \DateTime();
-        $this->touch();
-
-        return $this;
-    }
-
-    public function restore(): static
-    {
-        $this->archivedAt = null;
         $this->touch();
 
         return $this;

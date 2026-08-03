@@ -9,6 +9,7 @@ use App\Entity\User;
 use App\Repository\BankAccountRepository;
 use App\Repository\BankRecurringRuleRepository;
 use App\Repository\BankTransactionRepository;
+use App\Repository\BankTransactionSplitRepository;
 
 final class BankStatisticsService
 {
@@ -18,6 +19,7 @@ final class BankStatisticsService
         private readonly BankTransactionRepository $transactionRepository,
         private readonly BankRecurringRuleRepository $recurringRuleRepository,
         private readonly BankRecurringSchedule $schedule,
+        private readonly BankTransactionSplitRepository $splitRepository,
     ) {
     }
 
@@ -132,7 +134,16 @@ final class BankStatisticsService
                 continue;
             }
 
-            if ($transaction->getAmount() >= 0) {
+            $splits = $this->splitRepository->findForTransaction($transaction);
+            if ($splits !== []) {
+                foreach ($splits as $split) {
+                    if ($split->getAmount() >= 0) { $income += $split->getAmount(); continue; }
+                    $expense += abs($split->getAmount());
+                    $categoryName = $split->getCategory()?->getName() ?? 'Sans categorie';
+                    $categoryExpenses[$categoryName] = ($categoryExpenses[$categoryName] ?? 0.0) + abs($split->getAmount());
+                    $categoryColors[$categoryName] = $split->getCategory()?->getColor() ?? '#64748b';
+                }
+            } elseif ($transaction->getAmount() >= 0) {
                 $income += $transaction->getAmount();
             } else {
                 $expense += abs($transaction->getAmount());

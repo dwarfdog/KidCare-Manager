@@ -2,10 +2,7 @@
 
 namespace App\Controller;
 
-use App\Repository\CareRepository;
-use App\Repository\MonthlyPaymentRepository;
-use App\Repository\NannyRepository;
-use App\Service\ApplicationSettings;
+use App\Service\HomeDashboardService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -14,22 +11,10 @@ use Symfony\Component\Routing\Attribute\Route;
 class HomeController extends AbstractController
 {
     #[Route('', name: 'home', methods: ['GET'])]
-    public function index(
-        MonthlyPaymentRepository $monthlyPaymentRepository,
-        CareRepository $careRepository,
-        NannyRepository $nannyRepository,
-        ApplicationSettings $settings,
-    ): Response {
+    public function index(HomeDashboardService $dashboard): Response
+    {
         if ($this->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
-            $user = $this->getUser();
-
-            return $this->render('home/index_logged.html.twig', [
-                'previousPayments' => $monthlyPaymentRepository->findAllExceptCurrentMonth($user),
-                'currentPayments' => $monthlyPaymentRepository->findCurrentMonth($user),
-                'nextCare' => $careRepository->findNextCare($user),
-                'nannies' => $nannyRepository->findAssignedToUser($user),
-                'currency' => $settings->currency(),
-            ]);
+            return $this->render('home/index_logged.html.twig', $dashboard->build($this->getUser()));
         }
 
         return $this->render('home/index.html.twig');

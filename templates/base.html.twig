@@ -22,6 +22,8 @@
                         <a href="{{ path('app_nanny_index') }}" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route starts with 'app_nanny_' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Nounous</a>
                         <a href="{{ path('app_care_template_index') }}" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route starts with 'app_care_template_' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Templates</a>
                         <a href="{{ path('app_bank_index') }}" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route starts with 'app_bank_' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Banque</a>
+                        <a href="{{ path('app_notification_index') }}" aria-label="Notifications" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route starts with 'app_notification_' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}"><i class="fa-regular fa-bell"></i></a>
+                        <a href="{{ path('app_archives') }}" aria-label="Archives" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route starts with 'app_archives' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}"><i class="fa-regular fa-box-archive"></i></a>
                         <a href="{{ path('app_account_profile') }}" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route starts with 'app_account_' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Compte</a>
                     </div>
                 {% endif %}
@@ -37,7 +39,7 @@
                 </div>
 
                 <div x-data="{ open: false }" class="md:hidden">
-                    <button type="button" @click="open = !open" class="inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100">
+                    <button type="button" @click="open = !open" :aria-expanded="open.toString()" aria-label="Ouvrir le menu principal" class="inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100">
                         <i class="fa-solid fa-bars"></i>
                     </button>
                     <div x-show="open" x-cloak @click.away="open = false" class="absolute right-4 top-14 z-50 w-56 rounded-md border border-slate-200 bg-white py-2 shadow-lg">
@@ -47,6 +49,8 @@
                             <a href="{{ path('app_nanny_index') }}" class="block px-4 py-2 text-sm {{ current_route starts with 'app_nanny_' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Nounous</a>
                             <a href="{{ path('app_care_template_index') }}" class="block px-4 py-2 text-sm {{ current_route starts with 'app_care_template_' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Templates</a>
                             <a href="{{ path('app_bank_index') }}" class="block px-4 py-2 text-sm {{ current_route starts with 'app_bank_' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Banque</a>
+                            <a href="{{ path('app_notification_index') }}" class="block px-4 py-2 text-sm {{ current_route starts with 'app_notification_' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Notifications</a>
+                            <a href="{{ path('app_archives') }}" class="block px-4 py-2 text-sm {{ current_route starts with 'app_archives' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Archives</a>
                             <a href="{{ path('app_account_profile') }}" class="block px-4 py-2 text-sm {{ current_route starts with 'app_account_' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Compte</a>
                             <a href="{{ path('app_logout') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Deconnexion</a>
                         {% else %}

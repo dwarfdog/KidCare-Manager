@@ -6,9 +6,19 @@
     "minimum-stability": "stable",
     "prefer-stable": true,
     "require": {
-        "php": ">=8.1",
+        "php": ">=8.1.33",
         "ext-ctype": "*",
+        "ext-dom": "*",
+        "ext-fileinfo": "*",
+        "ext-filter": "*",
+        "ext-gd": "*",
         "ext-iconv": "*",
+        "ext-mbstring": "*",
+        "ext-simplexml": "*",
+        "ext-xml": "*",
+        "ext-xmlreader": "*",
+        "ext-xmlwriter": "*",
+        "ext-zip": "*",
         "doctrine/dbal": "^3",
         "doctrine/doctrine-bundle": "^2.13",
         "doctrine/doctrine-migrations-bundle": "^3.3",
@@ -57,6 +67,10 @@
             "symfony/flex": true,
             "symfony/runtime": true
         },
+        "platform": {
+            "php": "8.1.33"
+        },
+        "platform-check": true,
         "sort-packages": true
     },
     "autoload": {
@@ -79,6 +93,11 @@
         "symfony/polyfill-php81": "*"
     },
     "scripts": {
+        "analyse": [
+            "@php bin/console cache:warmup --no-interaction",
+            "phpstan analyse --memory-limit=1G"
+        ],
+        "compat:php81": "phpcs -n -p --extensions=php --ignore=vendor/*,var/*,node_modules/*,public/build/* --standard=vendor/phpcompatibility/php-compatibility/PHPCompatibility --runtime-set testVersion 8.1- .",
         "auto-scripts": {
             "cache:clear": "symfony-cmd",
             "assets:install %PUBLIC_DIR%": "symfony-cmd"
@@ -100,6 +119,9 @@
         }
     },
     "require-dev": {
+        "phpcompatibility/php-compatibility": "^9.3",
+        "phpstan/phpstan": "^2.2",
+        "phpstan/phpstan-symfony": "^2.0",
         "phpunit/phpunit": "^9.5",
         "symfony/browser-kit": "6.4.*",
         "symfony/css-selector": "6.4.*",

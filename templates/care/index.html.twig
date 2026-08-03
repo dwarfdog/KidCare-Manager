@@ -38,6 +38,15 @@
 
         {% if selected_nanny %}
             <div class="mt-6">
+                <h2 class="text-sm font-semibold text-slate-700">Outils</h2>
+                <div class="mt-2 grid grid-cols-2 gap-2 text-center text-xs font-semibold">
+                    <a href="{{ path('app_care_absence_index', {publicId:selected_nanny.publicId}) }}" class="rounded-md border border-slate-300 px-2 py-2 hover:bg-slate-50">Indisponibilités</a>
+                    <a href="{{ path('app_nanny_documents', {publicId:selected_nanny.publicId}) }}" class="rounded-md border border-slate-300 px-2 py-2 hover:bg-slate-50">Documents</a>
+                    <a href="{{ path('app_care_calendar_manage', {publicId:selected_nanny.publicId}) }}" class="rounded-md border border-slate-300 px-2 py-2 hover:bg-slate-50">Calendrier ICS</a>
+                    <a href="{{ path('app_kidcare_report', {nanny:selected_nanny.publicId}) }}" class="rounded-md border border-slate-300 px-2 py-2 hover:bg-slate-50">Rapports</a>
+                </div>
+            </div>
+            <div class="mt-6">
                 <h2 class="text-sm font-semibold text-slate-700">Templates</h2>
                 <div class="mt-2 space-y-2">
                     {% for template in templates %}

@@ -27,12 +27,16 @@ final class BankTransactionManager
         private readonly BankTransactionRepository $transactionRepository,
         private readonly EntityManagerInterface $entityManager,
         private readonly BankAuditLogger $auditLogger,
+        private readonly BankCategoryRuleMatcher $ruleMatcher,
     ) {
     }
 
     public function save(User $user, BankTransaction $transaction, array $data): BankTransaction
     {
         $isNew = $transaction->getId() === null;
+        if (!$isNew && $transaction->isReconciled()) {
+            throw new \InvalidArgumentException('Dérapprochez cette opération avant de la modifier.');
+        }
         $type = (string) ($data['type'] ?? BankTransaction::TYPE_EXPENSE);
         $transaction
             ->setUser($user)
@@ -43,6 +47,8 @@ final class BankTransactionManager
             ->setSignedAmount((float) ($data['amount'] ?? 0), $type)
             ->setStatus((string) ($data['status'] ?? BankTransaction::STATUS_REAL))
             ->setSource((string) ($data['source'] ?? BankTransaction::SOURCE_MANUAL));
+
+        $this->ruleMatcher->apply($user, $transaction);
 
         if ($transaction->getStatus() === BankTransaction::STATUS_PLANNED) {
             $transaction->markUnverified();
@@ -88,16 +94,6 @@ final class BankTransactionManager
         }
 
         $this->auditLogger->record($user, 'bank.transaction.archive', 'bank_transaction', $transaction->getPublicId());
-    }
-
-    public function restore(User $user, BankTransaction $transaction): void
-    {
-        $transaction->restore();
-        if ($transaction->getMirrorTransaction() !== null && $transaction->getMirrorTransaction()->isArchived()) {
-            $transaction->getMirrorTransaction()->restore();
-        }
-
-        $this->auditLogger->record($user, 'bank.transaction.restore', 'bank_transaction', $transaction->getPublicId());
     }
 
     /**

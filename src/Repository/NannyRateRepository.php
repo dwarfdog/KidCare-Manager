@@ -22,6 +22,7 @@ class NannyRateRepository extends ServiceEntityRepository
             ->andWhere('r.user = :user')
             ->andWhere('(r.nanny = :nanny OR r.nannySnapshotKey = :nannySnapshotKey)')
             ->andWhere('r.effectiveFrom <= :date')
+            ->andWhere('r.archivedAt IS NULL')
             ->setParameter('user', $user)
             ->setParameter('nanny', $nanny)
             ->setParameter('nannySnapshotKey', $nanny->getPublicId())
@@ -37,6 +38,7 @@ class NannyRateRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('r')
             ->andWhere('r.user = :user')
             ->andWhere('r.publicId = :publicId')
+            ->andWhere('r.archivedAt IS NULL')
             ->setParameter('user', $user)
             ->setParameter('publicId', $publicId)
             ->getQuery()
@@ -49,6 +51,7 @@ class NannyRateRepository extends ServiceEntityRepository
             ->andWhere('r.user = :user')
             ->andWhere('r.nannySnapshotKey = :nannySnapshotKey')
             ->andWhere('r.effectiveFrom <= :date')
+            ->andWhere('r.archivedAt IS NULL')
             ->setParameter('user', $user)
             ->setParameter('nannySnapshotKey', $nannySnapshotKey)
             ->setParameter('date', $date->format('Y-m-d'))
@@ -64,6 +67,7 @@ class NannyRateRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('r')
             ->andWhere('r.user = :user')
             ->andWhere('(r.nanny = :nanny OR r.nannySnapshotKey = :nannySnapshotKey)')
+            ->andWhere('r.archivedAt IS NULL')
             ->setParameter('user', $user)
             ->setParameter('nanny', $nanny)
             ->setParameter('nannySnapshotKey', $nanny->getPublicId())
@@ -79,6 +83,7 @@ class NannyRateRepository extends ServiceEntityRepository
             ->andWhere('r.user = :user')
             ->andWhere('(r.nanny = :nanny OR r.nannySnapshotKey = :nannySnapshotKey)')
             ->andWhere('r.effectiveFrom = :effectiveFrom')
+            ->andWhere('r.archivedAt IS NULL')
             ->setParameter('user', $user)
             ->setParameter('nanny', $nanny)
             ->setParameter('nannySnapshotKey', $nanny->getPublicId())
@@ -97,6 +102,7 @@ class NannyRateRepository extends ServiceEntityRepository
             ->andWhere('r.user = :user')
             ->andWhere('(r.nanny = :nanny OR r.nannySnapshotKey = :nannySnapshotKey)')
             ->andWhere('r.effectiveFrom > :fromDate')
+            ->andWhere('r.archivedAt IS NULL')
             ->setParameter('user', $user)
             ->setParameter('nanny', $nanny)
             ->setParameter('nannySnapshotKey', $nanny->getPublicId())
@@ -110,4 +116,7 @@ class NannyRateRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getOneOrNullResult();
     }
+
+    /** @return NannyRate[] */
+    public function findArchivedForUser(User $user): array { return $this->createQueryBuilder('r')->andWhere('r.user = :user')->andWhere('r.archivedAt IS NOT NULL')->setParameter('user',$user)->orderBy('r.archivedAt','DESC')->getQuery()->getResult(); }
 }

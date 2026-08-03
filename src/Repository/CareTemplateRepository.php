@@ -21,6 +21,7 @@ class CareTemplateRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('t')
             ->andWhere('t.user = :user')
             ->andWhere('t.publicId = :publicId')
+            ->andWhere('t.archivedAt IS NULL')
             ->setParameter('user', $user)
             ->setParameter('publicId', $publicId)
             ->getQuery()
@@ -33,6 +34,7 @@ class CareTemplateRepository extends ServiceEntityRepository
             ->select('COUNT(t.id)')
             ->andWhere('t.user = :user')
             ->andWhere('t.nanny = :nanny')
+            ->andWhere('t.archivedAt IS NULL')
             ->andWhere('LOWER(t.name) = :name')
             ->setParameter('user', $user)
             ->setParameter('nanny', $nanny)
@@ -51,6 +53,7 @@ class CareTemplateRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('t')
             ->andWhere('t.user = :user')
+            ->andWhere('t.archivedAt IS NULL')
             ->andWhere('t.nanny = :nanny')
             ->setParameter('user', $user)
             ->setParameter('nanny', $nanny)
@@ -69,4 +72,7 @@ class CareTemplateRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /** @return CareTemplate[] */
+    public function findArchivedForUser(User $user): array { return $this->createQueryBuilder('t')->andWhere('t.user = :user')->andWhere('t.archivedAt IS NOT NULL')->setParameter('user',$user)->orderBy('t.archivedAt','DESC')->getQuery()->getResult(); }
 }

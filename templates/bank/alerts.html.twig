@@ -1,0 +1,78 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Alertes bancaires{% endblock %}
+
+{% block body %}
+{% include 'bank/_tabs.html.twig' %}
+{% set labels = {
+    low_balance: 'Solde faible',
+    budget_rate: 'Seuil de budget',
+    budget_over: 'Budget dépassé',
+    recurring_upcoming: 'Récurrence prochaine',
+    recurring_missing: 'Récurrence attendue absente'
+} %}
+{% set scope_labels = {global: 'Globale', account: 'Compte', budget: 'Budget', recurring: 'Récurrence'} %}
+
+<div class="space-y-5">
+    <div>
+        <h1 class="text-2xl font-semibold">Alertes internes</h1>
+        <p class="text-sm text-slate-500">Les réglages individuels remplacent le réglage global correspondant pour le compte, le budget ou la récurrence choisi.</p>
+    </div>
+
+    <form method="post" class="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-3">
+        <input type="hidden" name="_token" value="{{ csrf_token('bank_alert_save') }}">
+        <label class="text-sm font-medium">Type
+            <select name="type" class="mt-1 w-full rounded border border-slate-300 px-3 py-2">
+                {% for value, label in labels %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+        </label>
+        <label class="text-sm font-medium">Portée
+            <select name="target_type" class="mt-1 w-full rounded border border-slate-300 px-3 py-2">
+                {% for value, label in scope_labels %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+        </label>
+        <label class="text-sm font-medium">Cible facultative
+            <select name="target_public_id" class="mt-1 w-full rounded border border-slate-300 px-3 py-2">
+                <option value="">Toutes</option>
+                <optgroup label="Comptes">{% for account in accounts %}<option value="{{ account.publicId }}">{{ accountManager.displayName(account) }}</option>{% endfor %}</optgroup>
+                <optgroup label="Budgets">{% for budget in budgets %}<option value="{{ budget.publicId }}">{{ budget.category.name }}</option>{% endfor %}</optgroup>
+                <optgroup label="Récurrences">{% for rule in rules %}<option value="{{ rule.publicId }}">{{ rule.publicId }}</option>{% endfor %}</optgroup>
+            </select>
+        </label>
+        <label class="text-sm font-medium">Seuil (€, %, ou jours)
+            <input type="number" step="0.01" name="threshold" class="mt-1 w-full rounded border border-slate-300 px-3 py-2">
+        </label>
+        <label class="flex items-end gap-2 pb-2 text-sm"><input type="checkbox" name="active" value="1" checked> Active</label>
+        <button class="self-end rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white">Ajouter</button>
+    </form>
+
+    <section class="rounded-lg border border-slate-200 bg-white">
+        <div class="divide-y divide-slate-100">
+            {% for setting in settings %}
+                <form method="post" class="grid grid-cols-1 gap-3 px-5 py-4 sm:grid-cols-2 md:grid-cols-6">
+                    <input type="hidden" name="_token" value="{{ csrf_token('bank_alert_save') }}">
+                    <input type="hidden" name="setting" value="{{ setting.publicId }}">
+                    <label class="text-xs font-medium text-slate-600">Type
+                        <select name="type" class="mt-1 w-full rounded border border-slate-300 px-2 py-1">
+                            {% for value, label in labels %}<option value="{{ value }}" {{ setting.type == value ? 'selected' }}>{{ label }}</option>{% endfor %}
+                        </select>
+                    </label>
+                    <label class="text-xs font-medium text-slate-600">Portée
+                        <select name="target_type" class="mt-1 w-full rounded border border-slate-300 px-2 py-1">
+                            {% for value, label in scope_labels %}<option value="{{ value }}" {{ setting.targetType == value ? 'selected' }}>{{ label }}</option>{% endfor %}
+                        </select>
+                    </label>
+                    <label class="text-xs font-medium text-slate-600">ID cible
+                        <input name="target_public_id" value="{{ setting.targetPublicId }}" placeholder="Aucun pour global" class="mt-1 w-full rounded border border-slate-300 px-2 py-1">
+                    </label>
+                    <label class="text-xs font-medium text-slate-600">Seuil
+                        <input type="number" step="0.01" name="threshold" value="{{ setting.threshold }}" class="mt-1 w-full rounded border border-slate-300 px-2 py-1">
+                    </label>
+                    <label class="flex items-center gap-2 self-end pb-1 text-sm"><input type="checkbox" name="active" value="1" {{ setting.active ? 'checked' }}> Active</label>
+                    <button class="self-end rounded-md border border-teal-300 px-3 py-2 text-sm font-medium text-teal-700">Enregistrer</button>
+                </form>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}

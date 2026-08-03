@@ -35,6 +35,10 @@
             </div>
         {% endif %}
 
+        {% if transaction.reconciled %}
+            <div class="mb-5 rounded-md border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">Cette opération est rapprochée. Dérapprochez-la depuis le rapprochement avant toute modification.</div>
+        {% endif %}
+
         <div x-data="{ type: '{{ form.type.vars.value|default('expense') }}' }">
             {{ form_start(form, {attr: edit_form_attr}) }}
                 {{ form_errors(form) }}
@@ -97,6 +101,7 @@
                         <i class="fa-solid fa-floppy-disk"></i>
                         Enregistrer
                     </button>
+                    {% if not isInternalTransfer %}<a href="{{ path('app_bank_transaction_split', {publicId: transaction.publicId}) }}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold">Ventiler l’opération</a>{% endif %}
                 </div>
             {{ form_end(form) }}
         </div>
@@ -105,7 +110,7 @@
               data-controller="confirm"
               data-action="submit->confirm#submit"
               data-confirm-title-value="Archiver cette operation ?"
-              data-confirm-text-value="Elle sera deplacee dans les Archives et pourra etre restauree."
+              data-confirm-text-value="Elle restera consultable dans les Archives, sans restauration possible."
               data-confirm-confirm-text-value="Archiver">
             <input type="hidden" name="_token" value="{{ csrf_token('bank_transaction_archive_' ~ transaction.publicId) }}">
             <button class="rounded-md border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50">Archiver</button>
@@ -123,10 +128,10 @@
         <div class="rounded-lg border border-slate-200 bg-white">
             <div class="divide-y divide-slate-100">
                 {% for attachment in attachments %}
-                    <a href="{{ path('app_bank_attachment_download', {publicId: attachment.publicId}) }}" class="block px-5 py-3 text-sm font-medium text-teal-700 hover:bg-slate-50">
+                    <div class="flex items-center justify-between gap-3 px-5 py-3"><a href="{{ path('app_bank_attachment_download', {publicId: attachment.publicId}) }}" class="min-w-0 text-sm font-medium text-teal-700 hover:text-teal-900">
                         <span class="block truncate">{{ attachmentManager.originalName(attachment) }}</span>
                         <span class="text-xs font-normal text-slate-500">{{ attachment.mimeType }} · {{ (attachment.sizeBytes / 1024)|number_format(0, ',', ' ') }} Ko</span>
-                    </a>
+                    </a><form method="post" action="{{ path('app_bank_attachment_archive',{publicId:attachment.publicId}) }}" data-controller="confirm"><input type="hidden" name="_token" value="{{ csrf_token('bank_attachment_archive_'~attachment.publicId) }}"><button aria-label="Archiver la pièce jointe" class="text-rose-700"><i class="fa-regular fa-trash-can"></i></button></form></div>
                 {% else %}
                     <p class="px-5 py-4 text-sm text-slate-500">Aucune piece jointe.</p>
                 {% endfor %}

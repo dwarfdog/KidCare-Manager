@@ -206,9 +206,9 @@ class CareTemplateController extends AbstractController
             'template' => $template->getName(),
             'nanny' => $template->getNanny()?->getFullName(),
         ]);
-        $entityManager->remove($template);
+        $template->archive();
         $entityManager->flush();
-        $this->addFlash('success', 'Le template a ete supprime.');
+        $this->addFlash('success', 'Le template a été archivé pour mémoire.');
 
         return $this->redirectToRoute('app_care_template_index');
     }
@@ -307,6 +307,9 @@ class CareTemplateController extends AbstractController
         }
         if (count($result['rejected']) > 0) {
             $this->addFlash('warning', sprintf('%d creneau(x) refuse(s).', count($result['rejected'])));
+        }
+        if (count($result['conflicts'] ?? []) > 0) {
+            $this->addFlash('warning', sprintf('%d conflit(s) enregistré(s) volontairement.', count($result['conflicts'])));
         }
         if (count($result['accepted']) === 0 && count($result['rejected']) === 0) {
             $this->addFlash('warning', 'Aucun creneau actif dans ce template.');
@@ -410,7 +413,7 @@ class CareTemplateController extends AbstractController
             'week_start' => $result['weekStart'],
             'accepted_count' => count($result['accepted']),
             'rejected_count' => count($result['rejected']),
-            'conflicts' => $result['rejected'],
+            'conflicts' => $result['conflicts'] ?? [],
         ];
     }
 

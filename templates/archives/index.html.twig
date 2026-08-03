@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+{% block title %}Archives{% endblock %}
+{% block body %}
+<div class="space-y-5">
+    <div><h1 class="text-2xl font-semibold">Archives du foyer</h1><p class="mt-1 max-w-3xl text-sm text-slate-500">Mémoire en lecture seule de tous les éléments supprimés du point de vue utilisateur. Aucun élément archivé ne peut être restauré ni supprimé définitivement.</p></div>
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {% for title,items in groups %}
+            <details class="rounded-lg border border-slate-200 bg-white">
+                <summary class="flex cursor-pointer items-center justify-between px-5 py-4 font-semibold"><span>{{ title }}</span><span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{{ items|length }}</span></summary>
+                <div class="max-h-96 divide-y divide-slate-100 overflow-y-auto border-t border-slate-100">
+                    {% for item in items %}
+                        <article class="px-5 py-3 text-sm">
+                            <p class="font-medium">
+                                {% if title == 'Comptes bancaires' %}{{ accountManager.displayName(item) }}
+                                {% elseif title == 'Opérations bancaires' %}{{ transactionManager.label(item) }}
+                                {% elseif title == 'Récurrences' %}{{ encryption.decrypt(item.encryptedLabel) }}
+                                {% elseif title == 'Pièces jointes bancaires' %}{{ attachmentManager.originalName(item) }}
+                                {% elseif title == 'Documents privés' %}{{ documentManager.name(item) }}
+                                {% elseif title == 'Nounous détachées' %}{{ item.nanny.fullName }}
+                                {% elseif item.nannyDisplayName is defined %}{{ item.nannyDisplayName }}
+                                {% elseif item.name is defined %}{{ item.name }}
+                                {% elseif item.typeLabel is defined %}{{ item.typeLabel }}
+                                {% else %}{{ item.publicId }}{% endif %}
+                            </p>
+                            <p class="mt-1 text-xs text-slate-500">ID {{ item.publicId }}{% if item.archivedAt is defined and item.archivedAt %} · archivé le {{ item.archivedAt|date('d/m/Y H:i') }}{% elseif item.detachedAt is defined and item.detachedAt %} · détachée le {{ item.detachedAt|date('d/m/Y H:i') }}{% elseif item.updatedAt is defined %} · dernière modification {{ item.updatedAt|date('d/m/Y H:i') }}{% endif %}</p>
+                        </article>
+                    {% else %}<p class="px-5 py-5 text-sm text-slate-500">Aucun élément.</p>{% endfor %}
+                </div>
+            </details>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -13,6 +13,7 @@ use App\Repository\NannyRateRepository;
 use App\Service\ActivityLogger;
 use App\Service\CareSegmenter;
 use App\Service\MonthlyPaymentCalculator;
+use App\Service\CareStatusSynchronizer;
 use App\Service\TemplateApplicationService;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
@@ -55,7 +56,7 @@ final class TemplateApplicationServiceTest extends TestCase
         $paymentRepository->method('findOneFor')->willReturn(null);
 
         $entityManager = $this->createMock(EntityManagerInterface::class);
-        $calculator = new MonthlyPaymentCalculator($careRepository, $paymentRepository, $rateRepository, $entityManager);
+        $calculator = new MonthlyPaymentCalculator($careRepository, $paymentRepository, $rateRepository, $entityManager, new CareStatusSynchronizer($careRepository, $entityManager));
         $service = new TemplateApplicationService(
             new CareSegmenter(),
             $careRepository,
@@ -67,8 +68,9 @@ final class TemplateApplicationServiceTest extends TestCase
 
         $result = $service->preview($user, $template, new \DateTimeImmutable('2026-06-22'));
 
-        self::assertCount(1, $result['accepted']);
-        self::assertCount(1, $result['rejected']);
-        self::assertSame('Conflit avec une garde existante.', $result['rejected'][0]['reason']);
+        self::assertCount(2, $result['accepted']);
+        self::assertCount(0, $result['rejected']);
+        self::assertCount(1, $result['conflicts']);
+        self::assertSame('Conflit avec une garde existante.', $result['conflicts'][0]['reason']);
     }
 }

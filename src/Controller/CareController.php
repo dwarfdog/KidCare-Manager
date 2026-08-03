@@ -5,10 +5,14 @@ namespace App\Controller;
 use App\Entity\Care;
 use App\Entity\Nanny;
 use App\Repository\CareRepository;
+use App\Repository\CareAbsenceRepository;
 use App\Repository\CareTemplateRepository;
 use App\Repository\NannyRepository;
 use App\Service\ApplicationSettings;
 use App\Service\CareManager;
+use App\Service\CareStatusSynchronizer;
+use App\Service\MonthlyPaymentCalculator;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,6 +30,8 @@ class CareController extends AbstractController
         CareTemplateRepository $careTemplateRepository,
         NannyRepository $nannyRepository,
         ApplicationSettings $settings,
+        CareAbsenceRepository $absenceRepository,
+        CareStatusSynchronizer $statusSynchronizer,
         ?string $publicId = null,
         ?string $currentDate = null,
     ): Response {
@@ -33,7 +39,12 @@ class CareController extends AbstractController
         $nannies = $nannyRepository->findAssignedToUser($user);
         $nanny = null;
 
-        if ($publicId !== null) {
+        if ($publicId === null && count($nannies) === 1) {
+            $nanny = $nannies[0];
+            $publicId = $nanny->getPublicId();
+        }
+
+        if ($publicId !== null && !$nanny instanceof Nanny) {
             $nanny = $nannyRepository->findOneByPublicId($publicId);
             if (!$nanny instanceof Nanny || !$nanny->isAssignedTo($user)) {
                 $this->addFlash('warning', 'Vous n\'avez pas acces a cette nounou.');
@@ -42,9 +53,24 @@ class CareController extends AbstractController
             }
         }
 
-        $events = $nanny instanceof Nanny
-            ? array_map(fn (Care $care): array => $this->eventPayload($care), $careRepository->findForUserAndNanny($user, $nanny))
-            : [];
+        $events = [];
+        if ($nanny instanceof Nanny) {
+            $statusSynchronizer->synchronize($user, $nanny);
+            $absences = $absenceRepository->findActiveFor($user, $nanny);
+            foreach ($careRepository->findForUserAndNanny($user, $nanny) as $care) {
+                $conflicts = array_filter($absences, static fn ($absence): bool => $care->getStartDateTime() < $absence->getEndsAt() && $care->getEndDateTime() > $absence->getStartsAt());
+                $scheduleConflict = $careRepository->overlapsNannySchedule($nanny, $care->getStartDateTime(), $care->getEndDateTime(), $care);
+                $events[] = $this->eventPayload($care, $conflicts !== [] || $scheduleConflict);
+            }
+            foreach ($absences as $absence) {
+                $events[] = [
+                    'id' => 'absence-'.$absence->getPublicId(), 'title' => $absence->getTypeLabel(),
+                    'start' => $this->formatCalendarDateTime($absence->getStartsAt()), 'end' => $this->formatCalendarDateTime($absence->getEndsAt()),
+                    'editable' => false, 'displayOnly' => true, 'status' => 'absence', 'notes' => $absence->getNotes(),
+                    'backgroundColor' => '#7c3aed', 'borderColor' => '#6d28d9',
+                ];
+            }
+        }
 
         $templates = $nanny instanceof Nanny ? $careTemplateRepository->findByUserAndNanny($user, $nanny) : [];
         $date = $this->isValidDate($currentDate) ? new \DateTime($currentDate) : new \DateTime();
@@ -67,6 +93,7 @@ class CareController extends AbstractController
         Request $request,
         NannyRepository $nannyRepository,
         CareManager $careManager,
+        CareRepository $careRepository,
     ): JsonResponse {
         $this->assertValidCareCsrf($request);
         $payload = $this->jsonPayload($request);
@@ -88,7 +115,10 @@ class CareController extends AbstractController
             return $this->json(['error' => $exception->getMessage()], 400);
         }
 
-        return $this->json(['events' => array_map(fn (Care $care): array => $this->eventPayload($care), $segments)], 201);
+        return $this->json(['events' => array_map(
+            fn (Care $care): array => $this->eventPayload($care, $this->hasScheduleConflict($care, $careRepository)),
+            $segments,
+        )], 201);
     }
 
     #[Route('/update/{publicId}', name: 'update', methods: ['PATCH'])]
@@ -118,7 +148,10 @@ class CareController extends AbstractController
 
         return $this->json([
             'removed' => [$publicId],
-            'events' => array_map(fn (Care $segment): array => $this->eventPayload($segment), $segments),
+            'events' => array_map(
+                fn (Care $segment): array => $this->eventPayload($segment, $this->hasScheduleConflict($segment, $careRepository)),
+                $segments,
+            ),
         ]);
     }
 
@@ -144,7 +177,28 @@ class CareController extends AbstractController
         return $this->json(['success' => true]);
     }
 
-    private function eventPayload(Care $care): array
+    #[Route('/status/{publicId}', name: 'status', methods: ['PATCH'])]
+    public function status(string $publicId, Request $request, CareRepository $careRepository, MonthlyPaymentCalculator $payments, EntityManagerInterface $entityManager): JsonResponse
+    {
+        $this->assertValidCareCsrf($request);
+        $care = $careRepository->findOneForUserByPublicId($this->getUser(), $publicId);
+        if (!$care instanceof Care || !$care->getNanny() instanceof Nanny) { return $this->json(['error' => 'La garde est introuvable.'], 404); }
+        $payload = $this->jsonPayload($request);
+        try {
+            $payments->assertMonthEditable($this->getUser(), $care->getNanny(), (string) $care->getMonth());
+            $status = (string) ($payload['status'] ?? Care::STATUS_PLANNED);
+            $care->setStatus($status, true)
+                ->setNonRealizationReason($status === Care::STATUS_CANCELLED ? (string) ($payload['reason'] ?? Care::REASON_OTHER) : null)
+                ->setRemuneratedOverride($status === Care::STATUS_CANCELLED && (bool) ($payload['remunerated'] ?? false))
+                ->setNotes(isset($payload['notes']) ? (string) $payload['notes'] : null);
+            $entityManager->flush();
+            $payments->recalculate($this->getUser(), $care->getNanny(), (string) $care->getMonth(), true);
+            $entityManager->flush();
+        } catch (\Throwable $exception) { return $this->json(['error' => $exception->getMessage()], 400); }
+        return $this->json(['event' => $this->eventPayload($care, $this->hasScheduleConflict($care, $careRepository))]);
+    }
+
+    private function eventPayload(Care $care, bool $conflict = false): array
     {
         $description = sprintf(
             'De %s a %s%s',
@@ -161,7 +215,24 @@ class CareController extends AbstractController
             'meals' => $care->getMealsCount(),
             'description' => $description,
             'segment' => $care->isMultiSegment() ? sprintf('%d/%d', $care->getSegmentIndex(), $care->getSegmentTotal()) : null,
+            'status' => $care->getStatus(),
+            'statusLabel' => $care->isCancelled() ? 'Annulée' : ($care->isRealized() ? 'Réalisée' : 'Prévue'),
+            'reason' => $care->getNonRealizationReason(),
+            'remunerated' => $care->isBillable(),
+            'notes' => $care->getNotes(),
+            'conflict' => $conflict,
+            'backgroundColor' => $conflict ? '#dc2626' : ($care->isCancelled() ? '#64748b' : ($care->isRealized() ? '#0f766e' : '#2563eb')),
+            'borderColor' => $conflict ? '#991b1b' : ($care->isCancelled() ? '#475569' : ($care->isRealized() ? '#115e59' : '#1d4ed8')),
         ];
+    }
+
+    private function hasScheduleConflict(Care $care, CareRepository $repository): bool
+    {
+        $nanny = $care->getNanny();
+
+        return !$care->isCancelled()
+            && $nanny instanceof Nanny
+            && $repository->overlapsNannySchedule($nanny, $care->getStartDateTime(), $care->getEndDateTime(), $care);
     }
 
     private function localDateTimeFromPayload(array $payload, string $key): \DateTimeImmutable

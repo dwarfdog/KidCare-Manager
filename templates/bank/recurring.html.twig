@@ -10,8 +10,8 @@
         {# Filtres #}
         <form method="get" class="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4">
             <div>
-                <label class="mb-1 block text-xs font-medium text-slate-500">Compte</label>
-                <select name="account" class="rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+                <label for="recurring-filter-account" class="mb-1 block text-xs font-medium text-slate-500">Compte</label>
+                <select id="recurring-filter-account" name="account" class="rounded-md border border-slate-300 px-2 py-1.5 text-sm">
                     <option value="">Tous</option>
                     {% for account in accounts %}
                         <option value="{{ account.publicId }}" {{ filters.account == account.publicId ? 'selected' }}>{{ accountManager.displayName(account) }}</option>
@@ -19,8 +19,8 @@
                 </select>
             </div>
             <div>
-                <label class="mb-1 block text-xs font-medium text-slate-500">Categorie</label>
-                <select name="category" class="rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+                <label for="recurring-filter-category" class="mb-1 block text-xs font-medium text-slate-500">Categorie</label>
+                <select id="recurring-filter-category" name="category" class="rounded-md border border-slate-300 px-2 py-1.5 text-sm">
                     <option value="">Toutes</option>
                     {% for category in categories %}
                         <option value="{{ category.publicId }}" {{ filters.category == category.publicId ? 'selected' }}>{{ category.name }}</option>
@@ -28,8 +28,8 @@
                 </select>
             </div>
             <div>
-                <label class="mb-1 block text-xs font-medium text-slate-500">Sens</label>
-                <select name="direction" class="rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+                <label for="recurring-filter-direction" class="mb-1 block text-xs font-medium text-slate-500">Sens</label>
+                <select id="recurring-filter-direction" name="direction" class="rounded-md border border-slate-300 px-2 py-1.5 text-sm">
                     <option value="">Tous</option>
                     <option value="income" {{ filters.direction == 'income' ? 'selected' }}>Revenus</option>
                     <option value="expense" {{ filters.direction == 'expense' ? 'selected' }}>Depenses</option>
@@ -56,9 +56,9 @@
                             <span class="font-semibold tabular-nums {{ rule.amount < 0 ? 'text-rose-700' : 'text-emerald-700' }}">{{ rule.amount|number_format(2, ',', ' ') }} €</span>
                             <a href="{{ path('app_bank_recurring_edit', {publicId: rule.publicId}) }}" class="font-medium text-slate-600 hover:text-slate-900" data-tippy-content="Modifier">Modifier</a>
                             <form method="post" action="{{ path('app_bank_recurring_deactivate', {publicId: rule.publicId}) }}"
-                                  data-controller="confirm" data-confirm-title-value="Desactiver cette recurrence ?" data-confirm-text-value="Les echeances prevues seront retirees du budget. Disponible dans les Archives, reactivable." data-confirm-confirm-text-value="Desactiver" data-action="confirm#submit">
+                                  data-controller="confirm" data-confirm-title-value="Archiver cette recurrence ?" data-confirm-text-value="Les echeances prevues seront retirees du budget. La recurrence restera consultable dans les Archives, sans restauration possible." data-confirm-confirm-text-value="Archiver" data-action="confirm#submit">
                                 <input type="hidden" name="_token" value="{{ csrf_token('bank_recurring_deactivate_' ~ rule.publicId) }}">
-                                <button class="font-medium text-rose-600 hover:text-rose-800">Desactiver</button>
+                                <button class="font-medium text-rose-600 hover:text-rose-800">Archiver</button>
                             </form>
                         </div>
                     </div>

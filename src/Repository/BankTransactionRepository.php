@@ -5,8 +5,14 @@ namespace App\Repository;
 use App\Entity\BankAccount;
 use App\Entity\BankTransaction;
 use App\Entity\MonthlyPayment;
+use App\Entity\BankImportBatch;
 use App\Entity\User;
+use App\Model\BankTransactionListCriteria;
+use App\Model\BankTransactionPage;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\ORM\QueryBuilder;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
 /** @extends ServiceEntityRepository<BankTransaction> */
@@ -71,6 +77,40 @@ class BankTransactionRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    public function findRealPageForAccount(BankAccount $account, BankTransactionListCriteria $criteria): BankTransactionPage
+    {
+        $query = $this->accountListQuery($account, $criteria, false)->getQuery();
+        $paginator = new Paginator($query, true);
+        $total = count($paginator);
+        $pages = max(1, (int) ceil($total / $criteria->perPage));
+        $page = min($criteria->page, $pages);
+
+        $query
+            ->setFirstResult(($page - 1) * $criteria->perPage)
+            ->setMaxResults($criteria->perPage);
+
+        /** @var BankTransaction[] $items */
+        $items = iterator_to_array($paginator->getIterator(), false);
+
+        return new BankTransactionPage($items, $total, $page, $pages, $criteria->perPage);
+    }
+
+    public function findRealPageNumberForTransaction(BankAccount $account, BankTransaction $transaction, BankTransactionListCriteria $criteria): ?int
+    {
+        $rows = $this->accountListQuery($account, $criteria->withPage(1), false)
+            ->select('t.publicId AS publicId')
+            ->getQuery()
+            ->getArrayResult();
+
+        foreach ($rows as $position => $row) {
+            if (($row['publicId'] ?? null) === $transaction->getPublicId()) {
+                return intdiv($position, $criteria->perPage) + 1;
+            }
+        }
+
+        return null;
+    }
+
     /** @return BankTransaction[] */
     public function findPlannedForAccountUntil(BankAccount $account, \DateTimeInterface $to, int $limit = 80): array
     {
@@ -87,6 +127,31 @@ class BankTransactionRepository extends ServiceEntityRepository
             ->orderBy('t.date', 'ASC')
             ->addOrderBy('t.id', 'ASC')
             ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /** @return BankTransaction[] */
+    public function findPlannedForAccountUntilFiltered(BankAccount $account, \DateTimeInterface $to, BankTransactionListCriteria $criteria): array
+    {
+        $from = new \DateTimeImmutable('tomorrow');
+        if ($criteria->from !== null && $criteria->from > $from) {
+            $from = $criteria->from;
+        }
+
+        $periodEnd = \DateTimeImmutable::createFromInterface($to);
+        if ($criteria->to !== null && $criteria->to < $periodEnd) {
+            $periodEnd = $criteria->to;
+        }
+        if ($from > $periodEnd) {
+            return [];
+        }
+
+        return $this->accountListQuery($account, $criteria, true)
+            ->andWhere('t.date >= :plannedFrom')
+            ->andWhere('t.date <= :plannedTo')
+            ->setParameter('plannedFrom', $from->format('Y-m-d'))
+            ->setParameter('plannedTo', $periodEnd->format('Y-m-d'))
             ->getQuery()
             ->getResult();
     }
@@ -198,6 +263,53 @@ class BankTransactionRepository extends ServiceEntityRepository
         return (float) $sum;
     }
 
+    /**
+     * @param BankAccount[] $accounts
+     * @return array<int, array{month: string, gains: float, expenses: float}>
+     */
+    public function monthlyEvolutionForCategory(User $user, \App\Entity\BankCategory $category, array $accounts, \DateTimeInterface $from, \DateTimeInterface $to): array
+    {
+        $accountIds = array_values(array_filter(array_map(static fn (BankAccount $account): ?int => $account->getId(), $accounts)));
+        if ($accountIds === []) {
+            return [];
+        }
+
+        $rows = $this->getEntityManager()->getConnection()->executeQuery(
+            <<<'SQL'
+                SELECT substr(transaction_date, 1, 7) AS month,
+                       SUM(CASE WHEN amount > 0 THEN CAST(amount AS REAL) ELSE 0 END) AS gains,
+                       SUM(CASE WHEN amount < 0 THEN ABS(CAST(amount AS REAL)) ELSE 0 END) AS expenses
+                FROM bank_transaction
+                WHERE user_id = :userId
+                  AND category_id = :categoryId
+                  AND account_id IN (:accountIds)
+                  AND archived_at IS NULL
+                  AND status IN (:statuses)
+                  AND transaction_date BETWEEN :fromDate AND :toDate
+                GROUP BY substr(transaction_date, 1, 7)
+                ORDER BY month ASC
+                SQL,
+            [
+                'userId' => $user->getId(),
+                'categoryId' => $category->getId(),
+                'accountIds' => $accountIds,
+                'statuses' => $this->realStatuses(),
+                'fromDate' => $from->format('Y-m-d'),
+                'toDate' => $to->format('Y-m-d'),
+            ],
+            [
+                'accountIds' => ArrayParameterType::INTEGER,
+                'statuses' => ArrayParameterType::STRING,
+            ],
+        )->fetchAllAssociative();
+
+        return array_map(static fn (array $row): array => [
+            'month' => (string) $row['month'],
+            'gains' => round((float) $row['gains'], 2),
+            'expenses' => round((float) $row['expenses'], 2),
+        ], $rows);
+    }
+
     /** @return BankTransaction[] */
     public function findDuePlanned(User $user, \DateTimeInterface $date): array
     {
@@ -224,6 +336,12 @@ class BankTransactionRepository extends ServiceEntityRepository
             ->setParameter('hash', $hash)
             ->getQuery()
             ->getOneOrNullResult();
+    }
+
+    /** @return BankTransaction[] */
+    public function findForImportBatch(User $user, BankImportBatch $batch): array
+    {
+        return $this->createQueryBuilder('t')->andWhere('t.user = :user')->andWhere('t.importBatch = :batch')->setParameter('user', $user)->setParameter('batch', $batch)->getQuery()->getResult();
     }
 
     public function findOneForMonthlyPayment(User $user, MonthlyPayment $payment): ?BankTransaction
@@ -358,5 +476,62 @@ class BankTransactionRepository extends ServiceEntityRepository
     private function realStatuses(): array
     {
         return [BankTransaction::STATUS_REAL, BankTransaction::STATUS_RECONCILED];
+    }
+
+    private function accountListQuery(BankAccount $account, BankTransactionListCriteria $criteria, bool $planned): QueryBuilder
+    {
+        $queryBuilder = $this->createQueryBuilder('t')
+            ->leftJoin('t.category', 'category')
+            ->andWhere('t.account = :listAccount')
+            ->andWhere('t.archivedAt IS NULL')
+            ->setParameter('listAccount', $account);
+
+        if ($planned) {
+            $queryBuilder
+                ->andWhere('t.status = :listStatus')
+                ->setParameter('listStatus', BankTransaction::STATUS_PLANNED);
+        } else {
+            $queryBuilder
+                ->andWhere('t.status IN (:listStatuses)')
+                ->setParameter('listStatuses', $this->realStatuses());
+        }
+
+        if ($criteria->from !== null && !$planned) {
+            $queryBuilder
+                ->andWhere('t.date >= :listFrom')
+                ->setParameter('listFrom', $criteria->from->format('Y-m-d'));
+        }
+        if ($criteria->to !== null && !$planned) {
+            $queryBuilder
+                ->andWhere('t.date <= :listTo')
+                ->setParameter('listTo', $criteria->to->format('Y-m-d'));
+        }
+        if ($criteria->category !== null) {
+            $queryBuilder
+                ->andWhere('t.category = :listCategory')
+                ->setParameter('listCategory', $criteria->category);
+        }
+        if ($criteria->type !== null) {
+            $queryBuilder
+                ->andWhere('t.type = :listType')
+                ->setParameter('listType', $criteria->type);
+        }
+        if (!$planned && $criteria->verified !== null) {
+            $queryBuilder->andWhere($criteria->verified ? 't.verifiedAt IS NOT NULL' : 't.verifiedAt IS NULL');
+        }
+
+        $direction = strtoupper($criteria->direction) === 'ASC' ? 'ASC' : 'DESC';
+        $sortField = match ($criteria->sort) {
+            'amount' => 't.amount',
+            'category' => 'category.name',
+            default => 't.date',
+        };
+        $queryBuilder->orderBy($sortField, $direction);
+        if ($sortField !== 't.date') {
+            $queryBuilder->addOrderBy('t.date', 'DESC');
+        }
+        $queryBuilder->addOrderBy('t.id', $direction);
+
+        return $queryBuilder;
     }
 }

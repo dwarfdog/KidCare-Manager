@@ -1,7 +1,7 @@
 # KidCare-Manager
 
 <div align="center">
-  <img src="https://img.shields.io/badge/PHP-8.1%2B-777BB4?logo=php&logoColor=white" alt="PHP Version">
+  <img src="https://img.shields.io/badge/PHP-8.1.33%2B-777BB4?logo=php&logoColor=white" alt="PHP Version">
   <img src="https://img.shields.io/badge/Symfony-6.4%20LTS-000000?logo=symfony&logoColor=white" alt="Symfony Version">
   <img src="https://img.shields.io/badge/Doctrine%20ORM-3.3%2B-FF5733?logo=doctrine&logoColor=white" alt="Doctrine ORM">
 </div>
@@ -22,59 +22,65 @@
 
 Ce projet permet aux utilisateurs de gérer sereinement leurs tâches administratives liées à la garde d’enfants, en leur fournissant des outils simples et efficaces.
 
-### Fonctionnalités principales :
-- **Planning interactif** : Gérer les horaires, les congés et les imprévus dans un calendrier intuitif.
-- **Calcul automatique** : Calculer les heures travaillées et les montants à payer automatiquement.
-- **Interface intuitive** : Inscription facile et démarrage rapide pour tous les utilisateurs.
+### Fonctionnalités principales
+
+- **Dashboard unifié** : synthèse des informations essentielles de KidCare et Bank Manager.
+- **Planning interactif** : gestion des horaires, des congés et des imprévus.
+- **Calcul automatique** : calcul des heures travaillées et des paiements.
+- **Gestion bancaire** : comptes, opérations réelles et prévues, budgets, objectifs et prêts.
+- **Analyse financière** : évolution mensuelle des gains, dépenses et soldes par catégorie.
 
 L’objectif est de réduire la complexité des tâches administratives et d’offrir une solution tout-en-un pour les familles et les professionnels.
 
 ---
 
-## Étapes d'installation
+## Prérequis
 
-1. **Cloner le dépôt** :
+- PHP 8.1.33 ou une version 8.x ultérieure compatible avec Symfony 6.4.
+- Extensions PHP : `ctype`, `dom`, `fileinfo`, `filter`, `gd`, `iconv`, `mbstring`, `simplexml`, `xml`, `xmlreader`, `xmlwriter` et `zip`.
+- Pilote PDO correspondant à la base configurée ; SQLite est pris en charge sous Linux et Windows.
+- Composer 2, Node.js 22.18+ (ou 24.11+) et npm.
+
+La plateforme Composer est verrouillée sur PHP 8.1.33. Les fichiers de verrouillage Composer et npm doivent rester versionnés pour reproduire les versions validées.
+
+## Installation
+
+1. Cloner le dépôt puis installer les dépendances :
+
    ```bash
    git clone https://github.com/dwarfdog/KidCare-Manager.git
    cd KidCare-Manager
-
-2. **Installer les dépendances PHP** :
-
-   ```bash
    composer install
-
-3. **Configurer les variables d'environnement** :
-   - ***Copier le fichier .env et le renommer en .env.local***
-   
-     ```bash
-     cp .env .env.local
-     
-   - ***Modifier votre fichier d'environnement***
-   
-     ```bash
-     nano .env.local
-
-4. **Initialiser la base de données** :
-   
-   ```bash
-   php bin/console doctrine:database:create
-   php bin/console make:migration
-   php bin/console doctrine:migrations:migrate
-
-5. **Installer les dépendances front-end** :
-   
-   ```bash
    npm install
+   ```
 
-2. **Construire les assets front-end** :
-   
-   - ***En mode développement***
-     ```bash
-     npm run dev
+2. Copier `.env` vers `.env.local`, puis renseigner au minimum `DATABASE_URL`, `APP_SECRET` et `BANK_ENCRYPTION_KEY`.
 
-   - ***En mode production***
-     ```bash
-     npm run build
+3. Initialiser la base et construire les ressources :
+
+   ```bash
+   php bin/console doctrine:database:create --if-not-exists
+   php bin/console doctrine:migrations:migrate --no-interaction
+   npm run build
+   ```
+
+## Validation locale
+
+```bash
+npx playwright install chromium
+php bin/phpunit
+composer analyse
+composer compat:php81
+php bin/console lint:container
+php bin/console lint:twig templates
+php bin/console doctrine:schema:validate
+npm run build
+npm run test:e2e
+composer audit
+npm audit
+```
+
+Le test navigateur utilise une base SQLite dédiée dans `var/` et ne touche pas aux données de développement.
 
 ---
 

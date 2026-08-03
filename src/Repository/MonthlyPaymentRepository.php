@@ -71,6 +71,23 @@ class MonthlyPaymentRepository extends ServiceEntityRepository
     }
 
     /** @return MonthlyPayment[] */
+    public function findRecentBeforeCurrentMonth(User $user, int $limit = 8): array
+    {
+        $currentMonth = (new \DateTimeImmutable())->format('Y-m');
+
+        return $this->createQueryBuilder('mp')
+            ->andWhere('mp.user = :user')
+            ->andWhere('mp.month < :currentMonth')
+            ->setParameter('user', $user)
+            ->setParameter('currentMonth', $currentMonth)
+            ->orderBy('mp.month', 'DESC')
+            ->addOrderBy('mp.nannyDisplayName', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /** @return MonthlyPayment[] */
     public function findCurrentMonth(User $user): array
     {
         $currentMonth = (new \DateTime())->format('Y-m');
@@ -83,5 +100,12 @@ class MonthlyPaymentRepository extends ServiceEntityRepository
             ->orderBy('mp.nannyDisplayName', 'ASC')
             ->getQuery()
             ->getResult();
+    }
+
+    /** @return MonthlyPayment[] */
+    public function findUnpaidBeforeMonth(User $user, string $month): array
+    {
+        return $this->createQueryBuilder('mp')->andWhere('mp.user = :user')->andWhere('mp.month < :month')->andWhere('mp.isPaid = false')
+            ->setParameter('user', $user)->setParameter('month', $month)->orderBy('mp.month', 'ASC')->getQuery()->getResult();
     }
 }

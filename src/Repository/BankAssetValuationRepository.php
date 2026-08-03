@@ -1,0 +1,2 @@
+<?php
+namespace App\Repository;use App\Entity\BankAsset;use App\Entity\BankAssetValuation;use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;use Doctrine\Persistence\ManagerRegistry;/** @extends ServiceEntityRepository<BankAssetValuation> */final class BankAssetValuationRepository extends ServiceEntityRepository{public function __construct(ManagerRegistry$r){parent::__construct($r,BankAssetValuation::class);}public function findForAsset(BankAsset$a):array{return$this->findBy(['asset'=>$a],['valuedAt'=>'ASC']);}}

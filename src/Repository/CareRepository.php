@@ -21,6 +21,7 @@ class CareRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('c')
             ->andWhere('c.user = :user')
             ->andWhere('c.publicId = :publicId')
+            ->andWhere('c.archivedAt IS NULL')
             ->setParameter('user', $user)
             ->setParameter('publicId', $publicId)
             ->getQuery()
@@ -33,6 +34,7 @@ class CareRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('c')
             ->andWhere('c.user = :user')
             ->andWhere('c.nanny = :nanny')
+            ->andWhere('c.archivedAt IS NULL')
             ->setParameter('user', $user)
             ->setParameter('nanny', $nanny)
             ->orderBy('c.date', 'ASC')
@@ -47,8 +49,12 @@ class CareRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('c')
             ->andWhere('c.user = :user')
             ->andWhere('c.month = :month')
+            ->andWhere('c.archivedAt IS NULL')
+            ->andWhere('(c.status = :realized OR (c.status = :cancelled AND c.remuneratedOverride = true))')
             ->setParameter('user', $user)
             ->setParameter('month', $month)
+            ->setParameter('realized', Care::STATUS_REALIZED)
+            ->setParameter('cancelled', Care::STATUS_CANCELLED)
             ->orderBy('c.date', 'ASC')
             ->addOrderBy('c.startTime', 'ASC');
 
@@ -71,9 +77,12 @@ class CareRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('c')
             ->andWhere('c.user = :user')
             ->andWhere('(c.date > :date OR (c.date = :date AND c.startTime >= :time))')
+            ->andWhere('c.archivedAt IS NULL')
+            ->andWhere('c.status = :planned')
             ->setParameter('user', $user)
             ->setParameter('date', $now->format('Y-m-d'))
             ->setParameter('time', $now->format('H:i:s'))
+            ->setParameter('planned', Care::STATUS_PLANNED)
             ->orderBy('c.date', 'ASC')
             ->addOrderBy('c.startTime', 'ASC')
             ->setMaxResults(1)
@@ -91,6 +100,7 @@ class CareRepository extends ServiceEntityRepository
             ->andWhere('c.user = :user')
             ->andWhere('c.nanny = :nanny')
             ->andWhere('(c.date >= :today OR mp.isPaid = false OR mp.id IS NULL)')
+            ->andWhere('c.archivedAt IS NULL')
             ->setParameter('user', $user)
             ->setParameter('nanny', $nanny)
             ->setParameter('today', $today->format('Y-m-d'))
@@ -113,6 +123,7 @@ class CareRepository extends ServiceEntityRepository
             ->andWhere('c.user = :user')
             ->andWhere('c.nanny = :nanny')
             ->andWhere('c.date >= :fromDate')
+            ->andWhere('c.archivedAt IS NULL')
             ->andWhere('mp.isPaid = true')
             ->setParameter('user', $user)
             ->setParameter('nanny', $nanny)
@@ -136,6 +147,7 @@ class CareRepository extends ServiceEntityRepository
             ->andWhere('c.user = :user')
             ->andWhere('c.nanny = :nanny')
             ->andWhere('c.date >= :fromDate')
+            ->andWhere('c.archivedAt IS NULL')
             ->andWhere('(mp.id IS NULL OR mp.isPaid = false)')
             ->setParameter('user', $user)
             ->setParameter('nanny', $nanny)
@@ -159,10 +171,13 @@ class CareRepository extends ServiceEntityRepository
             ->andWhere('c.user = :user')
             ->andWhere('c.nanny = :nanny')
             ->andWhere('c.date BETWEEN :fromDate AND :toDate')
+            ->andWhere('c.archivedAt IS NULL')
+            ->andWhere('c.status != :cancelled')
             ->setParameter('user', $user)
             ->setParameter('nanny', $nanny)
             ->setParameter('fromDate', $start->modify('-1 day')->format('Y-m-d'))
             ->setParameter('toDate', $end->format('Y-m-d'))
+            ->setParameter('cancelled', Care::STATUS_CANCELLED)
             ->getQuery()
             ->getResult();
 
@@ -177,5 +192,93 @@ class CareRepository extends ServiceEntityRepository
         }
 
         return false;
+    }
+
+    /**
+     * Detect a shared-nanny conflict without returning another family's data.
+     */
+    public function overlapsNannySchedule(Nanny $nanny, \DateTimeImmutable $start, \DateTimeImmutable $end, ?Care $ignoredCare = null): bool
+    {
+        if ($end <= $start) {
+            $end = $end->modify('+1 day');
+        }
+
+        $cares = $this->createQueryBuilder('c')
+            ->andWhere('c.nanny = :nanny')
+            ->andWhere('c.date BETWEEN :fromDate AND :toDate')
+            ->andWhere('c.archivedAt IS NULL')
+            ->andWhere('c.status != :cancelled')
+            ->setParameter('nanny', $nanny)
+            ->setParameter('fromDate', $start->modify('-1 day')->format('Y-m-d'))
+            ->setParameter('toDate', $end->format('Y-m-d'))
+            ->setParameter('cancelled', Care::STATUS_CANCELLED)
+            ->getQuery()
+            ->getResult();
+
+        foreach ($cares as $care) {
+            if ($ignoredCare !== null && $care->getId() === $ignoredCare->getId()) {
+                continue;
+            }
+            if ($care->getStartDateTime() < $end && $care->getEndDateTime() > $start) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @return Care[] */
+    public function findEndedPlannedUnlocked(User $user, ?Nanny $nanny = null): array
+    {
+        $now = new \DateTimeImmutable();
+        $qb = $this->createQueryBuilder('c')
+            ->andWhere('c.user = :user')
+            ->andWhere('c.archivedAt IS NULL')
+            ->andWhere('c.status = :planned')
+            ->andWhere('c.statusLocked = false')
+            ->andWhere('(c.date < :date OR (c.date = :date AND c.endTime <= :time))')
+            ->setParameter('user', $user)
+            ->setParameter('planned', Care::STATUS_PLANNED)
+            ->setParameter('date', $now->format('Y-m-d'))
+            ->setParameter('time', $now->format('H:i:s'));
+
+        if ($nanny !== null) {
+            $qb->andWhere('c.nanny = :nanny')->setParameter('nanny', $nanny);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /** @return Care[] */
+    public function findArchivedForUser(User $user, int $limit = 200): array
+    {
+        return $this->createQueryBuilder('c')
+            ->andWhere('c.user = :user')
+            ->andWhere('c.archivedAt IS NOT NULL')
+            ->setParameter('user', $user)
+            ->orderBy('c.archivedAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()->getResult();
+    }
+
+    /** @return Care[] */
+    public function findBetween(User $user, Nanny $nanny, \DateTimeInterface $from, \DateTimeInterface $to): array
+    {
+        return $this->createQueryBuilder('c')
+            ->andWhere('c.user = :user')->andWhere('c.nanny = :nanny')->andWhere('c.archivedAt IS NULL')
+            ->andWhere('c.date BETWEEN :from AND :to')->setParameter('user', $user)->setParameter('nanny', $nanny)
+            ->setParameter('from', $from->format('Y-m-d'))->setParameter('to', $to->format('Y-m-d'))
+            ->orderBy('c.date', 'ASC')->addOrderBy('c.startTime', 'ASC')->getQuery()->getResult();
+    }
+
+    /** @return Care[] */
+    public function findBillableForReport(User $user, \DateTimeInterface $from, \DateTimeInterface $to, ?Nanny $nanny = null): array
+    {
+        $qb = $this->createQueryBuilder('c')->andWhere('c.user = :user')->andWhere('c.archivedAt IS NULL')
+            ->andWhere('c.date BETWEEN :from AND :to')->andWhere('(c.status = :realized OR (c.status = :cancelled AND c.remuneratedOverride = true))')
+            ->setParameter('user', $user)->setParameter('from', $from->format('Y-m-d'))->setParameter('to', $to->format('Y-m-d'))
+            ->setParameter('realized', Care::STATUS_REALIZED)->setParameter('cancelled', Care::STATUS_CANCELLED)->orderBy('c.date', 'ASC')->addOrderBy('c.startTime', 'ASC');
+        if ($nanny !== null) { $qb->andWhere('c.nanny = :nanny')->setParameter('nanny', $nanny); }
+        return $qb->getQuery()->getResult();
     }
 }

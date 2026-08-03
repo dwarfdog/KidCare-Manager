@@ -18,6 +18,7 @@ use App\Form\BankImportType;
 use App\Form\BankRecurringRuleType;
 use App\Form\BankTransactionType;
 use App\Form\BankTransferType;
+use App\Model\BankTransactionListCriteria;
 use App\Repository\BankAccountRepository;
 use App\Repository\BankAttachmentRepository;
 use App\Repository\BankBudgetRepository;
@@ -29,7 +30,7 @@ use App\Repository\BankTransactionRepository;
 use App\Service\BankAccountManager;
 use App\Service\BankAttachmentManager;
 use App\Service\BankBudgetCalculator;
-use App\Service\BankCategorySeeder;
+use App\Service\BankDashboardSynchronizer;
 use App\Service\BankEncryptionService;
 use App\Service\BankExportService;
 use App\Service\BankGoalCalculator;
@@ -55,9 +56,7 @@ class BankController extends AbstractController
 {
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(
-        BankCategorySeeder $categorySeeder,
-        BankRecurringTransactionGenerator $generator,
-        BankLoanScheduleGenerator $loanScheduleGenerator,
+        BankDashboardSynchronizer $synchronizer,
         BankTransactionManager $transactionManager,
         BankStatisticsService $statistics,
         BankTransactionRepository $transactionRepository,
@@ -65,20 +64,10 @@ class BankController extends AbstractController
         BankGoalRepository $goalRepository,
         BankGoalCalculator $goalCalculator,
         BankAccountManager $accountManager,
-        EntityManagerInterface $entityManager,
     ): Response {
         $user = $this->getUser();
-        $categorySeeder->ensureForUser($user);
-        $generator->generateForUser($user);
-        $loanScheduleGenerator->generateForUser($user);
-        $transactionManager->archiveOrphanedPlanned($user);
-        $transactionManager->realizeDuePlanned($user);
-        $entityManager->flush();
-
+        $synchronizer->synchronize($user);
         $goals = $goalRepository->findActiveForUser($user);
-        if ($goalCalculator->syncStatuses($goals)) {
-            $entityManager->flush();
-        }
 
         return $this->render('bank/index.html.twig', [
             'dashboard' => $statistics->dashboard($user),
@@ -167,9 +156,11 @@ class BankController extends AbstractController
     #[Route('/accounts/{publicId}', name: 'account_show', methods: ['GET'])]
     public function accountShow(
         string $publicId,
+        Request $request,
         BankAccountRepository $accountRepository,
         BankAccountManager $accountManager,
         BankTransactionRepository $transactionRepository,
+        BankCategoryRepository $categoryRepository,
         BankTransactionManager $transactionManager,
         BankStatisticsService $statistics,
     ): Response {
@@ -178,7 +169,15 @@ class BankController extends AbstractController
         // La periode courante s'arrete la veille du prochain salaire (le jour de reference ouvre la suivante).
         $periodEnd = $referenceDate?->modify('-1 day');
 
-        return $this->render('bank/account_show.html.twig', [
+        $listData = $this->accountTransactionListData(
+            $request,
+            $account,
+            $periodEnd,
+            $transactionRepository,
+            $categoryRepository,
+        );
+
+        return $this->render('bank/account_show.html.twig', $listData + [
             'account' => $account,
             'balance' => $accountManager->balance($account),
             'projectedBalance' => $accountManager->projectedBalance($account, $periodEnd),
@@ -186,10 +185,32 @@ class BankController extends AbstractController
             'referenceDate' => $referenceDate,
             'periodEnd' => $periodEnd,
             'accountManager' => $accountManager,
-            'realTransactions' => $transactionRepository->findRealForAccount($account),
-            'plannedTransactions' => $periodEnd !== null ? $transactionRepository->findPlannedForAccountUntil($account, $periodEnd) : [],
             'transactionManager' => $transactionManager,
         ]);
+    }
+
+    #[Route('/accounts/{publicId}/transactions/{section}', name: 'account_transactions', requirements: ['section' => 'real|planned'], methods: ['GET'])]
+    public function accountTransactions(
+        string $publicId,
+        string $section,
+        Request $request,
+        BankAccountRepository $accountRepository,
+        BankTransactionRepository $transactionRepository,
+        BankCategoryRepository $categoryRepository,
+        BankTransactionManager $transactionManager,
+        BankStatisticsService $statistics,
+    ): Response {
+        $account = $this->accountOr404($publicId, $accountRepository);
+        $referenceDate = $statistics->nextSalaryDate($this->getUser(), new \DateTimeImmutable('today'));
+        $periodEnd = $referenceDate?->modify('-1 day');
+        $data = $this->accountTransactionListData($request, $account, $periodEnd, $transactionRepository, $categoryRepository) + [
+            'account' => $account,
+            'referenceDate' => $referenceDate,
+            'periodEnd' => $periodEnd,
+            'transactionManager' => $transactionManager,
+        ];
+
+        return $this->render($section === 'real' ? 'bank/_account_real_transactions.html.twig' : 'bank/_account_planned_transactions.html.twig', $data);
     }
 
     #[Route('/accounts/{publicId}/archive', name: 'account_archive', methods: ['POST'])]
@@ -201,23 +222,9 @@ class BankController extends AbstractController
 
         $accountManager->archive($this->getUser(), $this->accountOr404($publicId, $accountRepository));
         $entityManager->flush();
-        $this->addFlash('warning', 'Le compte bancaire a ete archive. Tu peux le restaurer depuis les Archives.');
+        $this->addFlash('warning', 'Le compte bancaire a été archivé pour mémoire.');
 
         return $this->redirectToRoute('app_bank_accounts');
-    }
-
-    #[Route('/accounts/{publicId}/restore', name: 'account_restore', methods: ['POST'])]
-    public function accountRestore(string $publicId, Request $request, BankAccountRepository $accountRepository, BankAccountManager $accountManager, EntityManagerInterface $entityManager): Response
-    {
-        if (!$this->isCsrfTokenValid('bank_account_restore_' . $publicId, (string) $request->request->get('_token'))) {
-            throw $this->createAccessDeniedException('Token CSRF invalide.');
-        }
-
-        $accountManager->restore($this->getUser(), $this->accountOr404($publicId, $accountRepository));
-        $entityManager->flush();
-        $this->addFlash('success', 'Le compte bancaire a ete restaure.');
-
-        return $this->redirectToRoute('app_bank_archives');
     }
 
     #[Route('/loans', name: 'loans', methods: ['GET'])]
@@ -235,16 +242,9 @@ class BankController extends AbstractController
     }
 
     #[Route('/archives', name: 'archives', methods: ['GET'])]
-    public function archives(BankAccountRepository $accountRepository, BankTransactionRepository $transactionRepository, BankRecurringRuleRepository $ruleRepository, BankAccountManager $accountManager, BankTransactionManager $transactionManager, BankEncryptionService $encryption): Response
+    public function archives(): Response
     {
-        return $this->render('bank/archives.html.twig', [
-            'accounts' => $accountRepository->findArchivedForUser($this->getUser()),
-            'transactions' => $transactionRepository->findArchivedForUser($this->getUser()),
-            'rules' => $ruleRepository->findFilteredForUser($this->getUser(), ['active' => false]),
-            'accountManager' => $accountManager,
-            'transactionManager' => $transactionManager,
-            'encryption' => $encryption,
-        ]);
+        return $this->redirectToRoute('app_archives', [], Response::HTTP_MOVED_PERMANENTLY);
     }
 
     #[Route('/transactions/new', name: 'transaction_new', methods: ['GET', 'POST'])]
@@ -252,6 +252,7 @@ class BankController extends AbstractController
     {
         $choices = $this->choices($accountRepository, $categoryRepository, $accountManager);
         $form = $this->createForm(BankTransactionType::class, [
+            'account' => $this->accountFromQuery($request, 'account', $accountRepository),
             'date' => new \DateTime('today'),
             'status' => BankTransaction::STATUS_REAL,
             'type' => BankTransaction::TYPE_EXPENSE,
@@ -262,7 +263,7 @@ class BankController extends AbstractController
             $data = $form->getData();
             try {
                 if (($data['type'] ?? null) === BankTransactionManager::TYPE_INTERNAL_TRANSFER) {
-                    $transferManager->create(
+                    [$createdTransaction] = $transferManager->create(
                         $this->getUser(),
                         $data['account'],
                         $data['targetAccount'],
@@ -273,12 +274,15 @@ class BankController extends AbstractController
                         (string) ($data['status'] ?? BankTransaction::STATUS_REAL),
                     );
                 } else {
-                    $manager->save($this->getUser(), new BankTransaction(), $data);
+                    $createdTransaction = $manager->save($this->getUser(), new BankTransaction(), $data);
                 }
                 $entityManager->flush();
                 $this->addFlash('success', 'Operation bancaire creee.');
 
-                return $this->redirectToRoute('app_bank_index');
+                return $this->redirectToRoute('app_bank_account_show', [
+                    'publicId' => $createdTransaction->getAccount()->getPublicId(),
+                    'focus' => $createdTransaction->getPublicId(),
+                ]);
             } catch (\InvalidArgumentException $exception) {
                 $form->addError(new FormError($exception->getMessage()));
             }
@@ -384,23 +388,9 @@ class BankController extends AbstractController
 
         $manager->archive($this->getUser(), $this->transactionOr404($publicId, $transactionRepository));
         $entityManager->flush();
-        $this->addFlash('warning', 'Operation bancaire archivee. Tu peux la restaurer depuis les Archives.');
+        $this->addFlash('warning', 'Opération bancaire archivée pour mémoire.');
 
         return $this->redirectToRoute('app_bank_index');
-    }
-
-    #[Route('/transactions/{publicId}/restore', name: 'transaction_restore', methods: ['POST'])]
-    public function transactionRestore(string $publicId, Request $request, BankTransactionRepository $transactionRepository, BankTransactionManager $manager, EntityManagerInterface $entityManager): Response
-    {
-        if (!$this->isCsrfTokenValid('bank_transaction_restore_' . $publicId, (string) $request->request->get('_token'))) {
-            throw $this->createAccessDeniedException('Token CSRF invalide.');
-        }
-
-        $manager->restore($this->getUser(), $this->transactionOr404($publicId, $transactionRepository));
-        $entityManager->flush();
-        $this->addFlash('success', 'Operation bancaire restauree.');
-
-        return $this->redirectToRoute('app_bank_archives');
     }
 
     #[Route('/transactions/{publicId}/verification', name: 'transaction_verification', methods: ['POST'])]
@@ -419,12 +409,12 @@ class BankController extends AbstractController
             $this->addFlash('error', $exception->getMessage());
         }
 
-        $referer = (string) $request->headers->get('referer', '');
-        if ($referer !== '' && str_starts_with($referer, $request->getSchemeAndHttpHost())) {
-            return $this->redirect($referer);
+        $parameters = ['publicId' => $transaction->getAccount()->getPublicId(), 'focus' => $transaction->getPublicId()];
+        if ($request->request->get('return_context') === 'account') {
+            $parameters += $this->sanitizeAccountListParameters($request->request->all('return'));
         }
 
-        return $this->redirectToRoute('app_bank_index');
+        return $this->redirectToRoute('app_bank_account_show', $parameters);
     }
 
     #[Route('/transfers/new', name: 'transfer_new', methods: ['GET', 'POST'])]
@@ -437,11 +427,14 @@ class BankController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
             try {
-                $transferManager->create($this->getUser(), $data['source'], $data['target'], (float) $data['amount'], $data['date'], $data['label'], $categoryRepository->findOneByName($this->getUser(), 'Virement interne'));
+                [$sourceTransaction] = $transferManager->create($this->getUser(), $data['source'], $data['target'], (float) $data['amount'], $data['date'], $data['label'], $categoryRepository->findOneByName($this->getUser(), 'Virement interne'));
                 $entityManager->flush();
                 $this->addFlash('success', 'Virement interne cree.');
 
-                return $this->redirectToRoute('app_bank_index');
+                return $this->redirectToRoute('app_bank_account_show', [
+                    'publicId' => $sourceTransaction->getAccount()->getPublicId(),
+                    'focus' => $sourceTransaction->getPublicId(),
+                ]);
             } catch (\InvalidArgumentException $exception) {
                 $form->addError(new FormError($exception->getMessage()));
             }
@@ -575,25 +568,6 @@ class BankController extends AbstractController
         return $this->redirectToRoute('app_bank_recurring');
     }
 
-    #[Route('/recurring/{publicId}/reactivate', name: 'recurring_reactivate', methods: ['POST'])]
-    public function recurringReactivate(string $publicId, Request $request, BankRecurringRuleRepository $ruleRepository, EntityManagerInterface $entityManager): Response
-    {
-        if (!$this->isCsrfTokenValid('bank_recurring_reactivate_' . $publicId, (string) $request->request->get('_token'))) {
-            throw $this->createAccessDeniedException('Token CSRF invalide.');
-        }
-
-        $rule = $ruleRepository->findOneForUserByPublicId($this->getUser(), $publicId);
-        if (!$rule instanceof BankRecurringRule) {
-            throw $this->createNotFoundException();
-        }
-
-        $rule->setActive(true);
-        $entityManager->flush();
-        $this->addFlash('success', 'Recurrence reactivee.');
-
-        return $this->redirectToRoute('app_bank_recurring');
-    }
-
     #[Route('/categories/{publicId}/edit', name: 'category_edit', methods: ['GET', 'POST'])]
     public function categoryEdit(string $publicId, Request $request, BankCategoryRepository $categoryRepository, EntityManagerInterface $entityManager): Response
     {
@@ -647,8 +621,11 @@ class BankController extends AbstractController
             return $this->redirectToRoute('app_bank_categories');
         }
 
+        $analyticsCategories = $categoryRepository->findActiveWithRealDataForUser($this->getUser());
+
         return $this->render('bank/categories.html.twig', [
             'categories' => $categoryRepository->findActiveForUser($this->getUser()),
+            'analyticsCategoryIds' => array_map(static fn (BankCategory $item): string => $item->getPublicId(), $analyticsCategories),
             'form' => $form,
         ]);
     }
@@ -886,6 +863,163 @@ class BankController extends AbstractController
         }
 
         return $this->downloadResponse($attachment->getContent(), $attachment->getMimeType(), $attachmentManager->originalName($attachment));
+    }
+
+    /** @return array<string, mixed> */
+    private function accountTransactionListData(
+        Request $request,
+        BankAccount $account,
+        ?\DateTimeImmutable $periodEnd,
+        BankTransactionRepository $transactionRepository,
+        BankCategoryRepository $categoryRepository,
+    ): array {
+        $realCriteria = $this->transactionListCriteria($request, 'real', $categoryRepository, 'desc');
+        $plannedCriteria = $this->transactionListCriteria($request, 'planned', $categoryRepository, 'asc');
+        $focusId = trim((string) $request->query->get('focus', ''));
+        $focusTransaction = $focusId !== '' ? $transactionRepository->findOneForUserByPublicId($this->getUser(), $focusId) : null;
+        $focusMessage = null;
+
+        if ($focusTransaction !== null && $focusTransaction->getAccount()?->getPublicId() === $account->getPublicId() && $focusTransaction->isReal() && !$request->query->has('real_page')) {
+            $targetPage = $transactionRepository->findRealPageNumberForTransaction($account, $focusTransaction, $realCriteria);
+            if ($targetPage !== null) {
+                $realCriteria = $realCriteria->withPage($targetPage);
+            }
+        }
+
+        $realPage = $transactionRepository->findRealPageForAccount($account, $realCriteria);
+        $realCriteria = $realCriteria->withPage($realPage->page);
+        $plannedTransactions = $periodEnd !== null
+            ? $transactionRepository->findPlannedForAccountUntilFiltered($account, $periodEnd, $plannedCriteria)
+            : [];
+
+        $focusVisible = false;
+        if ($focusTransaction !== null && $focusTransaction->getAccount()?->getPublicId() === $account->getPublicId()) {
+            $visibleTransactions = $focusTransaction->isReal() ? $realPage->items : $plannedTransactions;
+            foreach ($visibleTransactions as $visibleTransaction) {
+                if ($visibleTransaction->getPublicId() === $focusTransaction->getPublicId()) {
+                    $focusVisible = true;
+                    break;
+                }
+            }
+
+            if (!$focusVisible) {
+                if ($focusTransaction->getStatus() === BankTransaction::STATUS_PLANNED) {
+                    $today = new \DateTimeImmutable('today');
+                    if ($periodEnd === null) {
+                        $focusMessage = 'L\'operation prevue a bien ete enregistree, mais aucune periode salariale n\'est actuellement disponible pour l\'afficher.';
+                    } elseif ($focusTransaction->getDate() <= $today || $focusTransaction->getDate() > $periodEnd) {
+                        $focusMessage = sprintf('L\'operation prevue a bien ete enregistree, mais elle est hors de la periode affichee, qui se termine le %s.', $periodEnd->format('d/m/Y'));
+                    } else {
+                        $focusMessage = 'L\'operation ciblee ne correspond plus aux filtres conserves de la liste des operations prevues.';
+                    }
+                } else {
+                    $focusMessage = 'L\'operation ciblee ne correspond plus aux filtres conserves. Les filtres n\'ont pas ete modifies.';
+                }
+            }
+        }
+
+        $returnParameters = array_merge(
+            $realCriteria->toQuery('real'),
+            $plannedCriteria->toQuery('planned', false),
+        );
+
+        return [
+            'categories' => $categoryRepository->findActiveForUser($this->getUser()),
+            'transactionTypes' => $this->transactionTypeLabels(),
+            'realCriteria' => $realCriteria,
+            'realPage' => $realPage,
+            'plannedCriteria' => $plannedCriteria,
+            'plannedTransactions' => $plannedTransactions,
+            'returnParameters' => $returnParameters,
+            'focusId' => $focusVisible ? $focusId : null,
+            'focusMessage' => $focusMessage,
+        ];
+    }
+
+    private function transactionListCriteria(Request $request, string $prefix, BankCategoryRepository $categoryRepository, string $defaultDirection): BankTransactionListCriteria
+    {
+        $category = $this->categoryFromQuery($request, $prefix . '_category', $categoryRepository);
+        if ($category?->isArchived()) {
+            $category = null;
+        }
+
+        $allowedTypes = [BankTransaction::TYPE_INCOME, BankTransaction::TYPE_EXPENSE, BankTransaction::TYPE_TRANSFER_IN, BankTransaction::TYPE_TRANSFER_OUT];
+        $type = (string) $request->query->get($prefix . '_type', '');
+        $type = in_array($type, $allowedTypes, true) ? $type : null;
+        $verification = (string) $request->query->get($prefix . '_verified', '');
+        $verified = match ($verification) {
+            'verified' => true,
+            'unverified' => false,
+            default => null,
+        };
+        $sort = (string) $request->query->get($prefix . '_sort', 'date');
+        if (!in_array($sort, ['date', 'amount', 'category'], true)) {
+            $sort = 'date';
+        }
+        $direction = strtolower((string) $request->query->get($prefix . '_direction', $defaultDirection));
+        if (!in_array($direction, ['asc', 'desc'], true)) {
+            $direction = $defaultDirection;
+        }
+
+        return new BankTransactionListCriteria(
+            max(1, $request->query->getInt($prefix . '_page', 1)),
+            $this->nullableDateFromQuery($request, $prefix . '_from'),
+            $this->nullableDateFromQuery($request, $prefix . '_to'),
+            $category,
+            $type,
+            $prefix === 'real' ? $verified : null,
+            $sort,
+            $direction,
+            in_array($request->query->getInt($prefix . '_per_page', 25), [25, 50, 100], true) ? $request->query->getInt($prefix . '_per_page', 25) : 25,
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $parameters
+     * @return array<string, int|string>
+     */
+    private function sanitizeAccountListParameters(array $parameters): array
+    {
+        $allowed = [
+            'real_page', 'real_from', 'real_to', 'real_category', 'real_type', 'real_verified', 'real_sort', 'real_direction', 'real_per_page',
+            'planned_from', 'planned_to', 'planned_category', 'planned_type', 'planned_sort', 'planned_direction', 'planned_per_page',
+        ];
+        $sanitized = [];
+        foreach ($allowed as $name) {
+            if (!array_key_exists($name, $parameters) || !is_scalar($parameters[$name])) {
+                continue;
+            }
+            $value = trim((string) $parameters[$name]);
+            if ($value !== '') {
+                $sanitized[$name] = $value;
+            }
+        }
+
+        return $sanitized;
+    }
+
+    private function nullableDateFromQuery(Request $request, string $name): ?\DateTimeImmutable
+    {
+        $value = trim((string) $request->query->get($name, ''));
+        if ($value === '') {
+            return null;
+        }
+
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        $errors = \DateTimeImmutable::getLastErrors();
+
+        return $date !== false && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0)) ? $date : null;
+    }
+
+    /** @return array<string, string> */
+    private function transactionTypeLabels(): array
+    {
+        return [
+            BankTransaction::TYPE_INCOME => 'Gain',
+            BankTransaction::TYPE_EXPENSE => 'Depense',
+            BankTransaction::TYPE_TRANSFER_IN => 'Virement entrant',
+            BankTransaction::TYPE_TRANSFER_OUT => 'Virement sortant',
+        ];
     }
 
     private function downloadResponse(string $content, string $mimeType, string $filename): Response

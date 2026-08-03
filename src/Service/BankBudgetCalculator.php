@@ -7,6 +7,7 @@ use App\Entity\BankTransaction;
 use App\Entity\User;
 use App\Repository\BankBudgetRepository;
 use App\Repository\BankTransactionRepository;
+use App\Repository\BankTransactionSplitRepository;
 
 /**
  * Evalue les budgets actifs de l'utilisateur.
@@ -26,6 +27,7 @@ final class BankBudgetCalculator
     public function __construct(
         private readonly BankBudgetRepository $budgetRepository,
         private readonly BankTransactionRepository $transactionRepository,
+        private readonly BankTransactionSplitRepository $splitRepository,
     ) {
     }
 
@@ -100,6 +102,15 @@ final class BankBudgetCalculator
 
         $spent = [];
         foreach ($this->transactionRepository->findForPeriod($user, $from, $to, true) as $transaction) {
+            $splits = $this->splitRepository->findForTransaction($transaction);
+            if ($splits !== []) {
+                foreach ($splits as $split) {
+                    if ($split->getAmount() >= 0 || $split->getCategory() === null) { continue; }
+                    $categoryId = $split->getCategory()->getId();
+                    $spent[$categoryId] = ($spent[$categoryId] ?? 0.0) + abs($split->getAmount());
+                }
+                continue;
+            }
             if (!$this->isExpenseForBudget($transaction) || $transaction->getCategory() === null) {
                 continue;
             }

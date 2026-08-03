@@ -79,6 +79,7 @@ final class TemplateApplicationService
         $acceptedIntervals = [];
         $accepted = [];
         $rejected = [];
+        $conflicts = [];
 
         foreach ($schedule as $day => $config) {
             if (!($config['isActive'] ?? false)) {
@@ -91,11 +92,15 @@ final class TemplateApplicationService
                 $reason = $this->rejectionReason($user, $nanny, $candidate['segments'], $candidate['start'], $candidate['end'], $acceptedIntervals);
 
                 if ($reason !== null) {
+                    if (str_starts_with($reason, 'Conflit')) {
+                        $conflicts[] = ['label' => $candidate['label'], 'reason' => $reason];
+                    } else {
                     $rejected[] = [
                         'label' => $candidate['label'],
                         'reason' => $reason,
                     ];
-                    continue;
+                        continue;
+                    }
                 }
 
                 $acceptedIntervals[] = [$candidate['start'], $candidate['end']];
@@ -113,6 +118,7 @@ final class TemplateApplicationService
             'weekStart' => $weekStart->format('Y-m-d'),
             'accepted' => $accepted,
             'rejected' => $rejected,
+            'conflicts' => $conflicts,
             'events' => [],
         ];
     }
@@ -150,7 +156,7 @@ final class TemplateApplicationService
                 return $exception->getMessage();
             }
 
-            if ($this->careRepository->overlaps($user, $nanny, $segment->getStartDateTime(), $segment->getEndDateTime())) {
+            if ($this->careRepository->overlapsNannySchedule($nanny, $segment->getStartDateTime(), $segment->getEndDateTime())) {
                 return 'Conflit avec une garde existante.';
             }
 

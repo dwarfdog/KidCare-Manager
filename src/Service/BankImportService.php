@@ -19,6 +19,8 @@ final class BankImportService
         private readonly BankTransactionRepository $transactionRepository,
         private readonly EntityManagerInterface $entityManager,
         private readonly BankAuditLogger $auditLogger,
+        private readonly BankCategoryRuleMatcher $ruleMatcher,
+        private readonly BankImportUndoService $undoService,
     ) {
     }
 
@@ -64,6 +66,9 @@ final class BankImportService
                     ->setSource(BankTransaction::SOURCE_IMPORT)
                     ->setImportHash($hash)
                     ->setImportBatch($batch);
+
+                $this->ruleMatcher->apply($user, $transaction);
+                $transaction->setImportedStateHash($this->undoService->fingerprint($transaction));
 
                 $this->entityManager->persist($transaction);
                 ++$imported;

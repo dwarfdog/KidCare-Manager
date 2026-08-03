@@ -28,6 +28,20 @@ class NannyAssignmentRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
+    /** @return NannyAssignment[] */
+    public function findDetachedForUser(User $user): array
+    {
+        return $this->createQueryBuilder('a')
+            ->addSelect('n')
+            ->innerJoin('a.nanny', 'n')
+            ->andWhere('a.user = :user')
+            ->andWhere('a.detachedAt IS NOT NULL')
+            ->setParameter('user', $user)
+            ->orderBy('a.detachedAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
     public function countActiveOrHistoricalForNanny(Nanny $nanny): int
     {
         return (int) $this->createQueryBuilder('a')
@@ -36,5 +50,21 @@ class NannyAssignmentRepository extends ServiceEntityRepository
             ->setParameter('nanny', $nanny)
             ->getQuery()
             ->getSingleScalarResult();
+    }
+
+    public function findOldestActiveForNanny(Nanny $nanny, ?User $exclude = null, ?\DateTimeInterface $activeSince = null): ?NannyAssignment
+    {
+        $qb = $this->createQueryBuilder('a')->andWhere('a.nanny = :nanny')->andWhere('a.detachedAt IS NULL')
+            ->setParameter('nanny', $nanny)->orderBy('a.attachedAt', 'ASC')->setMaxResults(1);
+        if ($exclude !== null) {
+            $qb->andWhere('a.user != :excluded')->setParameter('excluded', $exclude);
+        }
+        if ($activeSince !== null) {
+            $qb->innerJoin('a.user', 'candidate')
+                ->andWhere('COALESCE(candidate.lastLoginAt, candidate.createdAt) >= :activeSince')
+                ->setParameter('activeSince', $activeSince);
+        }
+
+        return $qb->getQuery()->getOneOrNullResult();
     }
 }

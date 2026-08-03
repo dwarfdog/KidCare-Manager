@@ -56,9 +56,15 @@ final class CareManager
         $this->paymentCalculator->assertMonthEditable($user, $nanny, $care->getMonth());
         $oldMonths = [$care->getMonth() . '|' . $nanny->getPublicId() => $nanny];
         $segments = $this->segmenter->split($user, $nanny, $start, $end, $meals);
+        foreach ($segments as $segment) {
+            $segment->setStatus($care->getStatus(), $care->isStatusLocked())
+                ->setRemuneratedOverride($care->isRemuneratedOverride())
+                ->setNonRealizationReason($care->getNonRealizationReason())
+                ->setNotes($care->getNotes());
+        }
         $this->assertSegmentsCanBeSaved($user, $nanny, $segments, $care);
 
-        $this->entityManager->remove($care);
+        $care->archive();
         foreach ($segments as $segment) {
             $this->entityManager->persist($segment);
         }
@@ -89,7 +95,7 @@ final class CareManager
 
         $this->paymentCalculator->assertMonthEditable($user, $nanny, $care->getMonth());
         $monthKey = $care->getMonth() . '|' . ($nanny?->getPublicId() ?? 'none');
-        $this->entityManager->remove($care);
+        $care->archive();
         $this->entityManager->flush();
         $this->paymentCalculator->recalculateMany($user, [$monthKey => $nanny]);
         $this->activityLogger->record($user, 'care.delete', 'Garde supprimee.', [
@@ -104,10 +110,6 @@ final class CareManager
     {
         foreach ($segments as $segment) {
             $this->paymentCalculator->assertMonthEditable($user, $nanny, $segment->getMonth());
-
-            if ($this->careRepository->overlaps($user, $nanny, $segment->getStartDateTime(), $segment->getEndDateTime(), $ignoredCare)) {
-                throw new \DomainException('Une garde existe deja sur ce creneau pour cette nounou.');
-            }
 
             if ($this->rateRepository->findApplicableRate($user, $nanny, $segment->getDate()) === null) {
                 throw new \DomainException(sprintf(

@@ -18,6 +18,7 @@ final class NannyManager
         private readonly CareRepository $careRepository,
         private readonly EntityManagerInterface $entityManager,
         private readonly ActivityLogger $activityLogger,
+        private readonly NannyOwnershipService $ownershipService,
     ) {
     }
 
@@ -41,10 +42,9 @@ final class NannyManager
     {
         $existing = $this->assignmentRepository->findOneBy(['user' => $user, 'nanny' => $nanny]);
         if ($existing !== null) {
-            $existing->setDetachedAt(null);
-            $this->activityLogger->record($user, 'nanny.attach', 'Nounou rattachee.', [
-                'nanny' => $nanny->getFullName(),
-            ]);
+            if ($existing->getDetachedAt() !== null) {
+                throw new \DomainException('Ce rattachement est archivé et ne peut pas être restauré.');
+            }
 
             return $existing;
         }
@@ -72,8 +72,8 @@ final class NannyManager
         }
 
         foreach ($nanny->getCareTemplates() as $template) {
-            if ($template->getUser() === $user) {
-                $this->entityManager->remove($template);
+            if ($template->getUser() === $user && !$template->isArchived()) {
+                $template->archive();
             }
         }
 
@@ -103,10 +103,9 @@ final class NannyManager
         $this->activityLogger->record($user, 'nanny.detach', 'Nounou detachee.', [
             'nanny' => $nanny->getFullName(),
         ]);
-        $this->entityManager->remove($assignment);
-
-        if ($nanny->getAssignments()->count() <= 1) {
-            $this->entityManager->remove($nanny);
+        $assignment->setDetachedAt(new \DateTime());
+        if ($nanny->getCreatedBy() === $user) {
+            $this->ownershipService->transferBeforeAccountDeletion($nanny, $user);
         }
     }
 }

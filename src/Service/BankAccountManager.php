@@ -87,12 +87,6 @@ final class BankAccountManager
         $this->auditLogger->record($user, 'bank.account.archive', 'bank_account', $account->getPublicId());
     }
 
-    public function restore(User $user, BankAccount $account): void
-    {
-        $account->restore();
-        $this->auditLogger->record($user, 'bank.account.restore', 'bank_account', $account->getPublicId());
-    }
-
     public function typeLabel(BankAccount $account): string
     {
         return self::TYPES[$account->getType()] ?? $account->getType();

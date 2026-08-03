@@ -70,7 +70,7 @@ final class NannyRateManager
 
         $this->entityManager->wrapInTransaction(function () use ($user, $nanny, $rate, $months): void {
             $effectiveFrom = $rate->getEffectiveFrom()->format('Y-m-d');
-            $this->entityManager->remove($rate);
+            $rate->archive();
             $this->entityManager->flush();
             $this->paymentCalculator->recalculateMany($user, $this->monthsForCalculator($months, $nanny));
             $this->activityLogger->record($user, 'nanny_rate.delete', 'Tarif nounou supprime.', [

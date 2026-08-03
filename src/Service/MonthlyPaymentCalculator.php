@@ -17,6 +17,7 @@ final class MonthlyPaymentCalculator
         private readonly MonthlyPaymentRepository $paymentRepository,
         private readonly NannyRateRepository $rateRepository,
         private readonly EntityManagerInterface $entityManager,
+        private readonly CareStatusSynchronizer $statusSynchronizer,
     ) {
     }
 
@@ -30,6 +31,7 @@ final class MonthlyPaymentCalculator
 
     public function recalculate(User $user, ?Nanny $nanny, string $month, bool $force = false, ?string $nannySnapshotKey = null): ?MonthlyPayment
     {
+        $this->statusSynchronizer->synchronize($user, $nanny);
         $payment = $this->paymentRepository->findOneFor($user, $nanny, $month, $nannySnapshotKey);
         if ($payment?->isPaid() && !$force) {
             return $payment;

@@ -49,6 +49,9 @@ class BankImportBatch
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private \DateTimeInterface $createdAt;
 
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $undoneAt = null;
+
     public function __construct()
     {
         $this->publicId = UlidGenerator::generate();
@@ -165,4 +168,8 @@ class BankImportBatch
     {
         return $this->createdAt;
     }
+
+    public function getUndoneAt(): ?\DateTimeInterface { return $this->undoneAt; }
+    public function markUndone(): static { $this->undoneAt = new \DateTime(); return $this; }
+    public function isUndone(): bool { return $this->undoneAt !== null; }
 }

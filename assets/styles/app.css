@@ -3,6 +3,8 @@
 @tailwind components;
 @tailwind utilities;
 
+.dashboard-widget-collapsed > :not([data-widget-controls]):not(:first-child) { display: none; }
+
 [x-cloak] {
     display: none !important;
 }
@@ -11,3 +13,19 @@
 @import url('./notyf.custom.css');
 @import url('./scrollbar.css');
 @import url('./buttons.css');
+
+.bank-transaction-row {
+    transition: background-color 300ms ease, box-shadow 300ms ease;
+}
+
+.bank-transaction-row.is-focused {
+    background-color: rgb(204 251 241);
+    box-shadow: inset 4px 0 0 rgb(13 148 136);
+    outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bank-transaction-row {
+        transition: none;
+    }
+}

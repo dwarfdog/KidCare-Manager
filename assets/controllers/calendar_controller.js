@@ -62,7 +62,7 @@ export default class extends Controller {
                 week: 'Semaine',
                 day: 'Jour',
             },
-            slotMinTime: '05:00:00',
+            slotMinTime: '06:00:00',
             slotMaxTime: '24:00:00',
             slotDuration: '00:30:00',
             contentHeight: isMobile ? 'auto' : '74vh',
@@ -71,7 +71,7 @@ export default class extends Controller {
             editable: true,
             nowIndicator: true,
             allDaySlot: false,
-            eventOverlap: false,
+            eventOverlap: true,
             events: this.eventsValue,
             select: (info) => this.openCreateDialog(info.start, info.end),
             dateClick: (info) => {
@@ -112,10 +112,23 @@ export default class extends Controller {
     }
 
     async openEditDialog(event) {
+        if (event.extendedProps.displayOnly) {
+            await this.Swal.fire({
+                title: event.title,
+                text: event.extendedProps.notes || 'Période d’indisponibilité. La modification se fait depuis l’écran Indisponibilités.',
+                icon: 'info',
+                confirmButtonText: 'Fermer',
+            });
+            return;
+        }
         const start = new Date(event.start);
         const end = event.end ? new Date(event.end) : this.addMinutes(start, 30);
         const meals = Number.parseInt(event.extendedProps.meals || 0, 10);
-        const result = await this.careDialog('Modifier la garde', start, end, meals, 'Modifier');
+        const result = await this.careDialog('Modifier la garde', start, end, meals, 'Modifier', event);
+        if (result.isDenied) {
+            await this.statusDialog(event);
+            return;
+        }
         if (!result.isConfirmed) {
             return;
         }
@@ -133,6 +146,10 @@ export default class extends Controller {
 
     persistEventMove(info) {
         const event = info.event;
+        if (event.extendedProps.displayOnly) {
+            info.revert();
+            return;
+        }
         const payload = {
             nanny: this.nannyIdValue,
             start: this.formatDateTime(event.start),
@@ -154,6 +171,9 @@ export default class extends Controller {
     }
 
     async handleEventDelete(event) {
+        if (event.extendedProps.displayOnly) {
+            return;
+        }
         const result = await this.Swal.fire({
             title: 'Supprimer la garde ?',
             text: `${this.formatReadableDate(event.start)} de ${this.formatTime(event.start)} à ${this.formatTime(event.end)}`,
@@ -283,7 +303,7 @@ export default class extends Controller {
         }
     }
 
-    async careDialog(title, start, end, meals, confirmButtonText) {
+    async careDialog(title, start, end, meals, confirmButtonText, event = null) {
         return this.Swal.fire({
             title,
             html: `
@@ -300,6 +320,8 @@ export default class extends Controller {
             `,
             confirmButtonText,
             showCancelButton: true,
+            showDenyButton: event !== null,
+            denyButtonText: 'État / notes',
             cancelButtonText: 'Annuler',
             focusConfirm: false,
             preConfirm: () => {
@@ -320,6 +342,49 @@ export default class extends Controller {
                 return { startTime, endTime, meals: mealsCount };
             },
         });
+    }
+
+    async statusDialog(event) {
+        const currentStatus = event.extendedProps.status || 'planned';
+        const currentReason = event.extendedProps.reason || 'other';
+        const currentNotes = event.extendedProps.notes || '';
+        const result = await this.Swal.fire({
+            title: 'État de la garde',
+            html: `<div class="space-y-4 text-left">
+                <label class="block text-sm font-medium" for="care-status">État</label>
+                <select id="care-status" class="w-full rounded-md border border-slate-300 px-3 py-2">
+                    <option value="planned" ${currentStatus === 'planned' ? 'selected' : ''}>Prévue (verrou manuel)</option>
+                    <option value="realized" ${currentStatus === 'realized' ? 'selected' : ''}>Réalisée</option>
+                    <option value="cancelled" ${currentStatus === 'cancelled' ? 'selected' : ''}>Non réalisée / annulée</option>
+                </select>
+                <label class="block text-sm font-medium" for="care-reason">Motif de non-réalisation</label>
+                <select id="care-reason" class="w-full rounded-md border border-slate-300 px-3 py-2">
+                    ${[['child_absence','Absence enfant'],['nanny_absence','Absence nounou'],['paid_leave','Congé payé'],['unpaid_leave','Congé non payé'],['child_sick_leave','Arrêt maladie enfant'],['nanny_sick_leave','Arrêt maladie nounou'],['closure','Fermeture'],['other','Autre']].map(([value,label]) => `<option value="${value}" ${currentReason === value ? 'selected' : ''}>${label}</option>`).join('')}
+                </select>
+                <label class="flex items-center gap-2 text-sm"><input id="care-remunerated" type="checkbox" ${event.extendedProps.remunerated && currentStatus !== 'realized' ? 'checked' : ''}> Rémunérer malgré la non-réalisation</label>
+                <label class="block text-sm font-medium" for="care-notes">Notes privées</label>
+                <textarea id="care-notes" rows="3" class="w-full rounded-md border border-slate-300 px-3 py-2">${this.escapeHtml(currentNotes)}</textarea>
+            </div>`,
+            showCancelButton: true,
+            confirmButtonText: 'Enregistrer',
+            cancelButtonText: 'Annuler',
+            preConfirm: () => ({
+                status: document.getElementById('care-status').value,
+                reason: document.getElementById('care-reason').value,
+                remunerated: document.getElementById('care-remunerated').checked,
+                notes: document.getElementById('care-notes').value,
+            }),
+        });
+        if (!result.isConfirmed) return;
+        try {
+            const data = await this.request(`/care/status/${event.id}`, 'PATCH', result.value);
+            event.remove();
+            this.calendar.addEvent(data.event);
+            this.renderList();
+            this.notyf.success('État de la garde mis à jour.');
+        } catch (error) {
+            this.notyf.error(error.message);
+        }
     }
 
     payloadFromDialog(baseDate, values) {
@@ -398,6 +463,9 @@ export default class extends Controller {
         events.forEach((event) => {
             const row = document.createElement('div');
             row.className = 'rounded-md border border-slate-200 bg-white p-3';
+            if (event.extendedProps.conflict) {
+                row.classList.add('border-rose-300', 'bg-rose-50');
+            }
 
             const header = document.createElement('div');
             header.className = 'flex items-start justify-between gap-3';
@@ -417,6 +485,12 @@ export default class extends Controller {
 
             content.appendChild(title);
             content.appendChild(meta);
+            if (event.extendedProps.conflict) {
+                const warning = document.createElement('p');
+                warning.className = 'mt-2 text-xs font-semibold text-rose-700';
+                warning.textContent = 'Conflit de planning détecté';
+                content.appendChild(warning);
+            }
 
             const deleteButton = document.createElement('button');
             deleteButton.type = 'button';
@@ -425,7 +499,9 @@ export default class extends Controller {
             deleteButton.addEventListener('click', () => this.handleEventDelete(event));
 
             header.appendChild(content);
-            header.appendChild(deleteButton);
+            if (!event.extendedProps.displayOnly) {
+                header.appendChild(deleteButton);
+            }
             row.appendChild(header);
 
             const meals = Number.parseInt(event.extendedProps.meals || 0, 10);
@@ -458,6 +534,13 @@ export default class extends Controller {
         container.appendChild(title);
         container.appendChild(time);
 
+        if (arg.event.extendedProps.conflict) {
+            const warning = document.createElement('div');
+            warning.className = 'mt-1 text-[11px] font-semibold';
+            warning.textContent = '⚠ Conflit';
+            container.appendChild(warning);
+        }
+
         const meals = Number.parseInt(arg.event.extendedProps.meals || 0, 10);
         if (meals > 0) {
             const mealsNode = document.createElement('div');
@@ -483,7 +566,9 @@ export default class extends Controller {
             this.handleEventDelete(arg.event);
         });
 
-        container.appendChild(deleteButton);
+        if (!arg.event.extendedProps.displayOnly) {
+            container.appendChild(deleteButton);
+        }
 
         return { domNodes: [container] };
     }

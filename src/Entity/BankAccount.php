@@ -321,14 +321,6 @@ class BankAccount
         return $this;
     }
 
-    public function restore(): static
-    {
-        $this->archivedAt = null;
-        $this->touch();
-
-        return $this;
-    }
-
     public function isArchived(): bool
     {
         return $this->archivedAt !== null;

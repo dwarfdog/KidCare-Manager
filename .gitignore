@@ -1,10 +1,6 @@
 ###> symfony/framework-bundle ###
 /.env.dev
-/.env.test
 /.env.local
-/composer.lock
-/package-lock.json
-/symfony.lock
 /.env.local.php
 /.env.*.local
 /config/secrets/prod/prod.decrypt.private.php
@@ -31,4 +27,6 @@
 /public/build/
 npm-debug.log
 yarn-error.log
+/test-results/
+/playwright-report/
 ###< symfony/webpack-encore-bundle ###

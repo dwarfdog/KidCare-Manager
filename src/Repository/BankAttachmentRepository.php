@@ -38,4 +38,7 @@ class BankAttachmentRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /** @return BankAttachment[] */
+    public function findArchivedForUser(User $user): array { return $this->createQueryBuilder('a')->andWhere('a.user=:user')->andWhere('a.archivedAt IS NOT NULL')->setParameter('user',$user)->orderBy('a.archivedAt','DESC')->getQuery()->getResult(); }
 }

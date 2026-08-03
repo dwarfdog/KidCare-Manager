@@ -3,118 +3,78 @@
 {% block title %}Tableau de bord{% endblock %}
 
 {% block body %}
-<div class="space-y-6">
-    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <a href="{{ path('app_care_index') }}" class="group rounded-lg border border-slate-200 bg-white p-5 transition hover:border-teal-300 hover:shadow-sm">
-            <div class="flex items-start justify-between gap-4">
-                <div>
-                    <p class="text-sm font-semibold uppercase tracking-wide text-teal-700">KidCare Manager</p>
-                    <h1 class="mt-2 text-2xl font-semibold text-slate-950">Gardes, nounous et paiements</h1>
-                    <p class="mt-2 text-sm text-slate-500">Planning, templates, contrats, tarifs et paiements mensuels.</p>
-                </div>
-                <span class="inline-flex h-11 w-11 items-center justify-center rounded-md bg-teal-50 text-teal-700 group-hover:bg-teal-100"><i class="fa-solid fa-calendar-days"></i></span>
+<div class="space-y-6" data-controller="dashboard-widgets" data-dashboard-widgets-preferences-value="{{ app.user.dashboardPreferences|json_encode|e('html_attr') }}" data-dashboard-widgets-endpoint-value="{{ path('app_dashboard_preferences') }}" data-dashboard-widgets-csrf-value="{{ csrf_token('dashboard_preferences') }}">
+    <section class="overflow-hidden rounded-xl bg-slate-950 px-5 py-6 text-white sm:px-7">
+        <div class="flex flex-wrap items-start justify-between gap-5">
+            <div>
+                <p class="text-sm font-medium text-teal-300">{{ 'now'|format_date('full', locale='fr')|capitalize }}</p>
+                <h1 class="mt-2 text-3xl font-semibold">Bonjour {{ app.user.username }}</h1>
+                <p class="mt-2 max-w-2xl text-sm text-slate-300">Gardes, paiements et finances du foyer reunis au meme endroit.</p>
             </div>
-        </a>
-        <a href="{{ path('app_bank_index') }}" class="group rounded-lg border border-slate-200 bg-white p-5 transition hover:border-slate-400 hover:shadow-sm">
-            <div class="flex items-start justify-between gap-4">
-                <div>
-                    <p class="text-sm font-semibold uppercase tracking-wide text-slate-700">Bank Manager</p>
-                    <h2 class="mt-2 text-2xl font-semibold text-slate-950">Comptes et finances du foyer</h2>
-                    <p class="mt-2 text-sm text-slate-500">Comptes, operations, budgets, objectifs, imports et exports.</p>
-                </div>
-                <span class="inline-flex h-11 w-11 items-center justify-center rounded-md bg-slate-100 text-slate-700 group-hover:bg-slate-200"><i class="fa-solid fa-building-columns"></i></span>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ path('app_care_index') }}" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-950 hover:bg-slate-100"><i class="fa-solid fa-calendar-plus"></i> Planifier</a>
+                <a href="{{ path('app_bank_transaction_new') }}" class="rounded-md bg-teal-500 px-3 py-2 text-sm font-semibold text-slate-950 hover:bg-teal-400"><i class="fa-solid fa-plus"></i> Operation</a>
+                <a href="{{ path('app_bank_transfer_new') }}" class="rounded-md border border-slate-600 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">Virement</a>
             </div>
-        </a>
+        </div>
+    </section>
+
+    <div class="flex flex-wrap items-center justify-end gap-2"><div data-hidden-widgets class="flex flex-wrap gap-2"></div><button type="button" data-action="dashboard-widgets#toggleCustomize" class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium">Personnaliser</button></div>
+
+    <section data-dashboard-widget="attention" data-widget-content>
+        <div class="mb-3 flex items-center justify-between"><h2 class="text-lg font-semibold">A retenir</h2><span class="text-xs text-slate-500">Informations de ton foyer uniquement</span></div>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <a href="{{ path('app_care_index') }}" class="rounded-lg border border-slate-200 bg-white p-4 hover:border-teal-300">
+                <p class="text-sm font-medium text-slate-500">Prochaine garde</p>
+                {% if nextCare %}<p class="mt-2 font-semibold">{{ nextCare.nannyDisplayName }}</p><p class="text-sm text-slate-500">{{ nextCare.date|date('d/m/Y') }} de {{ nextCare.startTime|date('H:i') }} a {{ nextCare.endTime|date('H:i') }}</p>{% else %}<p class="mt-2 text-sm text-slate-500">Aucune garde planifiee</p>{% endif %}
+            </a>
+            <div class="rounded-lg border {{ paymentSummary.pending > 0 ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white' }} p-4">
+                <p class="text-sm font-medium {{ paymentSummary.pending > 0 ? 'text-amber-800' : 'text-slate-500' }}">Paiements en attente</p>
+                <p class="mt-2 text-2xl font-semibold">{{ paymentSummary.pending }}</p>
+                <p class="text-sm text-slate-500">{{ paymentSummary.paid }} paye{{ paymentSummary.paid > 1 ? 's' : '' }} ce mois</p>
+            </div>
+            <a href="{{ path('app_bank_budgets') }}" class="rounded-lg border {{ attentionBudgets|length > 0 ? 'border-rose-200 bg-rose-50' : 'border-slate-200 bg-white' }} p-4">
+                <p class="text-sm font-medium {{ attentionBudgets|length > 0 ? 'text-rose-800' : 'text-slate-500' }}">Budgets a surveiller</p>
+                <p class="mt-2 text-2xl font-semibold">{{ attentionBudgets|length }}</p>
+                <p class="text-sm text-slate-500">{{ bank.reste_a_vivre|number_format(2, ',', ' ') }} € de reste a vivre</p>
+            </a>
+        </div>
+    </section>
+
+    <section class="space-y-3" data-dashboard-widget="bank" data-widget-content>
+        <div class="flex items-center justify-between"><div><p class="text-sm font-semibold uppercase tracking-wide text-slate-500">Bank Manager</p><h2 class="text-xl font-semibold">Situation financiere</h2></div><a href="{{ path('app_bank_index') }}" class="text-sm font-medium text-teal-700">Ouvrir la banque →</a></div>
+        <div class="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <div class="rounded-lg border border-slate-200 bg-white p-4"><p class="text-sm text-slate-500">Solde reel</p><p class="mt-2 text-xl font-semibold tabular-nums">{{ bank.real_balance|number_format(2, ',', ' ') }} €</p></div>
+            <div class="rounded-lg border border-teal-200 bg-teal-50 p-4"><p class="text-sm text-teal-800">Reste a vivre</p><p class="mt-2 text-xl font-semibold tabular-nums {{ bank.reste_a_vivre < 0 ? 'text-rose-700' : 'text-teal-900' }}">{{ bank.reste_a_vivre|number_format(2, ',', ' ') }} €</p></div>
+            <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-4"><p class="text-sm text-indigo-800">Projection fin de mois</p><p class="mt-2 text-xl font-semibold tabular-nums {{ bank.projected_month_end < 0 ? 'text-rose-700' : 'text-indigo-900' }}">{{ bank.projected_month_end|number_format(2, ',', ' ') }} €</p></div>
+            <div class="rounded-lg border border-slate-200 bg-white p-4"><p class="text-sm text-slate-500">Bilan du mois</p><p class="mt-2 text-sm font-semibold text-emerald-700">+{{ bank.income_month|number_format(2, ',', ' ') }} €</p><p class="text-sm font-semibold text-rose-700">-{{ bank.expense_month|number_format(2, ',', ' ') }} €</p><p class="mt-1 text-sm font-semibold">{{ bank.available_month|number_format(2, ',', ' ') }} € net</p></div>
+        </div>
+    </section>
+
+    <div class="grid grid-cols-1 gap-5 xl:grid-cols-2" data-dashboard-widget="activity" data-widget-content>
+        <section class="rounded-lg border border-slate-200 bg-white">
+            <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><p class="text-sm font-semibold uppercase tracking-wide text-teal-700">KidCare</p><h2 class="text-lg font-semibold">Ce mois-ci</h2></div><a href="{{ path('app_nanny_index') }}" class="text-sm font-medium text-teal-700">{{ nannyCount }} nounou{{ nannyCount > 1 ? 's' : '' }}</a></div>
+            <div class="grid grid-cols-3 gap-3 border-b border-slate-100 p-5 text-center"><div><p class="text-xs text-slate-500">Heures</p><p class="mt-1 font-semibold tabular-nums">{{ paymentSummary.hours|number_format(2, ',', ' ') }} h</p></div><div><p class="text-xs text-slate-500">Montant</p><p class="mt-1 font-semibold tabular-nums">{{ paymentSummary.amount|number_format(2, ',', ' ') }} {{ currency }}</p></div><div><p class="text-xs text-slate-500">Paiements</p><p class="mt-1 font-semibold">{{ paymentSummary.count }}</p></div></div>
+            <div class="divide-y divide-slate-100">
+                {% for payment in currentPayments %}
+                    <a href="{{ path('app_monthly_payment_show', {publicId: payment.publicId}) }}" class="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50"><span><span class="block text-sm font-medium">{{ payment.nannyDisplayName }}</span><span class="text-xs text-slate-500">{{ payment.totalsHours|number_format(2, ',', ' ') }} h</span></span><span class="text-right"><span class="block text-sm font-semibold tabular-nums">{{ payment.totalAmount|number_format(2, ',', ' ') }} {{ currency }}</span>{% include '_payment_status_badge.html.twig' with {payment: payment} only %}</span></a>
+                {% else %}<p class="px-5 py-8 text-center text-sm text-slate-500">Aucun paiement pour le mois courant.</p>{% endfor %}
+            </div>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white">
+            <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4"><h2 class="text-lg font-semibold">Operations recentes</h2><a href="{{ path('app_bank_transactions') }}" class="text-sm font-medium text-teal-700">Tout voir</a></div>
+            <div class="divide-y divide-slate-100">
+                {% for transaction in recentTransactions %}
+                    <div class="flex items-center justify-between gap-3 px-5 py-3"><div class="min-w-0"><a href="{{ path('app_bank_transaction_edit', {publicId: transaction.publicId}) }}" class="block truncate text-sm font-medium hover:text-teal-700">{{ transactionManager.label(transaction) }}</a><p class="text-xs text-slate-500">{{ transaction.date|date('d/m/Y') }} · {{ accountManager.displayName(transaction.account) }}</p></div><div class="text-right"><p class="text-sm font-semibold tabular-nums {{ transaction.amount < 0 ? 'text-rose-700' : 'text-emerald-700' }}">{{ transaction.amount|number_format(2, ',', ' ') }} €</p>{% if transaction.real %}{{ include('bank/_transaction_verification_badge.html.twig', {transaction: transaction}) }}{% endif %}</div></div>
+                {% else %}<p class="px-5 py-8 text-center text-sm text-slate-500">Aucune operation recente.</p>{% endfor %}
+            </div>
+        </section>
     </div>
 
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div class="rounded-lg border border-slate-200 bg-white p-5">
-            <p class="text-sm font-medium text-slate-500">Nounous rattachees</p>
-            <p class="mt-2 text-3xl font-semibold">{{ nannies|length }}</p>
-        </div>
-        <div class="rounded-lg border border-slate-200 bg-white p-5">
-            <p class="text-sm font-medium text-slate-500">Mois courant</p>
-            <p class="mt-2 text-3xl font-semibold">{{ currentPayments|length }}</p>
-        </div>
-        <div class="rounded-lg border border-slate-200 bg-white p-5">
-            <p class="text-sm font-medium text-slate-500">Prochaine garde</p>
-            {% if nextCare %}
-                <p class="mt-2 text-base font-semibold">{{ nextCare.nannyDisplayName }}</p>
-                <p class="text-sm text-slate-500">{{ nextCare.date|date('d/m/Y') }} {{ nextCare.startTime|date('H:i') }}</p>
-            {% else %}
-                <p class="mt-2 text-base text-slate-500">Aucune garde prevue</p>
-            {% endif %}
-        </div>
-    </div>
-
-    <div class="rounded-lg border border-slate-200 bg-white">
-        <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
-            <h1 class="text-lg font-semibold">Paiements du mois</h1>
-            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{{ currentPayments|length }}</span>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200">
-                <thead class="bg-slate-50">
-                    <tr>
-                        <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Nounou</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Heures</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Montant</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Statut</th>
-                        <th class="px-5 py-3 text-right text-xs font-semibold uppercase text-slate-500">Action</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 bg-white">
-                    {% for payment in currentPayments %}
-                        <tr class="hover:bg-slate-50">
-                            <td class="px-5 py-3 text-sm font-medium">{{ payment.nannyDisplayName }}</td>
-                            <td class="whitespace-nowrap px-5 py-3 text-sm tabular-nums">{{ payment.totalsHours|number_format(2, ',', ' ') }} h</td>
-                            <td class="whitespace-nowrap px-5 py-3 text-sm font-medium tabular-nums">{{ payment.totalAmount|number_format(2, ',', ' ') }} {{ currency }}</td>
-                            <td class="px-5 py-3 text-sm">{% include '_payment_status_badge.html.twig' with {payment: payment} only %}</td>
-                            <td class="px-5 py-3 text-right text-sm">
-                                <a href="{{ path('app_monthly_payment_show', {'publicId': payment.publicId}) }}" class="font-medium text-teal-700 hover:text-teal-900">Voir</a>
-                            </td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="5" class="px-5 py-8 text-center">
-                                <div class="mx-auto max-w-sm text-sm text-slate-500">
-                                    <i class="fa-regular fa-calendar-check mb-2 text-xl text-slate-300"></i>
-                                    <p>Aucun paiement pour le mois courant.</p>
-                                </div>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="rounded-lg border border-slate-200 bg-white">
-        <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
-            <h2 class="text-lg font-semibold">Historique</h2>
-            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{{ previousPayments|length }}</span>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200">
-                <tbody class="divide-y divide-slate-100 bg-white">
-                    {% for payment in previousPayments %}
-                        <tr class="hover:bg-slate-50">
-                            <td class="px-5 py-3 text-sm font-medium">{{ payment.month }}</td>
-                            <td class="px-5 py-3 text-sm">{{ payment.nannyDisplayName }}</td>
-                            <td class="whitespace-nowrap px-5 py-3 text-sm font-medium tabular-nums">{{ payment.totalAmount|number_format(2, ',', ' ') }} {{ currency }}</td>
-                            <td class="px-5 py-3 text-sm">{% include '_payment_status_badge.html.twig' with {payment: payment} only %}</td>
-                            <td class="px-5 py-3 text-right text-sm">
-                                <a href="{{ path('app_monthly_payment_show', {'publicId': payment.publicId}) }}" class="font-medium text-teal-700 hover:text-teal-900">Voir</a>
-                            </td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td class="px-5 py-8 text-center text-sm text-slate-500">Aucun historique.</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="grid grid-cols-1 gap-5 lg:grid-cols-3" data-dashboard-widget="goals" data-widget-content>
+        <section class="rounded-lg border border-slate-200 bg-white lg:col-span-2"><div class="flex items-center justify-between border-b border-slate-200 px-5 py-4"><h2 class="font-semibold">Budgets et objectifs</h2><div class="flex gap-3 text-sm"><a href="{{ path('app_bank_budgets') }}" class="text-teal-700">Budgets</a><a href="{{ path('app_bank_goals') }}" class="text-teal-700">Objectifs</a></div></div><div class="grid grid-cols-1 divide-y divide-slate-100 md:grid-cols-2 md:divide-x md:divide-y-0"><div class="divide-y divide-slate-100">{% for row in budgetRows %}<div class="px-5 py-3 text-sm"><div class="flex justify-between gap-2"><span class="font-medium">{{ row.budget.category.name }}</span><span class="tabular-nums">{{ row.spent|number_format(2, ',', ' ') }} / {{ row.budget.amount|number_format(2, ',', ' ') }} €</span></div><div class="mt-2 h-1.5 rounded bg-slate-100"><div class="h-1.5 rounded {{ row.status == 'over' ? 'bg-rose-600' : (row.status == 'risk' ? 'bg-amber-500' : 'bg-teal-600') }}" style="width: {{ row.rate }}%"></div></div></div>{% else %}<p class="p-5 text-sm text-slate-500">Aucun budget actif.</p>{% endfor %}</div><div class="divide-y divide-slate-100">{% for row in goalRows %}<div class="px-5 py-3 text-sm"><div class="flex justify-between gap-2"><span class="font-medium">{{ row.goal.name }}</span><span>{{ row.rate|number_format(0) }} %</span></div><div class="mt-2 h-1.5 rounded bg-slate-100"><div class="h-1.5 rounded bg-indigo-500" style="width: {{ row.rate }}%"></div></div></div>{% else %}<p class="p-5 text-sm text-slate-500">Aucun objectif actif.</p>{% endfor %}</div></div></section>
+        <section class="rounded-lg border border-slate-200 bg-white"><div class="border-b border-slate-200 px-5 py-4"><h2 class="font-semibold">Historique KidCare recent</h2></div><div class="divide-y divide-slate-100">{% for payment in recentPayments %}<a href="{{ path('app_monthly_payment_show', {publicId: payment.publicId}) }}" class="flex justify-between gap-3 px-5 py-3 text-sm hover:bg-slate-50"><span><span class="block font-medium">{{ payment.nannyDisplayName }}</span><span class="text-xs text-slate-500">{{ payment.month }}</span></span><span class="font-semibold tabular-nums">{{ payment.totalAmount|number_format(2, ',', ' ') }} {{ currency }}</span></a>{% else %}<p class="p-5 text-sm text-slate-500">Aucun historique.</p>{% endfor %}</div></section>
     </div>
 </div>
 {% endblock %}

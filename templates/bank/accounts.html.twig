@@ -36,7 +36,7 @@
                             <form method="post" action="{{ path('app_bank_account_archive', {publicId: account.publicId}) }}" class="inline"
                                   data-controller="confirm"
                                   data-confirm-title-value="Archiver ce compte ?"
-                                  data-confirm-text-value="Il sera deplace dans les Archives. Tu pourras le restaurer a tout moment."
+                                  data-confirm-text-value="Il restera consultable dans les Archives, sans restauration possible."
                                   data-confirm-confirm-text-value="Archiver"
                                   data-action="confirm#submit">
                                 <input type="hidden" name="_token" value="{{ csrf_token('bank_account_archive_' ~ account.publicId) }}">

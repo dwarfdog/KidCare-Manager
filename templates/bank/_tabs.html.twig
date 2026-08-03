@@ -1,5 +1,7 @@
 {% set current_route = app.request.attributes.get('_route')|default('') %}
-<div class="mb-4 overflow-x-auto border-b border-slate-200">
+<div class="mb-4">
+<p class="mb-1 text-right text-[11px] text-slate-400 md:hidden">Faire défiler les onglets horizontalement →</p>
+<div class="overflow-x-auto border-b border-slate-200">
     <nav class="flex min-w-max gap-1 text-sm">
         <a href="{{ path('app_bank_index') }}" class="px-3 py-2 font-medium {{ current_route == 'app_bank_index' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Tableau</a>
         <a href="{{ path('app_bank_accounts') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_account' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Comptes</a>
@@ -9,8 +11,15 @@
         <a href="{{ path('app_bank_recurring') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_recurring' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Recurrences</a>
         <a href="{{ path('app_bank_budgets') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_budgets' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Budgets</a>
         <a href="{{ path('app_bank_goals') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_goals' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Objectifs</a>
+        <a href="{{ path('app_bank_analytics') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_analytics' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Analyses</a>
         <a href="{{ path('app_bank_import') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_import' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Import</a>
         <a href="{{ path('app_bank_categories') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_categories' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Categories</a>
-        <a href="{{ path('app_bank_archives') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_archives' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-400 hover:text-slate-700' }}"><i class="fa-regular fa-box-archive"></i> Archives</a>
+        <a href="{{ path('app_bank_category_rules') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_category_rule' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Règles</a>
+        <a href="{{ path('app_bank_reconciliation') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_reconciliation' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Rapprochement</a>
+        <a href="{{ path('app_bank_simulations') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_simulation' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Simulations</a>
+        <a href="{{ path('app_bank_net_worth') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_net_worth' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Patrimoine</a>
+        <a href="{{ path('app_bank_alerts') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_bank_alert' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Alertes</a>
+        <a href="{{ path('app_archives') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_archives' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-400 hover:text-slate-700' }}"><i class="fa-regular fa-box-archive"></i> Archives</a>
     </nav>
+</div>
 </div>

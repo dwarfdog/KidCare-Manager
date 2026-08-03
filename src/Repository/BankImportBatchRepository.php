@@ -26,4 +26,9 @@ class BankImportBatchRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    public function findOneForUser(User $user, string $publicId): ?BankImportBatch
+    {
+        return $this->findOneBy(['user' => $user, 'publicId' => $publicId]);
+    }
 }

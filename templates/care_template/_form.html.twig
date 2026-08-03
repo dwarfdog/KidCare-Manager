@@ -26,9 +26,9 @@
                 <div class="mt-4 space-y-3" x-show="active">
                     <template x-for="(slot, index) in slots" :key="index">
                         <div class="grid grid-cols-1 gap-3 rounded-md bg-slate-50 p-3 sm:grid-cols-4">
-                            <input type="time" :name="'weekSchedule[{{ day }}][slots][' + index + '][startTime]'" x-model="slot.startTime" class="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                            <input type="time" :name="'weekSchedule[{{ day }}][slots][' + index + '][endTime]'" x-model="slot.endTime" class="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                            <input type="number" min="0" step="1" :name="'weekSchedule[{{ day }}][slots][' + index + '][mealsCount]'" x-model="slot.mealsCount" class="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                            <input type="time" :name="'weekSchedule[{{ day }}][slots][' + index + '][startTime]'" :aria-label="'Heure de début du créneau ' + (index + 1)" x-model="slot.startTime" class="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                            <input type="time" :name="'weekSchedule[{{ day }}][slots][' + index + '][endTime]'" :aria-label="'Heure de fin du créneau ' + (index + 1)" x-model="slot.endTime" class="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                            <input type="number" min="0" step="1" :name="'weekSchedule[{{ day }}][slots][' + index + '][mealsCount]'" :aria-label="'Nombre de repas du créneau ' + (index + 1)" x-model="slot.mealsCount" class="rounded-md border border-slate-300 px-3 py-2 text-sm">
                             <button type="button" @click="slots = slots.filter((_, i) => i !== index)" class="rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-700">Retirer</button>
                         </div>
                     </template>
