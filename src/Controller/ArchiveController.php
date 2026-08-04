@@ -15,6 +15,10 @@ use App\Repository\BankTransactionRepository;
 use App\Repository\CareAbsenceRepository;
 use App\Repository\CareRepository;
 use App\Repository\CareTemplateRepository;
+use App\Repository\CourseProductRepository;
+use App\Repository\CourseReceiptRepository;
+use App\Repository\CourseShoppingListRepository;
+use App\Repository\CourseStoreRepository;
 use App\Repository\NannyAssignmentRepository;
 use App\Repository\NannyDocumentRepository;
 use App\Repository\NannyRateRepository;
@@ -22,6 +26,8 @@ use App\Service\BankAccountManager;
 use App\Service\BankAttachmentManager;
 use App\Service\BankEncryptionService;
 use App\Service\BankTransactionManager;
+use App\Service\Course\CourseProductManager;
+use App\Service\Course\CourseStoreManager;
 use App\Service\NannyDocumentManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,7 +36,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')] final class ArchiveController extends AbstractController
 {
-    #[Route('/archives', name: 'app_archives', methods: ['GET'])] public function index(BankAccountRepository $accounts, BankTransactionRepository $transactions, BankRecurringRuleRepository $recurring, BankCategoryRepository $categories, BankBudgetRepository $budgets, BankGoalRepository $goals, BankAttachmentRepository $attachments, BankCategoryRuleRepository $rules, BankSimulationRepository $simulations, BankAssetRepository $assets, CareRepository $cares, CareAbsenceRepository $absences, CareTemplateRepository $templates, NannyRateRepository $rates, NannyDocumentRepository $documents, NannyAssignmentRepository $assignments, BankAccountManager $accountManager, BankTransactionManager $transactionManager, BankAttachmentManager $attachmentManager, NannyDocumentManager $documentManager, BankEncryptionService $encryption): Response
+    #[Route('/archives', name: 'app_archives', methods: ['GET'])] public function index(BankAccountRepository $accounts, BankTransactionRepository $transactions, BankRecurringRuleRepository $recurring, BankCategoryRepository $categories, BankBudgetRepository $budgets, BankGoalRepository $goals, BankAttachmentRepository $attachments, BankCategoryRuleRepository $rules, BankSimulationRepository $simulations, BankAssetRepository $assets, CareRepository $cares, CareAbsenceRepository $absences, CareTemplateRepository $templates, NannyRateRepository $rates, NannyDocumentRepository $documents, NannyAssignmentRepository $assignments, CourseReceiptRepository $courseReceipts, CourseStoreRepository $courseStores, CourseProductRepository $courseProducts, CourseShoppingListRepository $courseShoppingLists, BankAccountManager $accountManager, BankTransactionManager $transactionManager, BankAttachmentManager $attachmentManager, NannyDocumentManager $documentManager, CourseStoreManager $courseStoreManager, CourseProductManager $courseProductManager, BankEncryptionService $encryption): Response
     {
         return $this->render('archives/index.html.twig', ['groups' => [
             'Comptes bancaires' => $accounts->findArchivedForUser($this->getUser()),
@@ -48,7 +54,11 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
             'Indisponibilités' => $absences->findArchivedForUser($this->getUser()),
             'Templates de garde' => $templates->findArchivedForUser($this->getUser()),
             'Tarifs nounou' => $rates->findArchivedForUser($this->getUser()),
-            'Documents privés' => $documents->findArchivedForUser($this->getUser())
-        ], 'accountManager' => $accountManager, 'transactionManager' => $transactionManager, 'attachmentManager' => $attachmentManager, 'documentManager' => $documentManager, 'encryption' => $encryption]);
+            'Documents privés' => $documents->findArchivedForUser($this->getUser()),
+            'Tickets de courses' => $courseReceipts->findArchivedForUser($this->getUser()),
+            'Magasins' => $courseStores->findArchivedForUser($this->getUser()),
+            'Produits' => $courseProducts->findArchivedForUser($this->getUser()),
+            'Listes de courses' => $courseShoppingLists->findArchivedForUser($this->getUser()),
+        ], 'accountManager' => $accountManager, 'transactionManager' => $transactionManager, 'attachmentManager' => $attachmentManager, 'documentManager' => $documentManager, 'courseStoreManager' => $courseStoreManager, 'courseProductManager' => $courseProductManager, 'encryption' => $encryption]);
     }
 }

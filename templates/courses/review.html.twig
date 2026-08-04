@@ -1,0 +1,158 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Relecture du ticket{% endblock %}
+
+{% block body %}
+{% include 'courses/_tabs.html.twig' %}
+<div class="mx-auto max-w-5xl space-y-5">
+    <div>
+        <a href="{{ path('app_courses_receipts') }}" class="text-sm text-teal-700">← Tickets</a>
+        <h1 class="mt-1 text-2xl font-semibold">Relecture du ticket</h1>
+        <p class="text-sm text-slate-500">Verifiez chaque ligne detectee automatiquement (produit, categorie, quantite, prix) avant de valider. Rien n'est enregistre dans Bank Manager tant que vous n'avez pas confirme.</p>
+        {% if receipt.status == 'failed' %}
+            <p class="mt-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">L'analyse automatique a echoue ({{ receipt.processingErrors|join(' ') }}). Completez le ticket manuellement ci-dessous.</p>
+        {% endif %}
+    </div>
+
+    <form method="post" class="space-y-4" data-controller="course-receipt-review">
+        <input type="hidden" name="_token" value="{{ csrf_token('courses_receipt_confirm_' ~ receipt.publicId) }}">
+
+        <div class="grid grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-3">
+            <div>
+                <label class="text-xs text-slate-500" for="review-account">Compte qui a paye</label>
+                <select id="review-account" name="account" required class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    <option value="">Choisir un compte</option>
+                    {% for label, account in accountChoices %}
+                        <option value="{{ account.publicId }}" {{ receipt.account and receipt.account.publicId == account.publicId ? 'selected' }}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="text-xs text-slate-500" for="review-purchase-date">Date d'achat</label>
+                <input id="review-purchase-date" type="date" name="purchaseDate" value="{{ receipt.purchaseDate ? receipt.purchaseDate|date('Y-m-d') : ''}}" required class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label class="text-xs text-slate-500" for="review-store">Magasin</label>
+                <select id="review-store" name="store" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    <option value="">+ Nouveau magasin (saisir ci-dessous)</option>
+                    {% for store in stores %}
+                        <option value="{{ store.publicId }}" {{ receipt.store and receipt.store.publicId == store.publicId ? 'selected' }}>{{ storeManager.name(store) }}{{ store.chain ? ' (' ~ store.chain ~ ')' : '' }}</option>
+                    {% endfor %}
+                </select>
+                <input type="text" name="newStoreName" value="{{ receipt.store is null ? storeNameGuess : '' }}" placeholder="Nom du nouveau magasin" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+            </div>
+        </div>
+
+        <div data-course-receipt-review-target="rows" class="space-y-3">
+            {% set initial = lineRows|length ? lineRows : [null] %}
+            {% for row in initial %}
+                <fieldset class="grid grid-cols-2 gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-4 lg:grid-cols-8" data-review-row>
+                    <legend class="sr-only" data-review-legend>Ligne {{ loop.index }}</legend>
+                    <div class="col-span-2 lg:col-span-2">
+                        <label class="text-xs text-slate-500">Libelle</label>
+                        {% if row and row.confidence == 'low' %}<span class="ml-1 text-[10px] font-semibold uppercase text-amber-600" data-tippy-content="Detection incertaine, a verifier">a verifier</span>{% endif %}
+                        <input name="lines[{{ loop.index0 }}][rawLabel]" value="{{ row ? row.rawLabel : '' }}" required placeholder="Libelle du produit" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    </div>
+                    <div class="col-span-2 lg:col-span-2">
+                        <label class="text-xs text-slate-500">Produit</label>
+                        <select name="lines[{{ loop.index0 }}][product]" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                            <option value="">+ Nouveau produit</option>
+                            {% for product in products %}
+                                <option value="{{ product.publicId }}" {{ row and row.product and row.product.publicId == product.publicId ? 'selected' }}>{{ productManager.name(product) }}</option>
+                            {% endfor %}
+                        </select>
+                        <input name="lines[{{ loop.index0 }}][newProductName]" placeholder="Nom du nouveau produit" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500">Categorie</label>
+                        <select name="lines[{{ loop.index0 }}][category]" required class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                            <option value="">Categorie</option>
+                            {% for category in categories %}
+                                <option value="{{ category.publicId }}" {{ row and row.category and row.category.publicId == category.publicId ? 'selected' }}>{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500">Quantite</label>
+                        <input type="number" step="0.001" min="0" name="lines[{{ loop.index0 }}][quantity]" value="{{ row ? row.quantity : 1 }}" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500">Unite</label>
+                        <select name="lines[{{ loop.index0 }}][unit]" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                            {% for value, unitLabel in {piece: 'piece', kg: 'kg', g: 'g', l: 'l', ml: 'ml'} %}
+                                <option value="{{ value }}" {{ row and row.unit == value ? 'selected' }}>{{ unitLabel }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500">Prix unitaire</label>
+                        <input type="number" step="0.0001" min="0" name="lines[{{ loop.index0 }}][unitPrice]" value="{{ row and row.unitPrice is not null ? row.unitPrice : '' }}" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    </div>
+                    <div class="flex items-end gap-2">
+                        <div class="flex-1">
+                            <label class="text-xs text-slate-500">Montant</label>
+                            <input type="number" step="0.01" min="0" name="lines[{{ loop.index0 }}][lineTotal]" value="{{ row ? row.lineTotal : '' }}" required class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                        </div>
+                        <button type="button" data-action="course-receipt-review#remove" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-rose-600 hover:bg-rose-50 hover:text-rose-800" aria-label="Retirer la ligne {{ loop.index }}" data-tippy-content="Retirer la ligne {{ loop.index }}"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </fieldset>
+            {% endfor %}
+        </div>
+
+        <template data-course-receipt-review-target="template">
+            <fieldset class="grid grid-cols-2 gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-4 lg:grid-cols-8" data-review-row>
+                <legend class="sr-only" data-review-legend>Ligne</legend>
+                <div class="col-span-2 lg:col-span-2">
+                    <label class="text-xs text-slate-500">Libelle</label>
+                    <input data-name="rawLabel" required placeholder="Libelle du produit" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                </div>
+                <div class="col-span-2 lg:col-span-2">
+                    <label class="text-xs text-slate-500">Produit</label>
+                    <select data-name="product" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                        <option value="">+ Nouveau produit</option>
+                        {% for product in products %}<option value="{{ product.publicId }}">{{ productManager.name(product) }}</option>{% endfor %}
+                    </select>
+                    <input data-name="newProductName" placeholder="Nom du nouveau produit" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500">Categorie</label>
+                    <select data-name="category" required class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                        <option value="">Categorie</option>
+                        {% for category in categories %}<option value="{{ category.publicId }}">{{ category.name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500">Quantite</label>
+                    <input data-name="quantity" type="number" step="0.001" min="0" value="1" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500">Unite</label>
+                    <select data-name="unit" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                        <option value="piece">piece</option>
+                        <option value="kg">kg</option>
+                        <option value="g">g</option>
+                        <option value="l">l</option>
+                        <option value="ml">ml</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500">Prix unitaire</label>
+                    <input data-name="unitPrice" type="number" step="0.0001" min="0" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                </div>
+                <div class="flex items-end gap-2">
+                    <div class="flex-1">
+                        <label class="text-xs text-slate-500">Montant</label>
+                        <input data-name="lineTotal" type="number" step="0.01" min="0" required class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    </div>
+                    <button type="button" data-action="course-receipt-review#remove" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-rose-600 hover:bg-rose-50 hover:text-rose-800" aria-label="Retirer la ligne" data-tippy-content="Retirer la ligne"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </fieldset>
+        </template>
+
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <button type="button" data-action="course-receipt-review#add" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"><i class="fa-solid fa-plus"></i> Ajouter une ligne</button>
+            <button class="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700">Confirmer et reporter dans Bank Manager</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% set current_route = app.request.attributes.get('_route')|default('') %}
+{% set groups = {
+    catalogue: {
+        label: 'Catalogue',
+        icon: 'tags',
+        active: current_route starts with 'app_courses_product' or current_route starts with 'app_courses_stores' or current_route starts with 'app_courses_store_' or current_route starts with 'app_courses_categories' or current_route starts with 'app_courses_category_',
+        items: [
+            {route: 'app_courses_products', prefix: 'app_courses_product', label: 'Produits', icon: 'basket-shopping'},
+            {route: 'app_courses_stores', prefix: 'app_courses_store', label: 'Magasins', icon: 'shop'},
+            {route: 'app_courses_categories', prefix: 'app_courses_categor', label: 'Categories', icon: 'tags'},
+        ],
+    },
+    outils: {
+        label: 'Outils',
+        icon: 'toolbox',
+        active: current_route starts with 'app_courses_import_profile',
+        items: [
+            {route: 'app_courses_import_profiles', prefix: 'app_courses_import_profile', label: 'Profils d\'import', icon: 'file-import'},
+        ],
+    },
+} %}
+<div class="mb-4">
+<div class="border-b border-slate-200">
+    <nav class="flex flex-wrap items-center gap-1 text-sm">
+        <a href="{{ path('app_courses_index') }}" class="px-3 py-2 font-medium {{ current_route == 'app_courses_index' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Tableau</a>
+        <a href="{{ path('app_courses_receipts') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_courses_receipt' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Tickets</a>
+        <a href="{{ path('app_courses_shopping_lists') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_courses_shopping_list' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Listes de courses</a>
+        <a href="{{ path('app_courses_analytics') }}" class="px-3 py-2 font-medium {{ current_route starts with 'app_courses_analytics' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">Analyses</a>
+        {% for key, group in groups %}
+            <div class="relative" x-data="{ open: false }" @click.away="open = false">
+                <button type="button" @click="open = !open" :aria-expanded="open.toString()" class="flex items-center gap-1.5 px-3 py-2 font-medium {{ group.active ? 'border-b-2 border-teal-600 text-teal-700' : 'text-slate-600 hover:text-slate-950' }}">
+                    <i class="fa-solid fa-{{ group.icon }} text-xs"></i>
+                    {{ group.label }}
+                    <i class="fa-solid fa-chevron-down text-[10px]" :class="open ? 'rotate-180' : ''"></i>
+                </button>
+                <div x-show="open" x-cloak x-transition class="absolute left-0 top-full z-20 mt-1 w-52 rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+                    {% for item in group.items %}
+                        <a href="{{ path(item.route) }}" @click="open = false" class="flex items-center gap-2 px-4 py-2 text-sm {{ current_route starts with item.prefix ? 'bg-slate-100 font-medium text-teal-700' : 'text-slate-700 hover:bg-slate-50' }}">
+                            <i class="fa-solid fa-{{ item.icon }} w-4 text-center text-xs"></i>
+                            {{ item.label }}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+        <a href="{{ path('app_courses_receipt_upload') }}" class="ml-auto mb-1 rounded-md bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700"><i class="fa-solid fa-plus"></i> Importer un ticket</a>
+    </nav>
+</div>
+</div>

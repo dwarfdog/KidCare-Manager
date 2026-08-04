@@ -1,0 +1,100 @@
+{% extends 'base.html.twig' %}
+{% import 'components/_icon_action.html.twig' as icons %}
+
+{% block title %}{{ list.name }}{% endblock %}
+
+{% block body %}
+{% include 'courses/_tabs.html.twig' %}
+<div class="mx-auto max-w-4xl space-y-5" x-data="{ showSingle: false, showSplit: false }">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <a href="{{ path('app_courses_shopping_lists') }}" class="text-sm text-teal-700">← Listes de courses</a>
+            <h1 class="mt-1 text-2xl font-semibold">{{ list.name }}</h1>
+        </div>
+        {% if not list.isArchived %}
+            <form method="post" action="{{ path('app_courses_shopping_list_archive', {publicId: list.publicId}) }}" data-controller="confirm" data-confirm-title-value="Archiver cette liste ?" data-confirm-text-value="Elle restera consultable dans les Archives." data-confirm-confirm-text-value="Archiver" data-action="confirm#submit">
+                <input type="hidden" name="_token" value="{{ csrf_token('courses_list_archive_' ~ list.publicId) }}">
+                {{ icons.button('box-archive', 'Archiver la liste', 'danger') }}
+            </form>
+        {% endif %}
+    </div>
+
+    <div class="rounded-lg border border-slate-200 bg-white">
+        <div class="border-b border-slate-200 px-5 py-4"><h2 class="text-base font-semibold">Articles</h2></div>
+        <div class="divide-y divide-slate-100">
+            {% for item in list.items %}
+                <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
+                    <label class="flex items-center gap-3">
+                        <form method="post" action="{{ path('app_courses_shopping_list_item_toggle', {publicId: list.publicId, itemPublicId: item.publicId}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('courses_list_item_toggle_' ~ item.publicId) }}">
+                            <button type="submit" class="text-lg {{ item.checked ? 'text-teal-600' : 'text-slate-300' }}"><i class="fa-solid fa-{{ item.checked ? 'square-check' : 'square' }}"></i></button>
+                        </form>
+                        <span class="{{ item.checked ? 'text-slate-400 line-through' : '' }}">{{ productManager.name(item.product) }} — {{ item.desiredQuantity|number_format(3, ',', ' ') }} {{ item.unit }}</span>
+                    </label>
+                    <form method="post" action="{{ path('app_courses_shopping_list_item_remove', {publicId: list.publicId, itemPublicId: item.publicId}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('courses_list_item_remove_' ~ item.publicId) }}">
+                        {{ icons.button('xmark', 'Retirer cet article', 'danger') }}
+                    </form>
+                </div>
+            {% else %}
+                <p class="px-5 py-8 text-center text-sm text-slate-500">Aucun article. Ajoutez-en un ci-dessous.</p>
+            {% endfor %}
+        </div>
+        <div class="border-t border-slate-200 px-5 py-4">
+            {{ form_start(itemForm, {action: path('app_courses_shopping_list_item_add', {publicId: list.publicId}), attr: {class: 'flex flex-wrap items-end gap-3'}}) }}
+                <div>{{ form_row(itemForm.product) }}</div>
+                <div>{{ form_row(itemForm.desiredQuantity) }}</div>
+                <div>{{ form_row(itemForm.unit) }}</div>
+                <button class="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700">Ajouter</button>
+            {{ form_end(itemForm) }}
+        </div>
+    </div>
+
+    {% if list.items|length %}
+        <div class="flex flex-wrap gap-3">
+            <button type="button" @click="showSingle = !showSingle; showSplit = false" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-shop"></i> Magasin unique le moins cher</button>
+            <button type="button" @click="showSplit = !showSplit; showSingle = false" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-route"></i> Repartition la moins chere</button>
+        </div>
+
+        <div x-show="showSingle" x-cloak class="rounded-lg border border-slate-200 bg-white">
+            <div class="border-b border-slate-200 px-5 py-4"><h2 class="text-base font-semibold">Magasin unique le moins cher</h2></div>
+            <div class="divide-y divide-slate-100">
+                {% for row in bestSingleStore.stores %}
+                    <div class="flex items-center justify-between px-5 py-3 text-sm">
+                        <div>
+                            <span class="font-medium">{{ row.storeName }}</span>
+                            <span class="ml-2 text-xs text-slate-400">{{ row.coveredCount }}/{{ list.items|length }} articles disponibles{{ row.missingCount > 0 ? ' (' ~ row.missingCount ~ ' inconnu(s))' : '' }}</span>
+                        </div>
+                        <span class="font-semibold tabular-nums">{{ row.total|number_format(2, ',', ' ') }} €</span>
+                    </div>
+                {% else %}
+                    <p class="px-5 py-8 text-center text-sm text-slate-500">Aucun historique de prix disponible pour ces produits.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div x-show="showSplit" x-cloak class="rounded-lg border border-slate-200 bg-white">
+            <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+                <h2 class="text-base font-semibold">Repartition la moins chere par magasin</h2>
+                <span class="text-sm font-semibold tabular-nums">Total : {{ multiStoreSplit.grandTotal|number_format(2, ',', ' ') }} €</span>
+            </div>
+            <div class="divide-y divide-slate-100">
+                {% for group in multiStoreSplit.groups %}
+                    <div class="px-5 py-3 text-sm">
+                        <div class="mb-1 flex items-center justify-between">
+                            <span class="font-medium">{{ group.storeName }}</span>
+                            <span class="font-semibold tabular-nums">{{ group.subtotal|number_format(2, ',', ' ') }} €</span>
+                        </div>
+                        <p class="text-xs text-slate-400">{{ group.items|length }} article{{ group.items|length > 1 ? 's' : '' }}</p>
+                    </div>
+                {% else %}
+                    <p class="px-5 py-8 text-center text-sm text-slate-500">Aucun historique de prix disponible pour ces produits.</p>
+                {% endfor %}
+                {% if multiStoreSplit.unknownItems|length %}
+                    <div class="px-5 py-3 text-sm text-slate-500">Sans historique de prix : {{ multiStoreSplit.unknownItems|join(', ') }}</div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

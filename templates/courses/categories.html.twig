@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+{% import 'components/_icon_action.html.twig' as icons %}
+
+{% block title %}Categories Courses{% endblock %}
+
+{% block body %}
+{% include 'courses/_tabs.html.twig' %}
+<div class="rounded-lg border border-slate-200 bg-white">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+        <div>
+            <h1 class="text-lg font-semibold">Categories Courses</h1>
+            <p class="text-sm text-slate-500">Chaque categorie est rattachee a une categorie Bank Manager pour les budgets et analyses.</p>
+        </div>
+        <a href="{{ path('app_courses_category_new') }}" class="rounded-md bg-teal-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700"><i class="fa-solid fa-plus"></i> Nouvelle categorie</a>
+    </div>
+    <div class="divide-y divide-slate-100">
+        {% for category in categories %}
+            <div class="flex flex-col gap-3 px-5 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex min-w-0 items-center gap-3">
+                    <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full" style="background-color: {{ category.color }}22; color: {{ category.color }};"><i class="fa-solid fa-{{ category.icon }}"></i></span>
+                    <div>
+                        <span class="font-medium">{{ category.name }}</span>
+                        <span class="ml-2 text-xs text-slate-400">→ {{ category.parentCategory.name }}</span>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-1">
+                    {{ icons.link('pen', 'Modifier ' ~ category.name, path('app_courses_category_edit', {publicId: category.publicId})) }}
+                    <form method="post" action="{{ path('app_courses_category_archive', {publicId: category.publicId}) }}" data-controller="confirm" data-confirm-title-value="Archiver cette categorie ?" data-confirm-text-value="Elle restera consultable dans les Archives." data-confirm-confirm-text-value="Archiver" data-action="confirm#submit">
+                        <input type="hidden" name="_token" value="{{ csrf_token('courses_category_archive_' ~ category.publicId) }}">
+                        {{ icons.button('box-archive', 'Archiver ' ~ category.name, 'danger') }}
+                    </form>
+                </div>
+            </div>
+        {% else %}
+            <p class="px-5 py-8 text-center text-sm text-slate-500">Aucune categorie.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

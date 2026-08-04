@@ -1,0 +1,22 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Importer un ticket{% endblock %}
+
+{% block body %}
+{% include 'courses/_tabs.html.twig' %}
+<div class="mx-auto max-w-xl">
+    <div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <h1 class="mb-1 text-lg font-semibold">Importer un ticket ou une facture</h1>
+        <p class="mb-6 text-sm text-slate-500">L'analyse est effectuee localement (OCR). Vous pourrez verifier et corriger chaque ligne avant validation.</p>
+        {{ form_start(form) }}
+            {{ form_row(form.file) }}
+            {{ form_row(form.account) }}
+            {{ form_row(form.importProfile) }}
+            <div class="mt-4 flex flex-wrap gap-3">
+                <button class="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700">Analyser le ticket</button>
+                <a href="{{ path('app_courses_receipts') }}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Annuler</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

@@ -23,6 +23,7 @@
                         <a href="{{ path('app_nanny_index') }}" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route starts with 'app_nanny_' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Nounous</a>
                         <a href="{{ path('app_care_template_index') }}" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route starts with 'app_care_template_' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Templates</a>
                         <a href="{{ path('app_bank_index') }}" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route starts with 'app_bank_' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Banque</a>
+                        <a href="{{ path('app_courses_index') }}" class="rounded-md px-3 py-2 text-sm font-medium {{ current_route starts with 'app_courses_' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Courses</a>
                         <a href="{{ path('app_notification_index') }}" aria-label="Notifications{{ notifBadge.count > 0 ? ' - ' ~ notifBadge.count ~ ' non lue' ~ (notifBadge.count > 1 ? 's' : '') : ' - aucune non lue' }}" data-tippy-content="{{ notifBadge.count > 0 ? notifBadge.count ~ ' notification' ~ (notifBadge.count > 1 ? 's' : '') ~ ' non lue' ~ (notifBadge.count > 1 ? 's' : '') ~ (notifBadge.severity == 'warning' ? ', dont au moins une importante' : '') : 'Aucune notification non lue' }}" class="relative rounded-md px-3 py-2 text-sm font-medium {{ current_route starts with 'app_notification_' ? 'bg-slate-100 text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">
                             <i class="fa-regular fa-bell"></i>
                             {% if notifBadge.count > 0 %}
@@ -55,6 +56,7 @@
                             <a href="{{ path('app_nanny_index') }}" class="block px-4 py-2 text-sm {{ current_route starts with 'app_nanny_' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Nounous</a>
                             <a href="{{ path('app_care_template_index') }}" class="block px-4 py-2 text-sm {{ current_route starts with 'app_care_template_' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Templates</a>
                             <a href="{{ path('app_bank_index') }}" class="block px-4 py-2 text-sm {{ current_route starts with 'app_bank_' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Banque</a>
+                            <a href="{{ path('app_courses_index') }}" class="block px-4 py-2 text-sm {{ current_route starts with 'app_courses_' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">Courses</a>
                             <a href="{{ path('app_notification_index') }}" class="flex items-center justify-between px-4 py-2 text-sm {{ current_route starts with 'app_notification_' ? 'bg-slate-100 font-medium text-slate-950' : 'text-slate-700 hover:bg-slate-100' }}">
                                 <span>Notifications</span>
                                 {% if notifBadge.count > 0 %}

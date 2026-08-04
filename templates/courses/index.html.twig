@@ -1,0 +1,60 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Courses{% endblock %}
+
+{% block body %}
+{% include 'courses/_tabs.html.twig' %}
+
+{% if dashboard.pendingReviewCount > 0 %}
+    <div class="mb-4 flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-800">
+        <span><i class="fa-solid fa-circle-exclamation"></i> {{ dashboard.pendingReviewCount }} ticket{{ dashboard.pendingReviewCount > 1 ? 's' : '' }} en attente de relecture.</span>
+        <a href="{{ path('app_courses_receipts') }}" class="font-semibold text-amber-900 hover:underline">Relire maintenant →</a>
+    </div>
+{% endif %}
+
+<div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
+    <div class="rounded-lg border border-slate-200 bg-white p-5">
+        <p class="text-sm text-slate-500">Depense de la periode</p>
+        <p class="mt-1 text-2xl font-semibold tabular-nums">{{ dashboard.periodSpend|number_format(2, ',', ' ') }} €</p>
+        <p class="mt-1 text-xs text-slate-400">{{ dashboard.periodLabel }} - {{ dashboard.periodReceiptCount }} ticket{{ dashboard.periodReceiptCount > 1 ? 's' : '' }} confirme{{ dashboard.periodReceiptCount > 1 ? 's' : '' }}</p>
+    </div>
+    <div class="rounded-lg border border-slate-200 bg-white p-5">
+        <p class="text-sm text-slate-500">A relire</p>
+        <p class="mt-1 text-2xl font-semibold tabular-nums">{{ dashboard.pendingReviewCount }}</p>
+        <a href="{{ path('app_courses_receipts') }}" class="mt-1 text-xs font-medium text-teal-700 hover:underline">Voir les tickets →</a>
+    </div>
+    <div class="rounded-lg border border-slate-200 bg-white p-5">
+        <p class="text-sm text-slate-500">Importer un ticket</p>
+        <a href="{{ path('app_courses_receipt_upload') }}" class="mt-2 inline-flex items-center gap-2 rounded-md bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700"><i class="fa-solid fa-plus"></i> Nouveau ticket</a>
+    </div>
+</div>
+
+<div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+    <div class="rounded-lg border border-slate-200 bg-white">
+        <div class="border-b border-slate-200 px-5 py-4"><h2 class="text-base font-semibold">Depenses par magasin</h2><p class="text-xs text-slate-400">{{ dashboard.periodLabel }}</p></div>
+        <div class="divide-y divide-slate-100">
+            {% for row in dashboard.storeBreakdown %}
+                <div class="flex items-center justify-between px-5 py-3 text-sm">
+                    <span>{{ row.store }}</span>
+                    <span class="font-semibold tabular-nums">{{ row.amount|number_format(2, ',', ' ') }} €</span>
+                </div>
+            {% else %}
+                <p class="px-5 py-8 text-center text-sm text-slate-500">Aucune depense confirmee sur cette periode.</p>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="rounded-lg border border-slate-200 bg-white">
+        <div class="border-b border-slate-200 px-5 py-4"><h2 class="text-base font-semibold">Derniers tickets</h2></div>
+        <div class="divide-y divide-slate-100">
+            {% for receipt in dashboard.recentReceipts %}
+                <a href="{{ path('app_courses_receipt_show', {publicId: receipt.publicId}) }}" class="flex items-center justify-between px-5 py-3 text-sm hover:bg-slate-50">
+                    <span>{{ receipt.purchaseDate ? receipt.purchaseDate|date('d/m/Y') : '—' }}</span>
+                    <span class="font-semibold tabular-nums">{{ receipt.totalAmount|number_format(2, ',', ' ') }} €</span>
+                </a>
+            {% else %}
+                <p class="px-5 py-8 text-center text-sm text-slate-500">Aucun ticket confirme.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

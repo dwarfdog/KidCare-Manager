@@ -277,4 +277,65 @@ final class BankStatisticsService
 
         return $cursor;
     }
+
+    /**
+     * Date du dernier salaire (repere de salaire, ou a defaut le revenu recurrent le plus proche),
+     * symetrique de nextSalaryDate(): comme le jour de reference "ouvre" la periode suivante (voir
+     * nextSalaryDate/periode de vie), la derniere occurrence <= $today est la date d'ouverture de la
+     * periode courante. Utilisee pour bornre une "periode de vie" complete (ex: module Courses).
+     */
+    public function previousSalaryDate(User $user, \DateTimeImmutable $today): ?\DateTimeImmutable
+    {
+        $rules = $this->recurringRuleRepository->findActiveForUser($user);
+
+        $best = null;
+        foreach ($rules as $rule) {
+            if (!$rule->isSalaryReference()) {
+                continue;
+            }
+            $occurrence = $this->lastOccurrenceAtOrBefore($rule, $today);
+            if ($occurrence !== null && ($best === null || $occurrence > $best)) {
+                $best = $occurrence;
+            }
+        }
+        if ($best !== null) {
+            return $best;
+        }
+
+        foreach ($rules as $rule) {
+            if (!$rule->isIncome()) {
+                continue;
+            }
+            $occurrence = $this->lastOccurrenceAtOrBefore($rule, $today);
+            if ($occurrence !== null && ($best === null || $occurrence > $best)) {
+                $best = $occurrence;
+            }
+        }
+
+        return $best;
+    }
+
+    private function lastOccurrenceAtOrBefore(BankRecurringRule $rule, \DateTimeImmutable $today): ?\DateTimeImmutable
+    {
+        $cursor = \DateTimeImmutable::createFromInterface($rule->getStartDate());
+        if ($cursor > $today) {
+            return null;
+        }
+        $end = $rule->getEndDate() !== null ? \DateTimeImmutable::createFromInterface($rule->getEndDate()) : null;
+
+        $last = null;
+        $guard = 0;
+        while ($cursor <= $today) {
+            if ($end !== null && $cursor > $end) {
+                break;
+            }
+            $last = $cursor;
+            $cursor = $this->schedule->nextOccurrence($rule, $cursor);
+            if (++$guard > 600) {
+                break;
+            }
+        }
+
+        return $last;
+    }
 }

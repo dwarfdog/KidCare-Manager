@@ -1,0 +1,111 @@
+{% extends 'base.html.twig' %}
+{% import 'components/_icon_action.html.twig' as icons %}
+
+{% block title %}Ticket du {{ receipt.purchaseDate ? receipt.purchaseDate|date('d/m/Y') : '' }}{% endblock %}
+
+{% block body %}
+{% include 'courses/_tabs.html.twig' %}
+<div class="mx-auto max-w-4xl space-y-5">
+    <div>
+        <a href="{{ path('app_courses_receipts') }}" class="text-sm text-teal-700">← Tickets</a>
+        <div class="mt-1 flex flex-wrap items-center justify-between gap-3">
+            <h1 class="text-2xl font-semibold">Ticket du {{ receipt.purchaseDate ? receipt.purchaseDate|date('d/m/Y') : '—' }}</h1>
+            {% if not receipt.isConfirmed %}
+                <a href="{{ path('app_courses_receipt_review', {publicId: receipt.publicId}) }}" class="rounded-md bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700">Relire ce ticket</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-white p-5 sm:grid-cols-4">
+        <div>
+            <p class="text-xs text-slate-500">Magasin</p>
+            <p class="font-medium">{{ receipt.store ? storeManager.name(receipt.store) : '—' }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-slate-500">Compte</p>
+            <p class="font-medium">{{ receipt.account ? accountManager.displayName(receipt.account) : '—' }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-slate-500">Total</p>
+            <p class="font-semibold tabular-nums">{{ receipt.totalAmount|number_format(2, ',', ' ') }} €</p>
+        </div>
+        <div>
+            <p class="text-xs text-slate-500">Operation Bank Manager</p>
+            {% if receipt.bankTransaction %}
+                <a href="{{ path('app_bank_transaction_edit', {publicId: receipt.bankTransaction.publicId}) }}" class="font-medium text-teal-700 hover:underline">Voir l'operation →</a>
+            {% else %}
+                <p class="text-slate-400">—</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="rounded-lg border border-slate-200 bg-white">
+        <div class="border-b border-slate-200 px-5 py-4">
+            <h2 class="text-base font-semibold">Produits</h2>
+            {% if receipt.isConfirmed and receipt.store %}
+                <p class="text-xs text-slate-500">Le libelle du ticket etait associe au mauvais produit ? Corrigez-le ci-dessous : l'association sera memorisee pour ce magasin.</p>
+            {% endif %}
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-5 py-2 text-left text-xs font-semibold uppercase text-slate-500">Libelle du ticket</th>
+                        <th class="px-5 py-2 text-left text-xs font-semibold uppercase text-slate-500">Produit</th>
+                        <th class="px-5 py-2 text-left text-xs font-semibold uppercase text-slate-500">Categorie</th>
+                        <th class="px-5 py-2 text-right text-xs font-semibold uppercase text-slate-500">Quantite</th>
+                        <th class="px-5 py-2 text-right text-xs font-semibold uppercase text-slate-500">Prix unitaire</th>
+                        <th class="px-5 py-2 text-right text-xs font-semibold uppercase text-slate-500">Montant</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for row in lineRows %}
+                        <tr>
+                            <td class="px-5 py-2 text-slate-500">{{ row.rawLabel }}</td>
+                            <td class="px-5 py-2">
+                                {% if receipt.isConfirmed and receipt.store %}
+                                    <form method="post" action="{{ path('app_courses_receipt_line_reassign_product', {publicId: receipt.publicId, linePublicId: row.publicId}) }}" class="flex items-center gap-1">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('courses_line_product_' ~ row.publicId) }}">
+                                        <select name="product" class="rounded-md border border-slate-300 px-2 py-1 text-xs">
+                                            {% for label, product in productChoices %}
+                                                <option value="{{ product.publicId }}" {{ row.product and row.product.publicId == product.publicId ? 'selected' }}>{{ label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="submit" class="rounded-md border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50" data-tippy-content="Corriger le produit associe">OK</button>
+                                    </form>
+                                {% else %}
+                                    {{ row.productName ?? row.rawLabel }}
+                                {% endif %}
+                            </td>
+                            <td class="px-5 py-2 text-slate-500">{{ row.categoryName ?? '—' }}</td>
+                            <td class="px-5 py-2 text-right tabular-nums">{{ row.quantity|number_format(3, ',', ' ') }} {{ row.unit }}</td>
+                            <td class="px-5 py-2 text-right tabular-nums">{{ row.unitPrice is not null ? row.unitPrice|number_format(4, ',', ' ') ~ ' €' : '—' }}</td>
+                            <td class="px-5 py-2 text-right font-semibold tabular-nums">{{ row.lineTotal|number_format(2, ',', ' ') }} €</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="6" class="px-5 py-8 text-center text-slate-500">Aucune ligne.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if attachments|length %}
+        <div class="rounded-lg border border-slate-200 bg-white p-5">
+            <h2 class="mb-3 text-base font-semibold">Fichier original</h2>
+            <div class="flex flex-wrap gap-2">
+                {% for attachment in attachments %}
+                    <a href="{{ path('app_courses_attachment_download', {receiptPublicId: receipt.publicId, publicId: attachment.publicId}) }}" class="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"><i class="fa-solid fa-paperclip"></i> Telecharger</a>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if not receipt.isArchived %}
+        <form method="post" action="{{ path('app_courses_receipt_archive', {publicId: receipt.publicId}) }}" data-controller="confirm" data-confirm-title-value="Archiver ce ticket ?" data-confirm-text-value="Il restera consultable dans les Archives." data-confirm-confirm-text-value="Archiver" data-action="confirm#submit">
+            <input type="hidden" name="_token" value="{{ csrf_token('courses_receipt_archive_' ~ receipt.publicId) }}">
+            <button class="inline-flex items-center gap-2 text-sm font-medium text-rose-700 hover:text-rose-900"><i class="fa-solid fa-box-archive"></i> Archiver ce ticket</button>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

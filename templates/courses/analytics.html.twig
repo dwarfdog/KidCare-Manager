@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Analyse des prix{% endblock %}
+
+{% block body %}
+{% include 'courses/_tabs.html.twig' %}
+<div class="space-y-5">
+    <section class="rounded-lg border border-slate-200 bg-white p-5">
+        <h1 class="text-2xl font-semibold">Evolution et comparatif des prix</h1>
+        <p class="mt-1 text-sm text-slate-500">Choisissez un produit pour suivre l'evolution de son prix dans le temps et comparer les magasins.</p>
+        <form method="get" class="mt-4 flex flex-wrap items-end gap-3">
+            <label class="text-sm font-medium text-slate-700">Produit
+                <select name="product" onchange="this.form.submit()" class="mt-1 rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    <option value="">Choisir un produit</option>
+                    {% for product in products %}
+                        <option value="{{ product.publicId }}" {{ selectedProduct and selectedProduct.publicId == product.publicId ? 'selected' }}>{{ productManager.name(product) }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </form>
+    </section>
+
+    {% if selectedProduct is null %}
+        <div class="rounded-md border border-slate-200 bg-white px-5 py-10 text-center text-sm text-slate-500">Selectionnez un produit pour afficher son historique de prix.</div>
+    {% elseif not evolution.hasData %}
+        <div class="rounded-md border border-slate-200 bg-white px-5 py-10 text-center text-sm text-slate-500">Aucun achat confirme pour ce produit pour le moment.</div>
+    {% else %}
+        <section class="rounded-lg border border-slate-200 bg-white p-5" data-controller="course-price-chart" data-course-price-chart-data-value="{{ evolution|json_encode|e('html_attr') }}">
+            <h2 class="text-base font-semibold">Evolution du prix — {{ productManager.name(selectedProduct) }}</h2>
+            <div class="mt-4 h-72"><canvas data-course-price-chart-target="canvas"></canvas></div>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white">
+            <div class="border-b border-slate-200 px-5 py-4"><h2 class="text-base font-semibold">Comparatif par magasin (dernier prix connu)</h2></div>
+            <div class="divide-y divide-slate-100">
+                {% for entry in comparison %}
+                    <div class="flex items-center justify-between px-5 py-3 text-sm">
+                        <div>
+                            <span class="font-medium">{{ entry.storeName }}</span>
+                            <span class="ml-2 text-xs text-slate-400">le {{ entry.date|date('d/m/Y') }}</span>
+                        </div>
+                        <span class="font-semibold tabular-nums">{{ entry.unitPrice|number_format(4, ',', ' ') }} € / {{ entry.unit }}</span>
+                    </div>
+                {% else %}
+                    <p class="px-5 py-8 text-center text-sm text-slate-500">Aucun magasin identifie pour ce produit.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white">
+            <div class="border-b border-slate-200 px-5 py-4"><h2 class="text-base font-semibold">Historique des achats</h2></div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-5 py-2 text-left text-xs font-semibold uppercase text-slate-500">Date</th>
+                            <th class="px-5 py-2 text-left text-xs font-semibold uppercase text-slate-500">Magasin</th>
+                            <th class="px-5 py-2 text-right text-xs font-semibold uppercase text-slate-500">Prix unitaire</th>
+                            <th class="px-5 py-2 text-right text-xs font-semibold uppercase text-slate-500">Montant</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for row in evolution.rows %}
+                            <tr>
+                                <td class="px-5 py-2">{{ row.date }}</td>
+                                <td class="px-5 py-2 text-slate-500">{{ row.store ?? '—' }}</td>
+                                <td class="px-5 py-2 text-right tabular-nums">{{ row.unitPrice is not null ? row.unitPrice|number_format(4, ',', ' ') ~ ' €' : '—' }}</td>
+                                <td class="px-5 py-2 text-right font-semibold tabular-nums">{{ row.lineTotal|number_format(2, ',', ' ') }} €</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% endif %}
+</div>
+{% endblock %}

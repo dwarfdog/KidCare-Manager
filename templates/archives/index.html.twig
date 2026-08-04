@@ -16,6 +16,9 @@
                                 {% elseif title == 'Récurrences' %}{{ encryption.decrypt(item.encryptedLabel) }}
                                 {% elseif title == 'Pièces jointes bancaires' %}{{ attachmentManager.originalName(item) }}
                                 {% elseif title == 'Documents privés' %}{{ documentManager.name(item) }}
+                                {% elseif title == 'Tickets de courses' %}Ticket du {{ item.purchaseDate ? item.purchaseDate|date('d/m/Y') : '?' }} — {{ item.totalAmount|number_format(2, ',', ' ') }} €
+                                {% elseif title == 'Magasins' %}{{ courseStoreManager.name(item) }}
+                                {% elseif title == 'Produits' %}{{ courseProductManager.name(item) }}
                                 {% elseif title == 'Nounous détachées' %}{{ item.nanny.fullName }}
                                 {% elseif item.nannyDisplayName is defined %}{{ item.nannyDisplayName }}
                                 {% elseif item.name is defined %}{{ item.name }}

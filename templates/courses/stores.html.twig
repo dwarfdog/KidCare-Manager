@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+{% import 'components/_icon_action.html.twig' as icons %}
+
+{% block title %}Magasins{% endblock %}
+
+{% block body %}
+{% include 'courses/_tabs.html.twig' %}
+<div class="rounded-lg border border-slate-200 bg-white">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+        <h1 class="text-lg font-semibold">Magasins</h1>
+        <a href="{{ path('app_courses_store_new') }}" class="rounded-md bg-teal-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700"><i class="fa-solid fa-plus"></i> Nouveau magasin</a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Magasin</th>
+                    <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Enseigne</th>
+                    <th class="px-5 py-3 text-left text-xs font-semibold uppercase text-slate-500">Adresse</th>
+                    <th class="px-5 py-3 text-right text-xs font-semibold uppercase text-slate-500">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for store in stores %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-5 py-3 text-sm font-medium">{{ storeManager.name(store) }}</td>
+                        <td class="px-5 py-3 text-sm text-slate-500">{{ store.chain ?? '—' }}</td>
+                        <td class="px-5 py-3 text-sm text-slate-500">{{ storeManager.address(store) ?? '—' }}</td>
+                        <td class="px-5 py-3 text-right text-sm">
+                            <span class="inline-flex items-center gap-1">
+                                {{ icons.link('pen', 'Modifier ' ~ storeManager.name(store), path('app_courses_store_edit', {publicId: store.publicId})) }}
+                                <form method="post" action="{{ path('app_courses_store_archive', {publicId: store.publicId}) }}" data-controller="confirm" data-confirm-title-value="Archiver ce magasin ?" data-confirm-text-value="Il restera consultable dans les Archives." data-confirm-confirm-text-value="Archiver" data-action="confirm#submit">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('courses_store_archive_' ~ store.publicId) }}">
+                                    {{ icons.button('box-archive', 'Archiver ' ~ storeManager.name(store), 'danger') }}
+                                </form>
+                            </span>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="4" class="px-5 py-8 text-center text-sm text-slate-500">Aucun magasin.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

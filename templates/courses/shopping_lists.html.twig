@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+{% import 'components/_icon_action.html.twig' as icons %}
+
+{% block title %}Listes de courses{% endblock %}
+
+{% block body %}
+{% include 'courses/_tabs.html.twig' %}
+<div class="rounded-lg border border-slate-200 bg-white">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+        <h1 class="text-lg font-semibold">Listes de courses</h1>
+        <a href="{{ path('app_courses_shopping_list_new') }}" class="rounded-md bg-teal-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700"><i class="fa-solid fa-plus"></i> Nouvelle liste</a>
+    </div>
+    <div class="divide-y divide-slate-100">
+        {% for list in lists %}
+            <a href="{{ path('app_courses_shopping_list_show', {publicId: list.publicId}) }}" class="flex items-center justify-between px-5 py-3 text-sm hover:bg-slate-50">
+                <span class="font-medium">{{ list.name }}</span>
+                <span class="text-slate-400">{{ list.items|length }} article{{ list.items|length > 1 ? 's' : '' }}</span>
+            </a>
+        {% else %}
+            <p class="px-5 py-8 text-center text-sm text-slate-500">Aucune liste de courses.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -30,6 +30,7 @@ class BankTransaction
     public const SOURCE_TRANSFER = 'transfer';
     public const SOURCE_KIDCARE = 'kidcare';
     public const SOURCE_LOAN = 'loan';
+    public const SOURCE_COURSES = 'courses';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]

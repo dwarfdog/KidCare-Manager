@@ -9,6 +9,7 @@ use App\Repository\BankTransactionRepository;
 use App\Repository\CareRepository;
 use App\Repository\MonthlyPaymentRepository;
 use App\Repository\NannyRepository;
+use App\Service\Course\CourseStatisticsService;
 
 final class HomeDashboardService
 {
@@ -24,6 +25,7 @@ final class HomeDashboardService
         private readonly MonthlyPaymentRepository $paymentRepository,
         private readonly CareRepository $careRepository,
         private readonly NannyRepository $nannyRepository,
+        private readonly CourseStatisticsService $courseStatistics,
         private readonly ApplicationSettings $settings,
     ) {
     }
@@ -57,6 +59,7 @@ final class HomeDashboardService
             ],
             'nextCare' => $this->careRepository->findNextCare($user),
             'nannyCount' => count($this->nannyRepository->findAssignedToUser($user)),
+            'courses' => $this->courseStatistics->dashboard($user),
             'currency' => $this->settings->currency(),
             'transactionManager' => $this->transactionManager,
             'accountManager' => $this->accountManager,

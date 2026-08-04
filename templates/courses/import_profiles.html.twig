@@ -1,0 +1,30 @@
+{% extends 'base.html.twig' %}
+{% import 'components/_icon_action.html.twig' as icons %}
+
+{% block title %}Profils d'import{% endblock %}
+
+{% block body %}
+{% include 'courses/_tabs.html.twig' %}
+<div class="rounded-lg border border-slate-200 bg-white">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+        <div>
+            <h1 class="text-lg font-semibold">Profils d'import CSV/XLSX</h1>
+            <p class="text-sm text-slate-500">Reutilises lors de l'import d'un export structure (ex : courses en ligne) pour mapper les colonnes automatiquement.</p>
+        </div>
+        <a href="{{ path('app_courses_import_profile_new') }}" class="rounded-md bg-teal-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700"><i class="fa-solid fa-plus"></i> Nouveau profil</a>
+    </div>
+    <div class="divide-y divide-slate-100">
+        {% for profile in profiles %}
+            <div class="flex items-center justify-between px-5 py-3 text-sm">
+                <span class="font-medium">{{ profile.name }}</span>
+                <form method="post" action="{{ path('app_courses_import_profile_delete', {publicId: profile.publicId}) }}" data-controller="confirm" data-confirm-title-value="Supprimer ce profil ?" data-confirm-text-value="Cette action est definitive." data-confirm-confirm-text-value="Supprimer" data-action="confirm#submit">
+                    <input type="hidden" name="_token" value="{{ csrf_token('courses_import_profile_delete_' ~ profile.publicId) }}">
+                    {{ icons.button('trash-can', 'Supprimer ' ~ profile.name, 'danger') }}
+                </form>
+            </div>
+        {% else %}
+            <p class="px-5 py-8 text-center text-sm text-slate-500">Aucun profil d'import.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
