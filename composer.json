@@ -2,7 +2,7 @@
     "name": "kidcare/manager",
     "description": "KidCare Manager childcare planning and payment application.",
     "type": "project",
-    "license": "proprietary",
+    "license": "MIT",
     "minimum-stability": "stable",
     "prefer-stable": true,
     "require": {
