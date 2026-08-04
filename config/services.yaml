@@ -16,6 +16,7 @@ parameters:
     app.document_encryption_key: '%env(DOCUMENT_ENCRYPTION_KEY)%'
     app.tesseract_binary_path: '%env(TESSERACT_BINARY_PATH)%'
     app.tesseract_languages: '%env(TESSERACT_LANGUAGES)%'
+    app.ghostscript_binary_path: '%env(GHOSTSCRIPT_BINARY_PATH)%'
 
 services:
     # default configuration for services in *this* file
@@ -35,6 +36,7 @@ services:
             string $documentEncryptionKey: '%app.document_encryption_key%'
             string $tesseractBinaryPath: '%app.tesseract_binary_path%'
             string $tesseractLanguages: '%app.tesseract_languages%'
+            string $ghostscriptBinaryPath: '%app.ghostscript_binary_path%'
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name
