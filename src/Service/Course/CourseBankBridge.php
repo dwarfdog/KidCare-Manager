@@ -8,19 +8,17 @@ use App\Entity\BankTransaction;
 use App\Entity\CourseReceipt;
 use App\Entity\CourseStore;
 use App\Entity\User;
-use App\Repository\BankTransactionRepository;
 use App\Service\BankEncryptionService;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Cree/detache la App\Entity\BankTransaction agregee correspondant a un ticket de courses confirme.
+ * Cree la App\Entity\BankTransaction agregee correspondant a un ticket de courses confirme.
  * Clone du meme role que App\Service\KidCareBankBridge pour les paiements KidCare.
  */
 final class CourseBankBridge
 {
     public function __construct(
         private readonly BankEncryptionService $encryption,
-        private readonly BankTransactionRepository $transactionRepository,
         private readonly EntityManagerInterface $entityManager,
     ) {
     }
@@ -53,18 +51,5 @@ final class CourseBankBridge
         $receipt->setBankTransaction($transaction);
 
         return $transaction;
-    }
-
-    public function deleteLinkedTransaction(CourseReceipt $receipt): bool
-    {
-        $transaction = $receipt->getBankTransaction();
-        if ($transaction === null) {
-            return false;
-        }
-
-        $receipt->setBankTransaction(null);
-        $this->entityManager->remove($transaction);
-
-        return true;
     }
 }

@@ -9,6 +9,7 @@ use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\GreaterThan;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
 final class CourseProductType extends AbstractType
@@ -45,6 +46,7 @@ final class CourseProductType extends AbstractType
                 'scale' => 3,
                 'html5' => true,
                 'help' => 'Ex : 0.5 pour un pot de 500g, 1 pour une piece.',
+                'constraints' => [new GreaterThan(0)],
             ]);
     }
 

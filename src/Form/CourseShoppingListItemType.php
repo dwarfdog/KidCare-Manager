@@ -8,6 +8,7 @@ use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\GreaterThan;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
 final class CourseShoppingListItemType extends AbstractType
@@ -32,6 +33,8 @@ final class CourseShoppingListItemType extends AbstractType
                 'label' => 'Quantite souhaitee',
                 'scale' => 3,
                 'html5' => true,
+                'attr' => ['min' => '0.001', 'step' => '0.001'],
+                'constraints' => [new GreaterThan(0)],
             ])
             ->add('unit', ChoiceType::class, [
                 'label' => 'Unite',

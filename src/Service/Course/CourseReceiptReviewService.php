@@ -178,6 +178,9 @@ final class CourseReceiptReviewService
             if ($rawLabel === '') {
                 throw new \InvalidArgumentException('Chaque ligne doit avoir un libelle.');
             }
+            if ($lineTotal <= 0) {
+                throw new \InvalidArgumentException(sprintf('La ligne "%s" doit avoir un montant strictement positif.', $rawLabel));
+            }
 
             $categoryPublicId = trim((string) ($row['category'] ?? ''));
             $category = $categoryPublicId !== '' ? $this->categoryRepository->findOneForUserByPublicId($user, $categoryPublicId) : null;
@@ -190,7 +193,11 @@ final class CourseReceiptReviewService
                 throw new \InvalidArgumentException(sprintf('La ligne "%s" doit avoir un produit (existant ou nouveau).', $rawLabel));
             }
 
-            $quantity = $this->toFloat((string) ($row['quantity'] ?? '1')) ?: 1.0;
+            $quantityRaw = $this->toFloat((string) ($row['quantity'] ?? '1'));
+            if ($quantityRaw < 0) {
+                throw new \InvalidArgumentException(sprintf('La ligne "%s" doit avoir une quantite positive.', $rawLabel));
+            }
+            $quantity = $quantityRaw ?: 1.0;
             $unit = (string) ($row['unit'] ?? CourseProduct::UNIT_PIECE);
             $unitPriceRaw = trim((string) ($row['unitPrice'] ?? ''));
             $unitPrice = $unitPriceRaw !== '' ? $this->toFloat($unitPriceRaw) : null;

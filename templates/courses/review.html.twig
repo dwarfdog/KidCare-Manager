@@ -23,23 +23,23 @@
                 <select id="review-account" name="account" required class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
                     <option value="">Choisir un compte</option>
                     {% for label, account in accountChoices %}
-                        <option value="{{ account.publicId }}" {{ receipt.account and receipt.account.publicId == account.publicId ? 'selected' }}>{{ label }}</option>
+                        <option value="{{ account.publicId }}" {{ selectedAccountPublicId == account.publicId ? 'selected' }}>{{ label }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div>
                 <label class="text-xs text-slate-500" for="review-purchase-date">Date d'achat</label>
-                <input id="review-purchase-date" type="date" name="purchaseDate" value="{{ receipt.purchaseDate ? receipt.purchaseDate|date('Y-m-d') : ''}}" required class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                <input id="review-purchase-date" type="date" name="purchaseDate" value="{{ selectedPurchaseDate }}" required class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
             </div>
             <div>
                 <label class="text-xs text-slate-500" for="review-store">Magasin</label>
                 <select id="review-store" name="store" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
                     <option value="">+ Nouveau magasin (saisir ci-dessous)</option>
                     {% for store in stores %}
-                        <option value="{{ store.publicId }}" {{ receipt.store and receipt.store.publicId == store.publicId ? 'selected' }}>{{ storeManager.name(store) }}{{ store.chain ? ' (' ~ store.chain ~ ')' : '' }}</option>
+                        <option value="{{ store.publicId }}" {{ selectedStorePublicId == store.publicId ? 'selected' }}>{{ storeManager.name(store) }}{{ store.chain ? ' (' ~ store.chain ~ ')' : '' }}</option>
                     {% endfor %}
                 </select>
-                <input type="text" name="newStoreName" value="{{ receipt.store is null ? storeNameGuess : '' }}" placeholder="Nom du nouveau magasin" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                <input type="text" name="newStoreName" value="{{ selectedNewStoreName }}" placeholder="Nom du nouveau magasin" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
             </div>
         </div>
 
@@ -50,7 +50,7 @@
                     <legend class="sr-only" data-review-legend>Ligne {{ loop.index }}</legend>
                     <div class="col-span-2 lg:col-span-2">
                         <label class="text-xs text-slate-500">Libelle</label>
-                        {% if row and row.confidence == 'low' %}<span class="ml-1 text-[10px] font-semibold uppercase text-amber-600" data-tippy-content="Detection incertaine, a verifier">a verifier</span>{% endif %}
+                        {% if row and row.confidence in ['low', 'medium'] %}<span class="ml-1 text-[10px] font-semibold uppercase text-amber-600" data-tippy-content="Detection incertaine, a verifier">a verifier</span>{% endif %}
                         <input name="lines[{{ loop.index0 }}][rawLabel]" value="{{ row ? row.rawLabel : '' }}" required placeholder="Libelle du produit" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
                     </div>
                     <div class="col-span-2 lg:col-span-2">
@@ -61,7 +61,7 @@
                                 <option value="{{ product.publicId }}" {{ row and row.product and row.product.publicId == product.publicId ? 'selected' }}>{{ productManager.name(product) }}</option>
                             {% endfor %}
                         </select>
-                        <input name="lines[{{ loop.index0 }}][newProductName]" placeholder="Nom du nouveau produit" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                        <input name="lines[{{ loop.index0 }}][newProductName]" value="{{ row ? row.newProductName : '' }}" placeholder="Nom du nouveau produit" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
                     </div>
                     <div>
                         <label class="text-xs text-slate-500">Categorie</label>
@@ -74,7 +74,7 @@
                     </div>
                     <div>
                         <label class="text-xs text-slate-500">Quantite</label>
-                        <input type="number" step="0.001" min="0" name="lines[{{ loop.index0 }}][quantity]" value="{{ row ? row.quantity : 1 }}" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                        <input type="number" step="0.001" min="0.001" name="lines[{{ loop.index0 }}][quantity]" value="{{ row ? row.quantity : 1 }}" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
                     </div>
                     <div>
                         <label class="text-xs text-slate-500">Unite</label>
@@ -91,7 +91,7 @@
                     <div class="flex items-end gap-2">
                         <div class="flex-1">
                             <label class="text-xs text-slate-500">Montant</label>
-                            <input type="number" step="0.01" min="0" name="lines[{{ loop.index0 }}][lineTotal]" value="{{ row ? row.lineTotal : '' }}" required class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                            <input type="number" step="0.01" min="0.01" name="lines[{{ loop.index0 }}][lineTotal]" value="{{ row ? row.lineTotal : '' }}" required class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
                         </div>
                         <button type="button" data-action="course-receipt-review#remove" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-rose-600 hover:bg-rose-50 hover:text-rose-800" aria-label="Retirer la ligne {{ loop.index }}" data-tippy-content="Retirer la ligne {{ loop.index }}"><i class="fa-solid fa-xmark"></i></button>
                     </div>
@@ -123,7 +123,7 @@
                 </div>
                 <div>
                     <label class="text-xs text-slate-500">Quantite</label>
-                    <input data-name="quantity" type="number" step="0.001" min="0" value="1" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    <input data-name="quantity" type="number" step="0.001" min="0.001" value="1" class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
                 </div>
                 <div>
                     <label class="text-xs text-slate-500">Unite</label>
@@ -142,7 +142,7 @@
                 <div class="flex items-end gap-2">
                     <div class="flex-1">
                         <label class="text-xs text-slate-500">Montant</label>
-                        <input data-name="lineTotal" type="number" step="0.01" min="0" required class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                        <input data-name="lineTotal" type="number" step="0.01" min="0.01" required class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
                     </div>
                     <button type="button" data-action="course-receipt-review#remove" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-rose-600 hover:bg-rose-50 hover:text-rose-800" aria-label="Retirer la ligne" data-tippy-content="Retirer la ligne"><i class="fa-solid fa-xmark"></i></button>
                 </div>

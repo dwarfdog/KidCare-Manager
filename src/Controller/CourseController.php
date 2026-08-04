@@ -143,24 +143,42 @@ class CourseController extends AbstractController
             }
         }
 
-        $lineRows = [];
-        foreach ($receipt->getLines() as $line) {
-            $lineRows[] = [
-                'rawLabel' => $encryption->decrypt($line->getEncryptedRawLabel()),
-                'product' => $line->getProduct(),
-                'category' => $line->getCategory(),
-                'quantity' => $line->getQuantity(),
-                'unit' => $line->getUnit(),
-                'unitPrice' => $line->getUnitPrice(),
-                'lineTotal' => $line->getLineTotal(),
-                'confidence' => $line->getConfidence(),
-            ];
+        if ($request->isMethod('POST')) {
+            // La validation a echoue plus haut : on reaffiche exactement ce que l'utilisateur a saisi
+            // (et non les donnees originales en base), pour ne jamais perdre ses corrections en cours.
+            $lineRows = $this->lineRowsFromSubmission((array) $request->request->all('lines'), $productRepository, $categoryRepository);
+            $selectedAccountPublicId = (string) $request->request->get('account', '');
+            $selectedPurchaseDate = (string) $request->request->get('purchaseDate', '');
+            $selectedStorePublicId = (string) $request->request->get('store', '');
+            $selectedNewStoreName = (string) $request->request->get('newStoreName', '');
+        } else {
+            $lineRows = [];
+            foreach ($receipt->getLines() as $line) {
+                $lineRows[] = [
+                    'rawLabel' => $encryption->decrypt($line->getEncryptedRawLabel()),
+                    'product' => $line->getProduct(),
+                    'newProductName' => '',
+                    'category' => $line->getCategory(),
+                    'quantity' => $line->getQuantity(),
+                    'unit' => $line->getUnit(),
+                    'unitPrice' => $line->getUnitPrice(),
+                    'lineTotal' => $line->getLineTotal(),
+                    'confidence' => $line->getConfidence(),
+                ];
+            }
+            $selectedAccountPublicId = $receipt->getAccount()?->getPublicId() ?? '';
+            $selectedPurchaseDate = $receipt->getPurchaseDate() ? $receipt->getPurchaseDate()->format('Y-m-d') : '';
+            $selectedStorePublicId = $receipt->getStore()?->getPublicId() ?? '';
+            $selectedNewStoreName = $receipt->getStore() === null ? $encryption->decrypt($receipt->getEncryptedStoreNameGuess()) : '';
         }
 
         return $this->render('courses/review.html.twig', [
             'receipt' => $receipt,
             'lineRows' => $lineRows,
-            'storeNameGuess' => $encryption->decrypt($receipt->getEncryptedStoreNameGuess()),
+            'selectedAccountPublicId' => $selectedAccountPublicId,
+            'selectedPurchaseDate' => $selectedPurchaseDate,
+            'selectedStorePublicId' => $selectedStorePublicId,
+            'selectedNewStoreName' => $selectedNewStoreName,
             'accountChoices' => $this->accountChoices($accountRepository, $accountManager),
             'stores' => $storeRepository->findActiveForUser($this->getUser()),
             'storeManager' => $storeManager,
@@ -518,6 +536,32 @@ class CourseController extends AbstractController
         $this->addFlash('warning', 'La liste de courses a ete archivee.');
 
         return $this->redirectToRoute('app_courses_shopping_lists');
+    }
+
+    /**
+     * @param array<int,array{rawLabel?:string,product?:string,newProductName?:string,category?:string,quantity?:mixed,unit?:string,unitPrice?:mixed,lineTotal?:mixed}> $rawLines
+     * @return array<int,array{rawLabel:string,product:?CourseProduct,newProductName:string,category:?\App\Entity\CourseCategory,quantity:string,unit:string,unitPrice:string,lineTotal:string,confidence:?string}>
+     */
+    private function lineRowsFromSubmission(array $rawLines, CourseProductRepository $productRepository, CourseCategoryRepository $categoryRepository): array
+    {
+        $rows = [];
+        foreach ($rawLines as $row) {
+            $productPublicId = trim((string) ($row['product'] ?? ''));
+            $categoryPublicId = trim((string) ($row['category'] ?? ''));
+            $rows[] = [
+                'rawLabel' => (string) ($row['rawLabel'] ?? ''),
+                'product' => $productPublicId !== '' ? $productRepository->findOneForUserByPublicId($this->getUser(), $productPublicId) : null,
+                'newProductName' => (string) ($row['newProductName'] ?? ''),
+                'category' => $categoryPublicId !== '' ? $categoryRepository->findOneForUserByPublicId($this->getUser(), $categoryPublicId) : null,
+                'quantity' => (string) ($row['quantity'] ?? ''),
+                'unit' => (string) ($row['unit'] ?? CourseProduct::UNIT_PIECE),
+                'unitPrice' => (string) ($row['unitPrice'] ?? ''),
+                'lineTotal' => (string) ($row['lineTotal'] ?? ''),
+                'confidence' => null,
+            ];
+        }
+
+        return $rows;
     }
 
     private function receiptOr404(string $publicId, CourseReceiptRepository $repository): CourseReceipt

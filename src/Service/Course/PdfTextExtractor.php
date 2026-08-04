@@ -81,6 +81,15 @@ final class PdfTextExtractor implements CourseTextExtractorInterface
             }
 
             return implode("\n", $text);
+        } catch (\ImagickException $e) {
+            throw new \RuntimeException(
+                "Ce PDF ne contient pas de texte extractible directement (probablement un ticket scanne) et " .
+                "la conversion en image via Imagick/Ghostscript a echoue sur ce serveur (extension installee mais " .
+                "non fonctionnelle : verifiez l'installation d'ImageMagick/Ghostscript). Reexportez le ticket en " .
+                "photo/JPEG en attendant. Erreur : " . $e->getMessage(),
+                0,
+                $e
+            );
         } finally {
             $imagick->clear();
         }

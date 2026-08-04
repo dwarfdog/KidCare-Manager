@@ -59,22 +59,29 @@ placer dans `C:\Program Files\Tesseract-OCR\tessdata`.
    gswin64c --version
    ```
 
-### 1.3. Extension PHP Imagick (optionnel — PDF scannés)
+### 1.3. Extension PHP Imagick + coders ImageMagick (optionnel — PDF scannés)
 
-C'est l'étape la plus délicate sous Windows : la DLL doit correspondre **exactement** à la version de PHP,
-son architecture (x64) et son mode (Thread Safe/`TS` ou Non-Thread-Safe/`NTS` — vérifiable via `php -i`
-ligne "Thread Safety" ou "Architecture").
+C'est l'étape la plus délicate sous Windows, **en deux temps obligatoires** : (a) l'extension PHP
+`php_imagick` elle-même, puis (b) les "coders" ImageMagick (plugins par format) dont elle a besoin en
+interne. Le zip PECL habituel ne fournit que le premier — s'arrêter là laisse Imagick "installé" mais
+totalement non fonctionnel (voir §1.3.2), ce qui a été vérifié en pratique.
 
-1. Vérifier la configuration PHP actuelle :
+#### 1.3.1. Extension PHP `php_imagick`
+
+1. Vérifier la configuration PHP actuelle : la DLL doit correspondre **exactement** à la version de PHP,
+   son architecture (x64) et son mode (Thread Safe/`TS` ou Non-Thread-Safe/`NTS`) :
    ```powershell
    php -v
    php -i | findstr "Architecture Thread"
    ```
 2. Télécharger la DLL `php_imagick` correspondante sur https://pecl.php.net/package/imagick (choisir la
-   version PHP, l'architecture et TS/NTS identiques). Le zip contient `php_imagick.dll` ainsi que les DLL
-   ImageMagick (`CORE_RL_*.dll`) nécessaires.
-3. Copier `php_imagick.dll` dans le dossier `ext\` de l'installation PHP, et les DLL ImageMagick
-   associées à côté de `php.exe` (ou dans un dossier du `PATH`).
+   version PHP, l'architecture et TS/NTS identiques). Le zip contient `php_imagick.dll`, un dossier
+   `config\` (fichiers `delegates.xml`, `policy.xml`, etc.) et les DLL ImageMagick (`CORE_RL_*.dll`)
+   nécessaires.
+3. Extraire et copier :
+   - `php_imagick.dll` → dossier `ext\` de l'installation PHP.
+   - Tous les `CORE_RL_*.dll` **et le dossier `config\` complet** → à côté de `php.exe` (racine du dossier
+     PHP, pas dans `ext\`).
 4. Ajouter dans `php.ini` :
    ```ini
    extension=imagick
@@ -84,8 +91,46 @@ ligne "Thread Safety" ou "Architecture").
    php -m | findstr imagick
    ```
 
-Si cette étape s'avère trop contraignante en développement, ce n'est pas bloquant : laissez `ext-imagick`
-non installé, tout le module fonctionne sauf le cas "PDF scanné" (voir vue d'ensemble ci-dessus).
+À ce stade, `imagick` apparaît comme chargé — mais ce n'est **pas** encore la preuve qu'il fonctionne :
+passer impérativement par §1.3.2.
+
+#### 1.3.2. Coders ImageMagick (obligatoires, absents du zip PECL seul)
+
+Le build `php_imagick` distribué pour Windows est un build **"Modules"** : il charge dynamiquement une DLL
+par format d'image (PNG, JPEG, PDF...) depuis un dossier `modules\coders\`, qui **n'est pas inclus dans le
+zip PECL** de l'étape précédente (celui-ci ne fournit que le binding PHP + les librairies de support). Sans
+ce dossier, `Imagick::queryFormats()` renvoie un résultat **vide et absolument aucun format n'est
+utilisable, y compris PNG/JPEG** — pas seulement le PDF — bien que `php -m` affiche `imagick` comme chargé.
+
+**Vérifier systématiquement après §1.3.1** :
+```powershell
+php -r "echo count(Imagick::queryFormats()) . ' formats enregistres' . PHP_EOL; print_r(Imagick::getConfigureOptions('FEATURES'));"
+```
+Si le nombre de formats est `0` et que `FEATURES` contient `Modules`, il manque les coders — appliquer
+l'une des deux solutions suivantes.
+
+**Solution A — installeur ImageMagick complet (recommandé)** :
+1. Télécharger l'installeur Windows officiel, variante **"dll"** (dynamique — pas "static") :
+   https://imagemagick.org/script/download.php#windows (ex : `ImageMagick-7.x.x-Q16-HDRI-x64-dll.exe`).
+2. L'exécuter avec les options par défaut. Il installe dans
+   `C:\Program Files\ImageMagick-7.x.x-Q16-HDRI-x64\` un dossier `modules\coders\*.dll` complet (cocher
+   l'option d'ajout au `PATH` proposée par l'installeur).
+3. Copier le dossier `modules\` de ce répertoire d'installation vers le dossier PHP, **au même niveau que
+   les `CORE_RL_*.dll` et `config\`** de l'étape 1.3.1 (donc à côté de `php.exe`).
+4. Redémarrer le serveur web et relancer la commande de vérification ci-dessus : le nombre de formats doit
+   passer à plusieurs centaines, et `Imagick::queryFormats('PDF*')` doit renvoyer `PDF`.
+
+**Solution B — archive portable ImageMagick (sans installeur)** :
+1. Télécharger l'archive portable Windows, variante **"dll"**, depuis la même page (ex :
+   `ImageMagick-7.x.x-portable-Q16-x64.zip`).
+2. Extraire l'archive dans un dossier temporaire, y repérer le dossier `modules\`.
+3. Copier ce dossier `modules\` vers le dossier PHP, au même niveau que les `CORE_RL_*.dll` et `config\`.
+4. Revérifier avec la même commande PHP qu'en solution A.
+
+Si aucune des deux solutions n'est faite, ce n'est pas bloquant : laissez `ext-imagick` non installé (ou
+non fonctionnel), tout le reste du module fonctionne normalement — seul le cas "PDF scanné" échoue
+proprement avec un message explicite invitant à réexporter le ticket en photo (qui, lui, passe uniquement
+par Tesseract et n'a pas besoin d'Imagick).
 
 ### 1.4. Configuration `.env.local`
 
@@ -152,6 +197,15 @@ sudo systemctl restart apache2      # ou nginx, selon le serveur web utilise
 php -m | grep -i imagick
 ```
 
+À la différence de Windows (§1.3), le paquet `php-imagick` sur Debian/Ubuntu tire automatiquement via `apt`
+toutes les dépendances nécessaires (`libmagickcore-*`, `libmagickwand-*`), coders inclus — il n'y a **pas**
+d'étape manuelle équivalente à la copie du dossier `modules\` de §1.3.2. Vérifier que les formats sont bien
+enregistrés (doit renvoyer plusieurs centaines, pas `0`) :
+
+```bash
+php -r "echo count(Imagick::queryFormats()) . ' formats enregistres' . PHP_EOL;"
+```
+
 ### 2.4. Autoriser ImageMagick à lire les PDF (étape souvent oubliée)
 
 Par défaut, la politique de sécurité d'ImageMagick sur Debian/Ubuntu **interdit** la lecture/écriture de
@@ -207,6 +261,18 @@ echo "Langues disponibles : " . implode(", ", $ocr->availableLanguages()) . PHP_
 une photo de ticket lisible, et vérifier que l'écran de relecture affiche des lignes cohérentes (voir
 `docs/commands.md` pour le reste du cycle de déploiement standard, sans particularité pour ce module).
 
+Si Ghostscript/Imagick ont été installés (PDF scannés), vérifier aussi qu'Imagick a bien des formats
+enregistrés avant de tester un PDF scanné depuis l'application (voir §1.3.2 pour Windows, §2.3 pour
+Debian) :
+
+```bash
+php -r "echo count(Imagick::queryFormats()) . ' formats enregistres' . PHP_EOL;"
+```
+
+Un résultat à `0` signifie qu'Imagick est chargé mais non fonctionnel (voir §1.3.2 sous Windows) ; dans ce
+cas, un PDF scanné échouera avec un message explicite en base de ticket, mais rien d'autre dans
+l'application n'est affecté.
+
 ---
 
 ## 4. Dépannage — messages d'erreur du module et leur cause
@@ -218,6 +284,7 @@ Ces messages sont ceux renvoyés par l'application elle-même (`App\Service\Cour
 |---|---|---|
 | "Impossible d'executer l'OCR local (Tesseract). Verifiez que le binaire est installe et accessible (TESSERACT_BINARY_PATH=...)" | Tesseract n'est pas installe, ou `TESSERACT_BINARY_PATH` pointe vers un chemin invalide | Reprendre §1.1 (Windows) ou §2.1 (Debian) ; verifier `tesseract --version` en ligne de commande avec le meme utilisateur que le serveur web (`www-data` en prod) |
 | "Ce PDF ne contient pas de texte extractible directement (...) et l'extension PHP Imagick (+ Ghostscript) n'est pas installee sur ce serveur" | Le PDF importe est un scan/image sans texte natif, et `ext-imagick` n'est pas active | Installer Imagick + Ghostscript (§1.2/§1.3 ou §2.2/§2.3), ou reexporter le ticket en photo (JPEG/PNG) qui fonctionne sans Imagick |
+| "(...) la conversion en image via Imagick/Ghostscript a echoue sur ce serveur (extension installee mais non fonctionnelle...)" | `ext-imagick` est charge (`php -m` l'affiche) mais aucun coder n'est enregistre — voir §1.3.2 (build "Modules" incomplet, coders manquants, Windows uniquement) | Suivre §1.3.2 (solution A ou B) ; en attendant, reexporter le ticket en photo (JPEG/PNG) qui fonctionne sans Imagick |
 | Erreur `not authorized ... @ error/constitute.c/ReadImage` (visible dans les logs Symfony, `var/log/`) | Politique de securite ImageMagick interdisant la lecture de PDF (Debian uniquement) | Suivre §2.4 |
 | "Aucun texte n'a pu etre extrait de ce fichier" | OCR execute mais photo illisible (flou, mal cadree, trop sombre) | Reessayer avec une photo plus nette ; ce n'est pas un probleme d'installation |
 

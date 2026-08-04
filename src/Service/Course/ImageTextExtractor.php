@@ -34,9 +34,13 @@ final class ImageTextExtractor implements CourseTextExtractorInterface
         try {
             $ocr = new TesseractOCR($filePath);
             $ocr->executable($this->tesseractBinaryPath !== '' ? $this->tesseractBinaryPath : 'tesseract');
+            // PSM 6 (bloc de texte uniforme) : sans cela, Tesseract regroupe le texte par colonnes
+            // (tous les libelles, puis tous les prix) des qu'un ticket a un grand espace entre le
+            // libelle et le prix aligne a droite, ce qui casse le parsing ligne-par-ligne.
+            // ->psm()/->lang() sont des methodes magiques (TesseractOCR::__call) sans annotation @method
+            // fournie par la librairie ; call_user_func_array evite un faux positif d'analyse statique.
+            call_user_func_array([$ocr, 'psm'], [6]);
             if ($this->tesseractLanguages !== '') {
-                // ->lang() est une methode magique (TesseractOCR::__call) sans annotation @method fournie
-                // par la librairie ; call_user_func_array evite un faux positif d'analyse statique.
                 call_user_func_array([$ocr, 'lang'], explode('+', $this->tesseractLanguages));
             }
 
